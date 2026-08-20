@@ -33,7 +33,7 @@ RUN_REAL_HFSS.py
 → checkpoint/artifacts/finalization
 ```
 
-This topology is `WIRED`, but the current working-tree Full Workflow remains `BROKEN`. ISSUE-002 is resolved for Production: WF-001 now loads the versioned six-rule Production Evaluation Contract v1, and a 5–19 GHz test-only route proves rule evidence, neutral diagnosis, ACTIVE intent/objective, optimizer, candidate gate, and candidate HFSS reachability. ISSUE-003 is the current first blocker because candidate comparison calls unimported `emit_status`.
+This topology is `WIRED`, but the current working-tree Full Workflow remains `BROKEN`. ISSUE-002 is resolved for Production, and ISSUE-003 is resolved by importing the existing status presenter into candidate comparison. A 5–19 GHz test-only WF-001 route now proves rule evidence, neutral diagnosis, ACTIVE intent/objective, optimizer, candidate gate, candidate HFSS, comparison, candidate diagnosis, Best-update reachability, and terminal completion. That route exposes ISSUE-004 as the current first blocker: comparison reports `FULLY_ACHIEVED`, but the legacy Best predicate retains baseline.
 
 ## Current code baseline
 
@@ -70,7 +70,7 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 | Target-only nine-parameter Builder | `WIRED` | Unit tested and historically real exercised |
 | Baseline and candidate independent projects | `WIRED` | `HISTORICALLY VERIFIED` |
 | Complex S-parameter and Touchstone export | `WIRED` | `HISTORICALLY VERIFIED` |
-| Rule evaluator and comparison | `WIRED`; Production Contract v1 configured only in WF-001 | Rule/evidence/Diagnosis/Intent targeted tests pass; comparison reaches ISSUE-003 |
+| Rule evaluator and comparison | `WIRED`; Production Contract v1 configured only in WF-001 | Rule/evidence/Diagnosis/Intent targeted tests pass; rule-configured comparison regression and safe Graph pass |
 | Surrogate/HFSS calibration | `PRESENT BUT UNUSED` | Calibration function unit tested; no production calibration report |
 | Checkpoint and artifact store | `WIRED` | Unit tested; current resume E2E fails |
 
@@ -78,8 +78,8 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 
 - **ISSUE-001 — BLOCKER / RESOLVED:** presenter now explicitly receives the real baseline `EvaluationResult`; direct regression and current-source Agent/Offline execution prove the NameError is removed.
 - **ISSUE-002 — BLOCKER / RESOLVED:** WF-001 loads Production Evaluation Contract v1; six authoritative HARD/SOFT rules retain rule-level evidence and hard failures reach neutral Diagnosis → ACTIVE OptimizationIntent.
-- **ISSUE-003 — BLOCKER / CURRENT FIRST BLOCKER:** a safe WF-001 test-only Graph probe reaches `compare_hfss_results` and reproduces the unimported `emit_status` NameError. It was not repaired in the ISSUE-002 scope.
-- **ISSUE-004 — HIGH:** rule evaluation and Best-update semantics are causally disconnected (`improved=False`, `score=0.0`).
+- **ISSUE-003 — BLOCKER / RESOLVED:** candidate comparison imports the existing `emit_status` presenter; the rule-configured regression and safe WF-001 Graph complete comparison without the NameError.
+- **ISSUE-004 — HIGH / CURRENT FIRST BLOCKER:** rule evaluation and Best-update semantics are causally disconnected (`improved=False`, `score=0.0`). The safe route reports `FULLY_ACHIEVED` yet records `update_hfss_best:retained` with baseline still Best.
 - **ISSUE-009 — HIGH:** historical paired results show surrogate/HFSS ranking reversal and calibration is not wired into Production.
 
 ## Current validation level
@@ -88,10 +88,12 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 - Package import provenance: `PASS`; the project `.venv` editable install, ordinary import, and module CLI resolve to `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode\src` (ISSUE-023 resolved).
 - ISSUE-001 direct presenter regression: `PASS`; full terminal presenter file: 8 passed.
 - ISSUE-002 targeted regression: `PASS` — 40 passed across the new contract plus existing evaluator/diagnosis/intent/state coverage.
-- Main test suite: `FAIL` — 106 collected, 100 passed, 6 failed. The same one WF-002 CLI and five stale Mock graph/checkpoint/resume failures remain; no new failure was introduced.
+- ISSUE-003 targeted Production-contract/Graph file: `PASS` — 12 passed; the direct new regression passes independently (1 passed).
+- Comparison evaluator/components: `PASS` — 15 passed; five deprecated Mock graph/checkpoint/resume tests remain `FAIL` under ISSUE-008.
+- Main test suite: `FAIL` — 107 collected, 101 passed, 6 failed. The same one WF-002 CLI and five stale Mock graph/checkpoint/resume failures remain; no new failure was introduced.
 - Supplied optimizer tests: `PASS` — 7 passed.
 - Standalone supplied Builder test under Agent Python: `FAIL` during collection because `ansys` is not installed in that interpreter.
-- WF-001 test-only Production-band Graph: reaches optimizer, candidate gate, candidate HFSS, and enters `compare_hfss_results`, where ISSUE-003 raises the known NameError.
+- WF-001 test-only Production-band Graph: completes through comparison, candidate diagnosis, Best update, decision, and `complete`; comparison is `FULLY_ACHIEVED`, while Best remains baseline and exposes ISSUE-004.
 - Current-source WF-002 Offline Agent: still uses its deprecated 1/2/3 GHz Mock/empty-rule configuration and completes INVALID; it was deliberately not adapted to the Production contract.
 - Package CLI environment: `WIRED / INTEGRATION TESTED`; direct `.venv` module invocation imports the current repository. Its exposed command remains the deprecated WF-002 empty-rule path and is not WF-001 evidence.
 - Supplied optimizer + MockHFSS workflow: `BROKEN` by the same current graph path; not rerun separately after deterministic test proof.
@@ -118,7 +120,7 @@ The current vendor optimizer source/config hashes do match the hashes stored in 
 
 Marker: **REAL HFSS FULL WORKFLOW SHOULD NOT BE RUN**.
 
-ISSUE-001 and ISSUE-002 are repaired. WF-001 has an explicit Production Evaluation Contract, but the safe current-tree route now proves ISSUE-003 at candidate comparison. ISSUE-003 and additional semantic disconnects remain, so a real run is still prohibited.
+ISSUE-001, ISSUE-002, and ISSUE-003 are repaired. WF-001 has an explicit Production Evaluation Contract and the safe current-tree route completes comparison, but it now directly proves the ISSUE-004 Best-update causal disconnect. ISSUE-004 and additional semantic disconnects remain, so a real run is still prohibited.
 
 ## Current development focus and next phase
 

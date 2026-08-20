@@ -1,6 +1,6 @@
 # Validation Matrix
 
-Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence; no test or HFSS run was performed for the correction. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT AVAILABLE`, `STALE`, `UNKNOWN`, or `NEEDS VERIFICATION`. Historical evidence is separated from current-working-tree evidence.
+Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT AVAILABLE`, `STALE`, `UNKNOWN`, or `NEEDS VERIFICATION`. Historical evidence is separated from current-working-tree evidence.
 
 ## Status dimensions
 
@@ -29,9 +29,9 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 | Candidate parameter validation | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches candidate validation |
 | Candidate surrogate gate | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches and passes the candidate gate |
 | Candidate HFSS orchestration | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches candidate HFSS without AEDT |
-| Baseline/candidate comparison | PASS | PASS | FAIL | PASS | Route now enters comparison and exposes ISSUE-003 locally |
-| Candidate diagnosis | PASS | PASS | NEEDS VERIFICATION | FAIL | Unit evidence exists; current route does not reach it |
-| Best update | PASS | STALE | FAIL | FAIL | ISSUE-004 semantic disconnect is local; current route is also blocked upstream |
+| Baseline/candidate comparison | PASS | PASS | PASS | PASS | Existing presenter contract is imported; dedicated regression and safe Graph complete `FULLY_ACHIEVED` comparison |
+| Candidate diagnosis | PASS | PASS | PASS | PASS | Safe rule-configured Graph reaches candidate diagnosis after comparison |
+| Best update | PASS | STALE | FAIL | PASS | Route reaches Best update, but ISSUE-004 retains baseline despite `FULLY_ACHIEVED` comparison |
 | HFSS contract/port/complex conversion | PASS | PASS | PASS | PASS | Fake worker/backend integration passes and baseline HFSS route contains the boundary |
 | Target-only Builder | PASS | PASS | PASS | PASS | Stubbed Builder integration passes; real current-tree execution remains NOT RUN |
 | Standalone Builder test harness | PASS | FAIL | NOT RUN | NOT AVAILABLE | Collection fails in Agent Python because `ansys` is absent |
@@ -47,7 +47,7 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-002 resolved; ISSUE-003 is current first blocker and was exposed by a safe test-only Graph probe |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-002/003 resolved; ISSUE-004 is current first blocker and is exposed by a safe test-only Graph probe |
 | WF-002 deterministic Offline | FAIL | NOT AVAILABLE | FAIL | Deprecated Mock path remains empty-rule/1–3 GHz and was deliberately not adapted to the Production contract |
 | WF-003 supplied optimizer + MockHFSS | NOT RUN | NOT AVAILABLE | NOT RUN | Deprecated Mock path was not adapted or rerun; Production Contract v1 is WF-001-only |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
@@ -59,6 +59,19 @@ Interpretation:
 - WF-001 has readiness `FAIL`, but its actual current real-HFSS and E2E results are `NOT RUN`; readiness is not substituted for an execution result.
 
 ## Executed validation commands
+
+### ISSUE-003 comparison status presenter import
+
+- **Date:** 2026-08-20.
+- **Before:** safe rule-configured WF-001 Graph reached `compare_hfss_results` and raised `NameError: name 'emit_status' is not defined` at `comparison_nodes.py:320`.
+- **Contract inspection:** `harness.terminal.emit_status(scope, status, *, detail=None, stream=None)` is the existing definition/export used by production callers; both comparison calls already matched that contract.
+- **Direct regression:** `.venv\Scripts\python.exe -m pytest tests/test_production_evaluation_contract.py::test_rule_configured_wf001_graph_completes_comparison_after_presenter_import -q` — `PASS` (1 passed).
+- **ISSUE-003 target file:** `.venv\Scripts\python.exe -m pytest tests/test_production_evaluation_contract.py -q` — `PASS` (12 passed).
+- **Comparison-related:** evaluator file `PASS` (15 passed); legacy comparison Graph file `FAIL` (5 failed) because its deprecated Mock fixtures remain empty-rule/INVALID under ISSUE-008.
+- **Full main suite:** `FAIL` — 107 collected, 101 passed, 6 failed. The unchanged failures are one deprecated WF-002 CLI and five stale Mock graph/checkpoint/resume cases.
+- **Safe full-Graph probe:** comparison `FULLY_ACHIEVED`; graph reaches candidate diagnosis, Best update, decision, and `complete`. `BEST=baseline` plus `update_hfss_best:retained` exposes ISSUE-004; it was not repaired.
+- **Vendor optimizer suite:** `PASS` — 7 passed.
+- **HFSS/AEDT:** NOT RUN.
 
 ### ISSUE-002 Production Evaluation Contract v1
 
@@ -75,9 +88,9 @@ Interpretation:
 
 - **Date:** 2026-08-20
 - **Command:** `.venv\Scripts\python.exe -m pytest -q`
-- **Post-ISSUE-002 result:** `FAIL` — 106 collected, 100 passed, 6 failed.
+- **Post-ISSUE-003 result:** `FAIL` — 107 collected, 101 passed, 6 failed.
 - **Failures:** one CLI E2E and five comparison graph/checkpoint/resume tests.
-- **Current failure boundary:** the one WF-002 CLI and five Mock graph/checkpoint/resume tests retain empty-rule/1–3 GHz fixtures and stale expectations under ISSUE-008. Production ISSUE-002 is resolved; no failure is newly introduced by its tests.
+- **Current failure boundary:** the one WF-002 CLI and five Mock graph/checkpoint/resume tests retain empty-rule/1–3 GHz fixtures and stale expectations under ISSUE-008. Production ISSUE-002/003 are resolved; no failure is newly introduced by the ISSUE-003 regression.
 - **Secondary stale evidence:** graph trace expectations predate diagnosis/intent/objective nodes.
 
 ### ISSUE-001 targeted regression

@@ -8,7 +8,7 @@ from ..core.models import CandidateParameters
 from ..harness.artifacts import ArtifactStore
 from ..harness.checkpoint import JsonComparisonCheckpointStore
 from ..harness.errors import HFSSExecutionError, OptimizerError, SParameterCalculationError, WorkflowError
-from ..harness.terminal import emit_stage, emit_evaluation_summary, emit_diagnosis_summary, emit_optimization_intent
+from ..harness.terminal import emit_stage, emit_status, emit_evaluation_summary, emit_diagnosis_summary, emit_optimization_intent
 from ..interfaces.batch_optimizer import BatchOptimizerInterface
 from ..interfaces.evaluator import EvaluatorInterface
 from ..interfaces.hfss import HFSSInterface

@@ -79,3 +79,17 @@ This file is append only. New task records are added at the end.
 - **Vendor optimizer suite:** 7 PASS; no vendor config or behavior changed.
 - **Status:** ISSUE-002 RESOLVED. ISSUE-003 is now CURRENT FIRST BLOCKER.
 - **HFSS:** NOT RUN. AEDT/PyAEDT/real Builder/solve were not started.
+
+## 2026-08-20 — ISSUE-003 COMPARISON STATUS PRESENTER IMPORT REPAIRED
+
+- **Scope:** ISSUE-003 only. ISSUE-004/005/006/007/008, Calibration, Production Evaluation Contract v1, Comparator/Best semantics, terminal status model, and real HFSS were not modified.
+- **Before:** the safe rule-configured WF-001 test-only Graph passed baseline evaluation, neutral diagnosis, ACTIVE intent/objective, optimizer, candidate validation/gate, and fake candidate HFSS, then raised `NameError: name 'emit_status' is not defined` in `compare_hfss_results`.
+- **Root cause:** comparison already called the existing `harness.terminal.emit_status(scope, status, *, detail=None, stream=None)` contract correctly, but omitted `emit_status` from its terminal import list.
+- **Fix:** added only the existing presenter import; comparison and Best-update logic were not refactored.
+- **Regression:** dedicated rule-configured Graph regression PASS; full Production-contract test file 12 PASS; evaluator comparison components 15 PASS. Five deprecated Mock graph tests remain FAIL under ISSUE-008.
+- **Main suite:** 107 collected, 101 PASS / 6 FAIL. The unchanged failures are one deprecated WF-002 CLI and five stale Mock graph/checkpoint/resume cases.
+- **Safe Graph reachability:** comparison reports `FULLY_ACHIEVED`, then reaches candidate diagnosis, Best update, decision, and `complete`.
+- **New first blocker:** ISSUE-004 is directly exposed: `BEST=baseline` and `update_hfss_best:retained` despite `FULLY_ACHIEVED`. It was recorded and not fixed.
+- **Vendor optimizer suite:** 7 PASS; no vendor code/configuration changed.
+- **Status:** ISSUE-003 RESOLVED. ISSUE-004 is now CURRENT FIRST BLOCKER.
+- **HFSS:** NOT RUN. AEDT/PyAEDT/real Builder/solve were not started.

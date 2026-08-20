@@ -8,7 +8,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 |---|---|---|---|---|
 | ISSUE-001 | BLOCKER | RESOLVED | BUG / REGRESSION | Undefined `evaluation` crashed optimization-intent output |
 | ISSUE-002 | BLOCKER | RESOLVED | INTEGRATION / EVALUATION | WF-001 lacked a Production Evaluation Contract |
-| ISSUE-003 | BLOCKER | OPEN | BUG / REGRESSION | Candidate comparison calls unimported `emit_status` |
+| ISSUE-003 | BLOCKER | RESOLVED | BUG / REGRESSION | Candidate comparison called unimported `emit_status` |
 | ISSUE-004 | HIGH | OPEN | EVALUATION / STATE | Rule comparison cannot drive Best update or summary |
 | ISSUE-005 | HIGH | OPEN | OPTIMIZATION / ARCHITECTURE | Diagnosis objective does not control supplied optimizer |
 | ISSUE-006 | HIGH | OPEN | STATE / HFSS | Failed/invalid candidate paths can finish as completed |
@@ -32,30 +32,16 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 ## Open and partially resolved issues
 
-### ISSUE-003 — Candidate comparison calls unimported `emit_status`
-
-- **Classification:** BUG / REGRESSION
-- **Severity / status:** BLOCKER / OPEN
-- **Blocking order:** **CURRENT FIRST BLOCKER / exposed after ISSUE-002**. A rule-configured safe WF-001 test-only route now reaches candidate comparison.
-- **Location:** `agent/comparison_nodes.py` import list and `compare_hfss_results` lines 320/324.
-- **Description:** `emit_status` is called but not imported.
-- **Impact:** candidate comparison, Offline E2E, supplied-Mock E2E, real candidate E2E.
-- **Trigger:** a valid route reaches comparison and produces an `EvaluationComparison`.
-- **Evidence:** static source inspection plus the 2026-08-20 safe Graph probe, which reached `compare_hfss_results` after candidate HFSS and raised `NameError: name 'emit_status' is not defined`.
-- **Workaround:** none.
-- **Fixed:** no.
-- **Needs verification:** repair must be covered by the rule-configured comparison route; not attempted in ISSUE-002 scope.
-- **Suggested next action:** repair ISSUE-003 only, then rerun the safe Production-band Graph route.
-
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
 
 - **Classification:** EVALUATION / STATE / CAUSAL DISCONNECT
 - **Severity / status:** HIGH / OPEN
+- **Blocking order:** **CURRENT FIRST BLOCKER / exposed after ISSUE-003**.
 - **Location:** `evaluation/evaluator.py::evaluate_sparameters` returns `improved=False, score=0.0`; `comparison_nodes.py::update_hfss_best`; `cli.py::_summary`.
 - **Description:** rule improvement is represented in `EvaluationComparison.classification`, while Best and summary read unrelated legacy fields from `EvaluationResult`.
 - **Impact:** Optimization result reporting and Best persistence; an improved candidate cannot replace baseline under the default evaluator.
 - **Trigger:** any valid rule-based candidate comparison.
-- **Evidence:** direct return construction and update predicate; no passing integration test reaches the new semantics.
+- **Evidence:** direct return construction and update predicate; the 2026-08-20 safe rule-configured WF-001 Graph now reports comparison `FULLY_ACHIEVED` but finishes with `BEST=baseline` and `update_hfss_best:retained`.
 - **Workaround:** custom evaluator could populate legacy fields, but no formal entry injects one.
 - **Fixed:** no.
 - **Suggested next action:** choose one authoritative comparison/score contract and update state, summary, Best, and tests together.
@@ -271,6 +257,18 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 ## Resolved issues retained for history
 
+### ISSUE-003 — Candidate comparison called unimported `emit_status`
+
+- **Classification:** BUG / REGRESSION
+- **Severity / status:** BLOCKER / RESOLVED
+- **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-002.
+- **Root cause:** `compare_hfss_results` called `emit_status` with the existing presenter contract but omitted it from the `harness.terminal` import list.
+- **Resolution:** imported the existing `emit_status`; no comparison, evaluation, status-model, or Best-update logic changed.
+- **Evidence before:** the rule-configured safe WF-001 route reached comparison after candidate HFSS and raised `NameError: name 'emit_status' is not defined`.
+- **Evidence after:** the dedicated Graph regression passes; the safe 5–19 GHz route completes comparison with `FULLY_ACHIEVED` and reaches `complete`.
+- **Fixed:** yes, 2026-08-20.
+- **Remaining boundary at completion:** ISSUE-004 is now the current first blocker; it was exposed and not repaired.
+
 ### ISSUE-002 — WF-001 lacked a Production Evaluation Contract
 
 - **Classification:** INTEGRATION / EVALUATION
@@ -304,7 +302,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Resolution:** presenter contract now explicitly accepts `evaluation`, and `build_optimization_intent` passes `state["baseline_evaluation"]`; no dummy, fallback, hard-coded margin, evaluation-rule, or objective behavior was introduced.
 - **Evidence:** original current-source CLI test reproduced `NameError`; direct regression passed; all 8 terminal presenter tests passed; post-fix main suite has 88 pass / 6 downstream failures without the NameError; current-source Offline route reaches `build_optimization_objective`.
 - **Fixed:** yes, 2026-08-20.
-- **Remaining boundary at completion:** ISSUE-002 became the next blocker. ISSUE-002 is now resolved separately; ISSUE-003 is current first blocker.
+- **Remaining boundary at completion:** ISSUE-002 became the next blocker. ISSUE-002 and ISSUE-003 were subsequently resolved; ISSUE-004 is now the current first blocker.
 
 ### ISSUE-021 — Explicit material SolveInside classification regression
 

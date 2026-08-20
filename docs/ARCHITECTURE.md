@@ -82,7 +82,7 @@ The source announces 14 presentation stages, but the graph has 17 nodes and reus
 | `recalculate_candidate_sparameters` | candidate | candidate result/history | surrogate | failure left to gate |
 | `candidate_sparameter_gate` | candidate surrogate | next action | router | RUN_HFSS or complete |
 | `run_candidate_hfss` | candidate | candidate HFSS/history | HFSS | failed result does not raise |
-| `compare_hfss_results` | baseline/candidate | evaluation/comparison/history | evaluator/comparator | current ISSUE-003 missing import |
+| `compare_hfss_results` | baseline/candidate | evaluation/comparison/history | evaluator/comparator/status presenter | comparison completes on rule-configured safe route |
 | `diagnose_candidate` | evaluation/comparison | diagnosis/history | DiagnosisNode | none |
 | `update_hfss_best` | evaluation, candidate, Best | optional Best | artifact/checkpoint | semantic disconnect exists |
 | `decide_after_hfss` | result/evaluation | next action | router | PASS and STOP both complete |
@@ -166,7 +166,7 @@ The graph passes `optimization_objective` into the adapter, but the adapter reco
 
 `DeterministicEvaluator.evaluate_sparameters` evaluates explicit S11/S21 hard/soft band rules. WF-001 loads versioned `production-evaluation-v1`: Core 6–18 GHz HARD `S21_dB <= -30 dB` and `S11_dB >= -0.5 dB`, with identical SOFT targets on 5–6 and 18–19 GHz. All use all-points/worst-case evaluation. Vendor phase/passivity constraints are not Production PASS/FAIL rules. `EvaluationComparator` compares baseline and candidate rule artifacts. `DiagnosisNode` consumes only `EvaluationResult`; the Production directions use neutral S11/S21 rule-not-met issue/focus values.
 
-WF-001 supplies the contract and safe no-AEDT evidence reaches candidate comparison. Rule evaluation still does not populate the legacy `improved`/`score` fields used by Best update. ISSUE-002 is resolved; see ISSUE-003 and ISSUE-004 for the next downstream defects.
+WF-001 supplies the contract and safe no-AEDT evidence completes candidate comparison and downstream graph nodes. Rule evaluation still does not populate the legacy `improved`/`score` fields used by Best update: a `FULLY_ACHIEVED` comparison retains baseline. ISSUE-002 and ISSUE-003 are resolved; ISSUE-004 is the current downstream causal disconnect.
 
 ## Calibration boundary
 

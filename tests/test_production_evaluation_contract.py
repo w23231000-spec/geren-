@@ -38,6 +38,9 @@ from hfss_optimization_agent.optimization.intent import (
     CORE_RECOVERY,
     OptimizationIntentBuilder,
 )
+from hfss_optimization_agent.optimization.deterministic_batch_optimizer import (
+    DeterministicBatchOptimizer,
+)
 from hfss_optimization_agent.parameters.nine_parameter_schema import (
     supplied_baseline_candidate,
     supplied_nine_parameter_schema,
@@ -259,7 +262,8 @@ class ProductionBandSurrogate:
 class ProductionBandHFSS:
     def run(self, candidate: CandidateParameters) -> HFSSResult:
         s21 = passing_s21()
-        s21[FREQUENCIES.index(12.0)] = -28.0
+        if candidate.candidate_id == "baseline":
+            s21[FREQUENCIES.index(12.0)] = -28.0
         return HFSSResult(
             candidate.candidate_id,
             True,
@@ -307,6 +311,38 @@ def test_wf001_nodes_reach_active_objective_with_production_band_test_fixture(tm
     assert state["execution_trace"][-1] == "build_optimization_objective"
     evidence = tmp_path / state["task_id"] / "baseline" / "evaluation_result.json"
     assert evidence.exists()
+
+
+def test_rule_configured_wf001_graph_completes_comparison_after_presenter_import(
+    tmp_path,
+):
+    evaluation = load_production_evaluation_config(CONTRACT_PATH)
+    baseline = supplied_baseline_candidate()
+    state = create_comparison_state(
+        task_id="issue003-comparison-regression",
+        baseline_parameters=baseline,
+    )
+    runner = compose_comparison_workflow(
+        task_id=state["task_id"],
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=AppConfig(artifact_root=tmp_path, evaluation=evaluation),
+        sparameters=ProductionBandSurrogate(),
+        optimizer=DeterministicBatchOptimizer((1.05,)),
+        hfss=ProductionBandHFSS(),
+    )
+    final = runner.invoke(state)
+    assert final["status"] == "completed"
+    assert "compare_hfss_results" in final["execution_trace"]
+    assert final["evaluation_comparison"].classification == "FULLY_ACHIEVED"
+    assert final["evaluation_result"].status == "PASS"
+    comparison_artifact = (
+        tmp_path
+        / state["task_id"]
+        / "candidate"
+        / "evaluation_comparison.json"
+    )
+    assert comparison_artifact.exists()
 
 
 def test_wf001_real_composition_loads_production_rules_without_running_hfss(

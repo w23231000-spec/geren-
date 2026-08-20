@@ -51,9 +51,9 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 - **Call chain:** runtime config/HFSS contract/Production Evaluation Contract checks → state creation → real/supplied provider composition → shared LangGraph → real baseline HFSS → evaluation/diagnosis/intent/objective → supplied optimizer → candidate gate → real candidate HFSS → comparison/Best/artifacts.
 - **Inputs:** runtime JSON, Production Evaluation Contract v1, nine-parameter baseline/schema, HFSS contract, vendor optimizer/config, vendor Builder, PyAEDT interpreter.
 - **Outputs:** task/checkpoint/baseline/optimizer/candidate/Best JSON, independent AEDT projects, journals, structured complex S parameters, two Touchstone files when fully reached.
-- **Reachability:** formal and reachable. A safe 5–19 GHz test-only Graph probe reaches candidate comparison and exposes ISSUE-003; current real execution is NOT RUN.
+- **Reachability:** formal and reachable. A safe 5–19 GHz test-only Graph probe completes comparison and the remaining graph nodes; it exposes ISSUE-004 because `FULLY_ACHIEVED` still retains baseline. Current real execution is NOT RUN.
 - **Verification:** `HISTORICALLY VERIFIED` for run `real-vscode-20260818-101711`; current tree `BROKEN / NOT RUN`.
-- **Known issues:** ISSUE-001/002 resolved; ISSUE-003 through ISSUE-006, ISSUE-009 through ISSUE-015, ISSUE-019 remain.
+- **Known issues:** ISSUE-001/002/003 resolved; ISSUE-004 through ISSUE-006, ISSUE-009 through ISSUE-015, ISSUE-019 remain.
 - **Relation:** same graph as WF-002/WF-003; real HFSS is delegated to WF-011.
 
 ## WF-002 — Deterministic offline Agent
@@ -62,9 +62,9 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 - **Call chain:** `run_offline_demo` → deterministic surrogate/optimizer/MockHFSS injection → shared graph/artifacts.
 - **Inputs:** optional task/artifact root; built-in baseline and 1/2/3 GHz Mock grids.
 - **Outputs:** Agent JSON artifacts/checkpoint and CLI summary; no AEDT.
-- **Reachability:** formal and reachable; currently fails at optimization-intent terminal output.
+- **Reachability:** formal and reachable; currently completes INVALID before candidate stages because its deprecated empty-rule fixture has no Production contract.
 - **Verification:** current test-backed `FAIL`; older run directories are `HISTORICALLY VERIFIED` only.
-- **Known issues:** deprecated Mock path retains empty rules and 1/2/3 GHz data; ISSUE-003, ISSUE-004, ISSUE-007, ISSUE-008.
+- **Known issues:** deprecated Mock path retains empty rules and 1/2/3 GHz data; ISSUE-004, ISSUE-007, ISSUE-008.
 - **Relation:** safest graph regression path and should pass before WF-001.
 
 ## WF-003 — Supplied surrogate/optimizer + MockHFSS Agent
@@ -75,7 +75,7 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 - **Outputs:** Agent artifacts plus vendor optimizer report/plots/CSV.
 - **Reachability:** formal and reachable; shares current graph blockers.
 - **Verification:** vendor optimizer components pass; current Agent E2E `BROKEN`; historical supplied-Mock runs exist.
-- **Known issues:** deprecated Mock route retains empty rules/1–3 GHz data; ISSUE-003 through ISSUE-005 and ISSUE-007 through ISSUE-009.
+- **Known issues:** deprecated Mock route retains empty rules/1–3 GHz data; ISSUE-004/005 and ISSUE-007 through ISSUE-009.
 - **Relation:** validates real surrogate/optimizer without AEDT.
 
 ## WF-004 — Presentation environment preflight
@@ -92,7 +92,7 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 - **Entry:** `python -m pytest`; VS Code launch 4; `pyproject.toml` restricts `testpaths` to `tests`.
 - **Scope:** Agent state/models, graph, evaluation, diagnosis, intent/objective, parameters, mocks, Builder units, HFSS guards/worker protocol, artifacts/checkpoint, terminal.
 - **Outputs:** test report and temporary artifacts; no real AEDT.
-- **Verification:** 106 collected; 100 PASS, 6 FAIL on 2026-08-20 after ISSUE-002. The six failures are unchanged.
+- **Verification:** 107 collected; 101 PASS, 6 FAIL on 2026-08-20 after ISSUE-003. The six failures are unchanged.
 - **Known issues:** one deprecated WF-002 CLI and five Mock graph/checkpoint/resume tests remain stale (ISSUE-008).
 - **Relation:** does not automatically include WF-006 or WF-007.
 
