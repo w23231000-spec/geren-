@@ -84,7 +84,12 @@ def emit_diagnosis_summary(diagnosis: Any, *, title: str, stream: TextIO | None 
     print(f"优化关注：{', '.join(diagnosis.optimization_focus) or '无'}", file=output, flush=True)
 
 
-def emit_optimization_intent(intent: Any, *, stream: TextIO | None = None) -> None:
+def emit_optimization_intent(
+    intent: Any,
+    evaluation: Any,
+    *,
+    stream: TextIO | None = None,
+) -> None:
     output = stream or sys.stdout
     print(f"[优化意图] {intent.status}", file=output, flush=True)
     print(f"优化模式：{intent.mode or '无'}", file=output, flush=True)

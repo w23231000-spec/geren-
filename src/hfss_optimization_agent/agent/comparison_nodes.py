@@ -200,7 +200,7 @@ class ComparisonWorkflowNodes:
             raise WorkflowError("Baseline DiagnosisResult is required before optimization intent")
         intent = (self.intent_builder or OptimizationIntentBuilder()).build(diagnosis)
         self.artifacts.write_optimization_artifact("optimization_intent", intent)
-        emit_optimization_intent(intent)
+        emit_optimization_intent(intent, state["baseline_evaluation"])
         changes = {"optimization_intent": intent, "execution_trace": self._trace(state, "build_optimization_intent")}
         self._checkpoint_changes(state, changes)
         return changes

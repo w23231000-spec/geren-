@@ -33,7 +33,7 @@ RUN_REAL_HFSS.py
 → checkpoint/artifacts/finalization
 ```
 
-This topology is `WIRED`, but the current working-tree execution is `BROKEN` before optimization because of ISSUE-001. Even after that immediate exception is removed, ISSUE-002 prevents a valid optimization intent with the current entry configuration.
+This topology is `WIRED`, but the current working-tree Full Workflow remains `BROKEN`. ISSUE-001 is resolved: the current source route now reaches `build_optimization_objective`. ISSUE-002 is the current first blocker because empty evaluation rules produce INVALID intent/objective and early completion without optimizer or candidate validation.
 
 ## Current code baseline
 
@@ -43,6 +43,7 @@ This topology is `WIRED`, but the current working-tree execution is `BROKEN` bef
 | Original Git history / remote | `UNKNOWN / NOT RECOVERED`; no original remote was identified or configured |
 | Branch | `master` |
 | Baseline commit | `52dc0dea34df0f85e53e43ca91bdf56cacf7b0ff` — `baseline: reconstructed project state before integration fixes` |
+| Baseline provenance docs commit | `40a26b36548a6a1eb6eee66f0c3b8b48cfaddea5` — `docs: record new repository baseline` |
 | Baseline commit state | Clean immediately after commit; 139 project files tracked; runtime/cache/HFSS artifacts excluded by `.gitignore` |
 | Current baseline meaning | Prospective development anchor for the reconstructed `FS-2026-08-20` state; not a recovered historical commit |
 | Python | 3.12.13, project `.venv` |
@@ -62,7 +63,7 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 | Nine-parameter schema and validation | `WIRED` | `UNIT TESTED` |
 | Deterministic Mock surrogate/optimizer/HFSS | `WIRED` | Component tests pass; current offline E2E `FAIL` |
 | Supplied electrical surrogate | `WIRED` | Vendor/runtime evidence passes; historically exercised in real E2E; current supplied-Mock workflow was not rerun |
-| Supplied optimizer provider integration / adapter wiring | `WIRED / NEEDS VERIFICATION` | Vendor optimizer tests pass and provider call is present; current Agent route does not reach it because of ISSUE-001/002 |
+| Supplied optimizer provider integration / adapter wiring | `WIRED / NEEDS VERIFICATION` | Vendor optimizer tests pass and provider call is present; current Agent route does not reach it because of ISSUE-002 |
 | Diagnosis/OptimizationObjective control over supplied optimizer behavior | `NOT WIRED / CAUSAL DISCONNECT` | Static call-order evidence: objective is copied to metadata only after the vendor run; ISSUE-005 remains OPEN |
 | Diagnosis, optimization intent, objective, ranking | `PARTIALLY WIRED` | Unit tests pass; current workflow reachability and behavior are separately classified in the validation matrix |
 | HFSS contract, process isolation, timeout, lock, conversion | `WIRED` | Unit/integration tests pass; historically real exercised |
@@ -75,19 +76,21 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 
 ## Current blockers
 
-- **ISSUE-001 — BLOCKER / CURRENT FIRST BLOCKER:** `emit_optimization_intent()` references undefined `evaluation`; current shared-route execution fails after baseline processing.
-- **ISSUE-002 — BLOCKER / NEXT BLOCKER:** exposed after ISSUE-001; Production/Mock entries configure no evaluation rules, so baseline evaluation is deterministically `INVALID` and optimization intent cannot become `ACTIVE`.
-- **ISSUE-003 — BLOCKER / LATENT BLOCKER:** currently masked by ISSUE-001/002; candidate comparison calls `emit_status` without importing it.
+- **ISSUE-001 — BLOCKER / RESOLVED:** presenter now explicitly receives the real baseline `EvaluationResult`; direct regression and current-source Agent/Offline execution prove the NameError is removed.
+- **ISSUE-002 — BLOCKER / CURRENT FIRST BLOCKER:** Production/Mock entries configure no evaluation rules, so baseline evaluation is deterministically `INVALID` and optimization intent cannot become `ACTIVE`.
+- **ISSUE-003 — BLOCKER / LATENT BLOCKER:** currently masked by ISSUE-002; candidate comparison calls `emit_status` without importing it.
 - **ISSUE-004 — HIGH:** rule evaluation and Best-update semantics are causally disconnected (`improved=False`, `score=0.0`).
 - **ISSUE-009 — HIGH:** historical paired results show surrogate/HFSS ranking reversal and calibration is not wired into Production.
 
 ## Current validation level
 
 - Environment preflight: `PASS` on 2026-08-20; this does not verify license availability.
-- Main test suite: `FAIL` — 87 passed, 6 failed.
+- ISSUE-001 direct presenter regression: `PASS`; full terminal presenter file: 8 passed.
+- Main test suite: `FAIL` — 94 collected, 88 passed, 6 failed. No failure contains the ISSUE-001 NameError; ISSUE-002 now prevents candidate stages.
 - Supplied optimizer tests: `PASS` — 7 passed.
 - Standalone supplied Builder test under Agent Python: `FAIL` during collection because `ansys` is not installed in that interpreter.
-- Offline Agent workflow: `BROKEN`.
+- Current-source Offline Agent workflow: reaches `build_optimization_objective`, then completes with INVALID intent/objective and no candidate; Full Offline remains `BROKEN` under ISSUE-002.
+- Package CLI environment: `BROKEN / ENVIRONMENT MISMATCH`; direct `.venv` module invocation imports a stale installation from another workspace (ISSUE-023). Root scripts explicitly insert the current `src` path.
 - Supplied optimizer + MockHFSS workflow: `BROKEN` by the same current graph path; not rerun separately after deterministic test proof.
 - Current real Full Workflow: `NOT RUN` and must not be run.
 
@@ -112,7 +115,7 @@ The current vendor optimizer source/config hashes do match the hashes stored in 
 
 Marker: **REAL HFSS FULL WORKFLOW SHOULD NOT BE RUN**.
 
-The current route can perform the expensive baseline HFSS and only then fail in `emit_optimization_intent`. Removing that exception alone would still leave the evaluation rules empty, causing an invalid intent and early completion without optimizer/candidate HFSS. Additional latent failures and semantic disconnects remain.
+The ISSUE-001 presenter exception is repaired. The current route can still perform the expensive baseline HFSS and then produce INVALID intent/objective because the evaluation rules are empty, ending without optimizer/candidate HFSS. ISSUE-002, latent ISSUE-003, and additional semantic disconnects remain.
 
 ## Current development focus and next phase
 

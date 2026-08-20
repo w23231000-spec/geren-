@@ -42,3 +42,15 @@ This file is append only. New task records are added at the end.
 - **Remote:** NONE; no remote was configured or inferred.
 - **Post-commit status:** clean immediately after the baseline commit.
 - **Business behavior/tests/HFSS:** unchanged; tests NOT RUN in this phase; HFSS NOT RUN.
+
+## 2026-08-20 11:41 +08:00 — ISSUE-001 PRESENTER CONTRACT REPAIRED
+
+- **Scope:** ISSUE-001 only. ISSUE-002/003/004/005/006/007, Calibration, evaluation rules, objective behavior, optimizer behavior, gates, comparison/Best semantics, and real HFSS were not modified.
+- **Before:** `tests\test_cli.py::test_offline_cli_returns_zero_and_creates_complete_artifacts` reproduced `NameError: name 'evaluation' is not defined` at `build_optimization_intent → emit_optimization_intent`.
+- **Root cause:** the presenter accepted only `OptimizationIntent` while reading `frequency_margin` and failure counts owned by the baseline `EvaluationResult`; the variable had no local, argument, or module binding.
+- **Fix:** `emit_optimization_intent(intent, evaluation, ...)` now requires the real evaluation contract, and the node passes `state["baseline_evaluation"]`. No fallback/dummy evaluation or business-rule change was introduced.
+- **Regression:** new direct presenter contract test PASS; complete terminal presenter file 8 PASS.
+- **Main suite:** 94 collected, 88 PASS / 6 FAIL. The ISSUE-001 NameError is absent; existing E2E/graph/resume tests now expose ISSUE-002 by stopping before candidate stages.
+- **Current-source Offline:** `RUN_OFFLINE.py` reaches `build_optimization_objective`, records INVALID intent/objective, and completes without a candidate. ISSUE-002 is the current first blocker; ISSUE-003 remains latent.
+- **New observation:** ISSUE-023 registered because direct package module invocation imports a stale installation from another workspace. It was not fixed; the misleading old-trace run is excluded from current-tree evidence.
+- **HFSS:** NOT RUN. AEDT, PyAEDT real solve, Builder probe, and real Builder were not started.

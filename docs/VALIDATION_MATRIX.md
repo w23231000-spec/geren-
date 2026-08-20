@@ -16,17 +16,17 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 
 | Capability | Code | Unit/component | Capability-local integration | Workflow reachability | Evidence boundary |
 |---|---|---|---|---|---|
-| Baseline surrogate | PASS | PASS | PASS | PASS | Current main integration route executes it before ISSUE-001 |
+| Baseline surrogate | PASS | PASS | PASS | PASS | Current main integration route executes it before the current downstream blocker |
 | Baseline HFSS orchestration | PASS | PASS | PASS | PASS | Fake backend integration passes; baseline stage is reached |
 | S-parameter rule evaluation | PASS | PASS | PASS | PASS | Evaluator is called and correctly returns INVALID for empty rules; configuration remains ISSUE-002 |
-| Baseline diagnosis | PASS | PASS | PASS | PASS | It consumes the observed INVALID evaluation before ISSUE-001 |
-| Optimization Intent | PASS | PASS | FAIL | PASS | Node is reached, then terminal presentation raises ISSUE-001 |
-| Optimization Objective | PASS | PASS | NEEDS VERIFICATION | FAIL | Unit evidence remains valid; current route is stopped by ISSUE-001/002 |
+| Baseline diagnosis | PASS | PASS | PASS | PASS | It consumes the observed INVALID evaluation |
+| Optimization Intent | PASS | PASS | PASS | PASS | Explicit presenter contract regression passes; current source route no longer raises ISSUE-001 |
+| Optimization Objective | PASS | PASS | PASS | PASS | Current source Offline route executes it with INVALID input; ACTIVE behavior remains blocked by ISSUE-002 |
 | Supplied surrogate provider | PASS | PASS | NEEDS VERIFICATION | PASS | Formal supplied routes call it before optimizer blockers; current Agent-boundary execution was not isolated |
 | Supplied optimizer provider integration / adapter wiring | PASS | PASS | NEEDS VERIFICATION | FAIL | Provider call is wired and vendor tests pass, but current Agent route is blocked before invocation |
 | Diagnosis/OptimizationObjective control of supplied optimizer behavior | FAIL | NOT AVAILABLE | FAIL | FAIL | ISSUE-005 causal disconnect: objective is metadata-only after vendor execution |
 | Candidate ranking | PASS | PASS | NEEDS VERIFICATION | FAIL | Generic unit behavior passes; supplied adapter returns one candidate and current route does not reach it |
-| Candidate parameter validation | PASS | PASS | NEEDS VERIFICATION | FAIL | Existing full-route evidence is masked by ISSUE-001/002 |
+| Candidate parameter validation | PASS | PASS | NEEDS VERIFICATION | FAIL | Existing full-route evidence is masked by ISSUE-002 |
 | Candidate surrogate gate | PASS | PASS | NEEDS VERIFICATION | FAIL | Component behavior exists; current formal route does not reach it |
 | Candidate HFSS orchestration | PASS | PASS | PASS | FAIL | Fake-backend boundary passes; current formal route is blocked upstream |
 | Baseline/candidate comparison | PASS | PASS | FAIL | FAIL | ISSUE-003 is a local integration defect and is currently masked upstream |
@@ -38,7 +38,7 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 | Worker process isolation/timeout | PASS | PASS | PASS | PASS | Child-process fake exercises the boundary; real current-tree execution remains NOT RUN |
 | Artifact store | PASS | PASS | PASS | PASS | Upstream artifacts are written before the downstream failure |
 | Checkpoint serialization | PASS | PASS | PASS | PASS | Serialization is locally proven and checkpoints are reached before the failure |
-| Resume/reuse | PASS | PASS | NEEDS VERIFICATION | PASS | Resume invokes the workflow, but current tests fail at ISSUE-001 before isolating resume semantics |
+| Resume/reuse | PASS | PASS | NEEDS VERIFICATION | PASS | Resume invokes the workflow, but current tests now stop on the ISSUE-002 route before isolating resume semantics |
 | Calibration API | PASS | PASS | NOT AVAILABLE | FAIL | API is not connected to any formal workflow |
 | Environment preflight | PASS | NOT AVAILABLE | PASS | PASS | Current preflight result is PASS; it does not launch AEDT or prove a license |
 
@@ -46,9 +46,9 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-001 first, then ISSUE-002, with ISSUE-003 latent |
-| WF-002 deterministic Offline | FAIL | NOT AVAILABLE | FAIL | Current CLI/graph E2E tests fail at ISSUE-001 |
-| WF-003 supplied optimizer + MockHFSS | NOT RUN | NOT AVAILABLE | NOT RUN | FAIL readiness from the shared current route; it was not separately rerun |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-002 current first blocker, with ISSUE-003 latent |
+| WF-002 deterministic Offline | FAIL | NOT AVAILABLE | FAIL | Current source reaches objective, then exits INVALID without candidate because of ISSUE-002 |
+| WF-003 supplied optimizer + MockHFSS | NOT RUN | NOT AVAILABLE | NOT RUN | FAIL readiness from shared ISSUE-002 route; it was not separately rerun |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
 
 Interpretation:
@@ -63,10 +63,29 @@ Interpretation:
 
 - **Date:** 2026-08-20
 - **Command:** `.venv\Scripts\python.exe -m pytest -q`
-- **Result:** `FAIL` — 93 collected, 87 passed, 6 failed.
+- **Post-ISSUE-001 result:** `FAIL` — 94 collected, 88 passed, 6 failed.
 - **Failures:** one CLI E2E and five comparison graph/checkpoint/resume tests.
-- **First proven cause:** undefined `evaluation` in `emit_optimization_intent`.
+- **Current first proven cause:** ISSUE-002 empty rules produce INVALID intent/objective, so candidate stages are not reached. No failure contains the ISSUE-001 NameError.
 - **Secondary stale evidence:** graph trace expectations predate diagnosis/intent/objective nodes.
+
+### ISSUE-001 targeted regression
+
+- **Before:** existing `tests\test_cli.py::test_offline_cli_returns_zero_and_creates_complete_artifacts` failed in `build_optimization_intent → emit_optimization_intent` with `NameError: name 'evaluation' is not defined`.
+- **After direct:** `tests\test_terminal_output.py::test_optimization_intent_presenter_uses_explicit_evaluation_contract` — `PASS` (1 passed).
+- **After presenter file:** `tests\test_terminal_output.py` — `PASS` (8 passed).
+- **After original Agent boundary:** the CLI test no longer raises NameError; it fails later because no candidate artifact is produced under ISSUE-002.
+
+### Current-source Offline route
+
+- **Command:** `.venv\Scripts\python.exe RUN_OFFLINE.py`.
+- **Result:** process exits normally; checkpoint trace reaches `build_optimization_objective` and then `complete` with `optimization_intent=INVALID`, `optimization_objective=INVALID`, and no candidate.
+- **Interpretation:** ISSUE-001 is repaired; Full Offline remains `FAIL` because ISSUE-002 prevents the optimization/candidate half of the workflow.
+
+### Package CLI import-origin check
+
+- **Command:** `.venv\Scripts\python.exe -m hfss_optimization_agent ...` plus module `__file__` inspection.
+- **Result:** `FAIL / ENVIRONMENT MISMATCH`; it imports a stale package from another workspace and its completed old trace is not current-tree evidence.
+- **Tracking:** ISSUE-023; no environment modification was made.
 
 ### Supplied optimizer suite
 

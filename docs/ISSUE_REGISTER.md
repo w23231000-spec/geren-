@@ -6,7 +6,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 | ID | Severity | Status | Classification | Title |
 |---|---|---|---|---|
-| ISSUE-001 | BLOCKER | OPEN | BUG / REGRESSION | Undefined `evaluation` crashes optimization-intent output |
+| ISSUE-001 | BLOCKER | RESOLVED | BUG / REGRESSION | Undefined `evaluation` crashed optimization-intent output |
 | ISSUE-002 | BLOCKER | OPEN | INTEGRATION / EVALUATION | Formal entries provide no evaluation rules |
 | ISSUE-003 | BLOCKER | OPEN | BUG / REGRESSION | Candidate comparison calls unimported `emit_status` |
 | ISSUE-004 | HIGH | OPEN | EVALUATION / STATE | Rule comparison cannot drive Best update or summary |
@@ -28,29 +28,15 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-020 | LOW | OPEN | DOCUMENTATION / UX | 14 displayed stages do not map one-to-one to 17 graph nodes |
 | ISSUE-021 | HIGH | RESOLVED | HFSS / BUILDER | Explicit material SolveInside classification regression |
 | ISSUE-022 | HIGH | RESOLVED | HFSS / ARCHITECTURE | Production target-only design and independent project boundary |
+| ISSUE-023 | HIGH | OPEN | ENVIRONMENT / REPRODUCIBILITY | Package CLI imports a stale installation from another workspace |
 
 ## Open and partially resolved issues
-
-### ISSUE-001 — Undefined `evaluation` crashes optimization-intent output
-
-- **Classification:** BUG / REGRESSION
-- **Severity / status:** BLOCKER / OPEN
-- **Blocking order:** **CURRENT FIRST BLOCKER**. This is the first currently observed failure in the shared workflow route.
-- **Location:** `src/hfss_optimization_agent/harness/terminal.py::emit_optimization_intent`, line 94; six failing main-suite tests.
-- **Description:** the function accepts only `intent` but reads `evaluation.frequency_margin`.
-- **Impact:** Production, Offline, supplied-Mock, Demo, current E2E, and Resume. Real Production can spend time completing baseline HFSS before this exception.
-- **Trigger:** every shared-graph run reaching `build_optimization_intent`.
-- **Evidence:** 2026-08-20 main suite: 6 failures with `NameError: name 'evaluation' is not defined`.
-- **Workaround:** none within formal entries; do not run real Full Workflow.
-- **Fixed:** no.
-- **Needs verification:** fix must be followed by current offline/E2E/resume tests because later blockers are currently masked.
-- **Suggested next action:** correct the presenter contract and add direct test coverage for `emit_optimization_intent`.
 
 ### ISSUE-002 — Formal entries provide no evaluation rules
 
 - **Classification:** INTEGRATION / EVALUATION
 - **Severity / status:** BLOCKER / OPEN
-- **Blocking order:** **NEXT BLOCKER / exposed after ISSUE-001**. Once ISSUE-001 no longer aborts presentation, the empty evaluation contract prevents an ACTIVE optimization route.
+- **Blocking order:** **CURRENT FIRST BLOCKER / exposed after ISSUE-001**. ISSUE-001 no longer aborts presentation; the empty evaluation contract now prevents an ACTIVE optimization route.
 - **Location:** `core/config.py::EvaluationConfig.rules=()`; all three run functions in `cli.py`; `evaluator.py::evaluate_sparameters`.
 - **Description:** no entry supplies rules, while the evaluator intentionally marks no-rules input `INVALID` and forbids legacy score fallback.
 - **Impact:** baseline diagnosis becomes invalid; optimization intent/objective cannot become ACTIVE; optimizer and candidate HFSS are skipped if ISSUE-001 is removed; misleading completion is possible.
@@ -65,7 +51,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 - **Classification:** BUG / REGRESSION
 - **Severity / status:** BLOCKER / OPEN
-- **Blocking order:** **LATENT BLOCKER / currently masked by ISSUE-001/002**. It becomes reachable only after the intent/evaluation route can proceed through optimizer and candidate HFSS comparison.
+- **Blocking order:** **LATENT BLOCKER / currently masked by ISSUE-002**. It becomes reachable only after the intent/evaluation route can proceed through optimizer and candidate HFSS comparison.
 - **Location:** `agent/comparison_nodes.py` import list and `compare_hfss_results` lines 320/324.
 - **Description:** `emit_status` is called but not imported.
 - **Impact:** candidate comparison, Offline E2E, supplied-Mock E2E, real candidate E2E.
@@ -133,10 +119,10 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Classification:** TEST / REGRESSION
 - **Severity / status:** HIGH / OPEN
 - **Location:** `tests/test_cli.py`, `tests/test_comparison_graph.py`.
-- **Description:** six tests fail at ISSUE-001. Their expected traces also describe the pre-diagnosis graph and omit diagnosis/intent/objective nodes.
+- **Description:** after ISSUE-001 resolution, six tests still fail because empty rules produce INVALID intent/objective and skip all candidate stages. Their expected traces also describe the pre-diagnosis graph and omit diagnosis/intent/objective nodes.
 - **Impact:** Offline, E2E, checkpoint, and resume verification cannot be claimed for current graph.
 - **Trigger:** main test suite.
-- **Evidence:** 87 pass / 6 fail; test files predate 2026-08-19 graph changes.
+- **Evidence:** 2026-08-20 post-fix suite: 94 collected, 88 pass / 6 fail; no ISSUE-001 NameError remains. Test files predate 2026-08-19 graph changes.
 - **Workaround:** component-level tests still provide partial evidence.
 - **Fixed:** no.
 - **Suggested next action:** after behavior is explicitly decided, update integration fixtures/expectations and prove every conditional route.
@@ -298,7 +284,31 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Fixed:** no.
 - **Suggested next action:** document substeps or assign stable unique stage identifiers.
 
+### ISSUE-023 — Package CLI imports a stale installation from another workspace
+
+- **Classification:** ENVIRONMENT / REPRODUCIBILITY
+- **Severity / status:** HIGH / OPEN
+- **Location:** project `.venv` import metadata used by `.venv\Scripts\python.exe -m hfss_optimization_agent`.
+- **Description:** direct module invocation resolves `hfss_optimization_agent` from `C:\Users\82074\Documents\Codex\2026-08-12\langgraph-state-interface-adapter-checkpoint-best-2\HFSS_Optimization_Agent_VSCode\src`, not the current workspace. It executed an older graph trace and produced a misleading completed result.
+- **Impact:** package CLI verification can silently exercise stale code and cannot be used as current-tree evidence. Root scripts that insert the current `src` path are not affected by this observation.
+- **Trigger:** invoke the installed package without explicitly selecting the current source tree.
+- **Evidence:** module `__file__` paths and the observed old 14-node Offline trace on 2026-08-20; current-source `RUN_OFFLINE.py` produced the diagnosis/intent/objective trace instead.
+- **Workaround:** for current-tree verification, use the checked-in root entry scripts or an explicitly current source path; do not treat the stale module run as validation.
+- **Fixed:** no; environment installation was not changed in the ISSUE-001 task.
+- **Suggested next action:** under a separate task, rebuild/reinstall the project environment with explicit source provenance and add an import-origin preflight check.
+
 ## Resolved issues retained for history
+
+### ISSUE-001 — Undefined `evaluation` crashed optimization-intent output
+
+- **Classification:** BUG / REGRESSION
+- **Severity / status:** BLOCKER / RESOLVED
+- **Historical blocking order:** CURRENT FIRST BLOCKER before this fix.
+- **Root cause:** `emit_optimization_intent` accepted only `intent` but referenced a nonlocal, undefined `evaluation`; `frequency_margin` actually belongs to the baseline `EvaluationResult` already held by the caller state.
+- **Resolution:** presenter contract now explicitly accepts `evaluation`, and `build_optimization_intent` passes `state["baseline_evaluation"]`; no dummy, fallback, hard-coded margin, evaluation-rule, or objective behavior was introduced.
+- **Evidence:** original current-source CLI test reproduced `NameError`; direct regression passed; all 8 terminal presenter tests passed; post-fix main suite has 88 pass / 6 downstream failures without the NameError; current-source Offline route reaches `build_optimization_objective`.
+- **Fixed:** yes, 2026-08-20.
+- **Remaining boundary:** ISSUE-002 is now the current first blocker; ISSUE-003 remains latent.
 
 ### ISSUE-021 — Explicit material SolveInside classification regression
 
