@@ -31,3 +31,14 @@ This file is append only. New task records are added at the end.
 - **Business-code/test/config/workflow changes:** NONE.
 - **Tests:** NOT RUN; existing baseline evidence was only reclassified.
 - **HFSS:** NOT RUN.
+
+## 2026-08-20 11:36 +08:00 — NEW REPOSITORY BASELINE ESTABLISHED
+
+- **Objective:** establish prospective Git traceability before integration fixes, without claiming recovery of unavailable original history.
+- **Safety gate:** current root confirmed as `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`; parent and `vendor/` were not initialized. All six recorded `FS-2026-08-20` key hashes matched before staging (`DRIFT_COUNT=0`).
+- **Identity:** verified existing local Git identity `Zaqar <w23231000@gmail.com>`; no identity configuration was changed.
+- **Untracked review:** 140 candidates reviewed. Source, tests, configuration, vendor source/config, project launch files, and project memory entered the baseline. `batch.log` was identified as an AEDT Batch Run runtime log and was ignored without deletion. Existing `runs/`, `.venv/`, cache, bytecode, temporary, and AEDT-generated patterns remain excluded.
+- **Baseline:** `NEW REPOSITORY BASELINE`, not recovered history. Branch `master`; root commit `52dc0dea34df0f85e53e43ca91bdf56cacf7b0ff`; message `baseline: reconstructed project state before integration fixes`.
+- **Remote:** NONE; no remote was configured or inferred.
+- **Post-commit status:** clean immediately after the baseline commit.
+- **Business behavior/tests/HFSS:** unchanged; tests NOT RUN in this phase; HFSS NOT RUN.

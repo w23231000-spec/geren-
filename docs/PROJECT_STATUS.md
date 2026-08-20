@@ -2,7 +2,7 @@
 
 Baseline reconstructed at: **2026-08-20 10:32:34 +08:00**  
 Repository root: `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`  
-Snapshot label: `FS-2026-08-20` (filesystem snapshot; not a Git revision)
+Snapshot label: `FS-2026-08-20`; captured prospectively by the new-repository baseline commit `52dc0dea34df0f85e53e43ca91bdf56cacf7b0ff`
 
 ## Current objective
 
@@ -39,12 +39,12 @@ This topology is `WIRED`, but the current working-tree execution is `BROKEN` bef
 
 | Item | Current fact |
 |---|---|
-| Git repository | `UNKNOWN / INSUFFICIENT EVIDENCE`: `.git` is absent from the current root and parent; Git reports “not a git repository” |
-| Git provenance search | The similarly named previous project copy also lacks `.git`; Git roots under the parent belong to differently named/package-identified projects; no original remote for this project was identified |
-| Branch | `UNKNOWN` |
-| HEAD / commit hash | `UNKNOWN` |
-| Staged / unstaged / untracked | `UNKNOWN`; cannot be derived without Git metadata |
-| Current baseline | Current filesystem contents at snapshot time; must not be equated with HEAD |
+| Git repository | `NEW REPOSITORY BASELINE`; initialized 2026-08-20 after original-history recovery was found impossible |
+| Original Git history / remote | `UNKNOWN / NOT RECOVERED`; no original remote was identified or configured |
+| Branch | `master` |
+| Baseline commit | `52dc0dea34df0f85e53e43ca91bdf56cacf7b0ff` — `baseline: reconstructed project state before integration fixes` |
+| Baseline commit state | Clean immediately after commit; 139 project files tracked; runtime/cache/HFSS artifacts excluded by `.gitignore` |
+| Current baseline meaning | Prospective development anchor for the reconstructed `FS-2026-08-20` state; not a recovered historical commit |
 | Python | 3.12.13, project `.venv` |
 | Package | `hfss-optimization-agent 0.1.0` |
 | LangGraph | 1.2.11 |
@@ -100,7 +100,7 @@ The run `runs/real-vscode-20260818-101711` contains successful baseline and cand
 That run is only `HISTORICALLY VERIFIED`:
 
 - its task metadata contains no Git commit;
-- Git metadata is currently unavailable;
+- the new Git history begins at the later `52dc0de` reconstructed baseline and cannot retroactively identify the source state used by the historical run;
 - core graph, node, evaluator, diagnosis, intent, and terminal files were modified on 2026-08-19, after the successful run;
 - therefore current-working-tree equivalence cannot be proven.
 

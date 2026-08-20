@@ -16,7 +16,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-008 | HIGH | OPEN | TEST / REGRESSION | Current graph E2E and resume tests fail and expected traces are stale |
 | ISSUE-009 | HIGH | OPEN | EVALUATION / OPTIMIZATION | Calibration is not wired; historical ranking reversal exists |
 | ISSUE-010 | HIGH | OPEN | HFSS / MODEL | Physical model alignment remains unresolved |
-| ISSUE-011 | HIGH | OPEN | REPRODUCIBILITY | Git metadata, branch, and HEAD are unavailable |
+| ISSUE-011 | HIGH | PARTIALLY RESOLVED | REPRODUCIBILITY | New Git baseline exists; original history remains unavailable |
 | ISSUE-012 | HIGH | OPEN | VALIDATION | Historical real E2E cannot be attributed to current working tree |
 | ISSUE-013 | MEDIUM | OPEN | STATE / RESUME | Resume restarts at graph START and can duplicate/overwrite state metadata |
 | ISSUE-014 | MEDIUM | OPEN | ARTIFACT / SAFETY | Task ID path containment and same-ID concurrency are unguarded |
@@ -167,18 +167,18 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Fixed:** no.
 - **Suggested next action:** obtain model-author decisions and fill a versioned alignment contract before calibration.
 
-### ISSUE-011 — Git metadata, branch, and HEAD are unavailable
+### ISSUE-011 — New Git baseline exists; original history remains unavailable
 
 - **Classification:** REPRODUCIBILITY / PROJECT STATE
-- **Severity / status:** HIGH / OPEN
-- **Location:** current project root and parent workspace; `.git` absent from both.
-- **Description:** branch, HEAD, commit hash, staged, unstaged, and untracked state cannot be recovered. The similarly named `HFSS_Optimization_Agent_VSCode_previous_20260817_1732` copy also has no `.git`.
-- **Impact:** baseline traceability, change review, historical validation attribution, rollback.
-- **Trigger:** any commit-based status statement.
-- **Evidence:** read-only 2026-08-20 checks found `.git=False` in the current root, parent, and similarly named previous copy; Git reports “not a git repository” for current and parent. A recursive parent-workspace search found Git roots only for differently named/package-identified projects, and no current-tree repository URL hint was found.
-- **Workaround:** use filesystem snapshot label and hashes; do not claim clean/dirty.
-- **Fixed:** no.
-- **Suggested next action:** restore authoritative Git metadata or re-establish a repository with provenance outside this documentation-only task.
+- **Severity / status:** HIGH / PARTIALLY RESOLVED
+- **Location:** current project root; new `.git` created after provenance audit.
+- **Description:** original branch, commits, remote, staged state, and historical lineage could not be recovered. A new repository now provides prospective traceability from the reconstructed filesystem baseline only.
+- **Impact:** future change review and rollback are now possible from the new anchor; historical validation attribution remains unavailable.
+- **Trigger:** any claim that the new root commit recovers or represents the original repository history.
+- **Evidence:** root commit `52dc0dea34df0f85e53e43ca91bdf56cacf7b0ff` on `master`, message `baseline: reconstructed project state before integration fixes`; no remote configured. Pre-initialization audit found no credible original `.git` copy or remote.
+- **Workaround:** call the root commit `NEW REPOSITORY BASELINE`, retain `FS-2026-08-20` hashes, and never describe it as recovered original history.
+- **Fixed:** partially; prospective Git traceability is established, original provenance is still unknown.
+- **Suggested next action:** preserve atomic commits from this anchor; configure a remote only under separate explicit authorization.
 
 ### ISSUE-012 — Historical real E2E cannot be attributed to current working tree
 
@@ -188,7 +188,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Description:** historical task metadata has no Agent/Builder commit or source hash. Current graph/node/evaluator/diagnosis/intent/terminal files postdate the run.
 - **Impact:** real baseline, candidate, and Full E2E status for current tree.
 - **Trigger:** using the 2026-08-18 run to claim current real verification.
-- **Evidence:** artifact and file timestamps; absent Git metadata. Vendor optimizer hashes match, but Agent/Builder equivalence remains unknown.
+- **Evidence:** artifact and file timestamps; the historical run contains no source manifest, and the new Git history begins afterward at `52dc0de`. Vendor optimizer hashes match, but Agent/Builder equivalence remains unknown.
 - **Workaround:** label evidence `HISTORICALLY VERIFIED` only.
 - **Fixed:** no.
 - **Suggested next action:** add full source/commit manifest to future run metadata after blockers are closed.

@@ -106,7 +106,7 @@ Historical status is not current-working-tree validation.
 | Candidate Solve | candidate journal completed | HISTORICALLY VERIFIED |
 | Candidate complex extraction/Touchstone | structured JSON and `.s2p` exist | HISTORICALLY VERIFIED |
 | Full baseline→optimizer→candidate graph | checkpoint status completed with full old trace | HISTORICALLY VERIFIED |
-| Current-tree equivalence | core files postdate run; no Git/source manifest | UNKNOWN / INSUFFICIENT EVIDENCE |
+| Current-tree equivalence | core files postdate run; historical artifact has no Git/source manifest; new Git baseline `52dc0de` was created afterward | UNKNOWN / INSUFFICIENT EVIDENCE |
 
 The historical run selected baseline as Best because HFSS candidate score was worse. Reconstruction-only paired analysis produced:
 
