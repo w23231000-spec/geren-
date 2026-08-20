@@ -1,0 +1,7 @@
+numpy==2.5.2
+scipy==1.18.0
+jax==0.11.0
+jaxlib==0.11.0
+matplotlib==3.11.1
+pymoo==0.6.2
+tomli==2.4.0; python_version < "3.11"

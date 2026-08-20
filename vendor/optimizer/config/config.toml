@@ -1,0 +1,36 @@
+[frequency]
+start_ghz = 0.1
+stop_ghz = 20.0
+points = 800
+
+[model]
+reference_impedance_ohm = 50.0
+shunt_regularization = 1e-08
+
+[optimizer]
+algorithm = "NSGA-III"
+population = 64
+generations = 100
+seed = 42
+neighborhood_samples = 7
+neighborhood_fraction = 0.025
+particles = 64
+iterations = 240
+mopso_iterations = 100
+mosa_iterations = 240
+inertia_start = 0.72
+inertia_end = 0.4
+cognitive = 1.55
+social = 1.55
+velocity_limit = 0.25
+archive_size = 96
+chains = 24
+initial_temperature = 1.0
+final_temperature = 0.03
+step_start = 0.19
+step_end = 0.01
+leader_pull = 0.12
+
+[electrical_constraints]
+phase_reliable_floor_db = -30.0
+passivity_tolerance = 0.0001

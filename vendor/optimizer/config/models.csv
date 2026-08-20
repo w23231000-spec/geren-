@@ -1,0 +1,4 @@
+model_id,enabled,structure,discipline,adapter,parameters_file,status,description
+tsv_bga_rdl_electrical,true,TSV-BGA-RDL,electrical,surrogate,parameters.csv,connected,当前九参数二端口电学代理模型
+tsv_bga_rdl_thermal,false,TSV-BGA-RDL,thermal,,parameters.csv,not_connected,尚无真实热模型，不计算温度指标
+tsv_bga_rdl_reliability,false,TSV-BGA-RDL,reliability,,parameters.csv,not_connected,尚无真实可靠性模型，不计算寿命或失效概率
