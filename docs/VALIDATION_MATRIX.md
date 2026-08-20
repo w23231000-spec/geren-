@@ -41,6 +41,7 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 | Resume/reuse | PASS | PASS | NEEDS VERIFICATION | PASS | Resume invokes the workflow, but current tests now stop on the ISSUE-002 route before isolating resume semantics |
 | Calibration API | PASS | PASS | NOT AVAILABLE | FAIL | API is not connected to any formal workflow |
 | Environment preflight | PASS | NOT AVAILABLE | PASS | PASS | Current preflight result is PASS; it does not launch AEDT or prove a license |
+| Package editable import provenance | PASS | PASS | PASS | PASS | Project `.venv`, ordinary import, and module CLI resolve to the current repository `src` |
 
 ## Current full-workflow results
 
@@ -63,7 +64,7 @@ Interpretation:
 
 - **Date:** 2026-08-20
 - **Command:** `.venv\Scripts\python.exe -m pytest -q`
-- **Post-ISSUE-001 result:** `FAIL` — 94 collected, 88 passed, 6 failed.
+- **Post-ISSUE-023 result:** `FAIL` — 95 collected, 89 passed, 6 failed.
 - **Failures:** one CLI E2E and five comparison graph/checkpoint/resume tests.
 - **Current first proven cause:** ISSUE-002 empty rules produce INVALID intent/objective, so candidate stages are not reached. No failure contains the ISSUE-001 NameError.
 - **Secondary stale evidence:** graph trace expectations predate diagnosis/intent/objective nodes.
@@ -84,8 +85,12 @@ Interpretation:
 ### Package CLI import-origin check
 
 - **Command:** `.venv\Scripts\python.exe -m hfss_optimization_agent ...` plus module `__file__` inspection.
-- **Result:** `FAIL / ENVIRONMENT MISMATCH`; it imports a stale package from another workspace and its completed old trace is not current-tree evidence.
-- **Tracking:** ISSUE-023; no environment modification was made.
+- **Before:** `FAIL / ENVIRONMENT MISMATCH`; import resolved to the old `C:\Users\82074\Documents\Codex\2026-08-12\...\HFSS_Optimization_Agent_VSCode\src` editable path.
+- **Repair:** current-repository `uv sync --frozen --inexact --cache-dir .uv-cache`; `uv.lock` unchanged.
+- **After import:** `PASS`; package resolves to `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode\src\hfss_optimization_agent\__init__.py`.
+- **After module Offline CLI:** `PASS` for import/current-graph provenance; trace reaches `build_optimization_objective` and then `complete` with INVALID intent/objective under ISSUE-002.
+- **Regression:** `.venv\Scripts\python.exe -m pytest -q tests\test_import_provenance.py` — `PASS` (1 passed).
+- **Tracking:** ISSUE-023 RESOLVED; this does not change the Full Offline `FAIL` result caused by ISSUE-002.
 
 ### Supplied optimizer suite
 

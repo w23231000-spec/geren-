@@ -54,3 +54,15 @@ This file is append only. New task records are added at the end.
 - **Current-source Offline:** `RUN_OFFLINE.py` reaches `build_optimization_objective`, records INVALID intent/objective, and completes without a candidate. ISSUE-002 is the current first blocker; ISSUE-003 remains latent.
 - **New observation:** ISSUE-023 registered because direct package module invocation imports a stale installation from another workspace. It was not fixed; the misleading old-trace run is excluded from current-tree evidence.
 - **HFSS:** NOT RUN. AEDT, PyAEDT real solve, Builder probe, and real Builder were not started.
+
+## 2026-08-20 14:55 +08:00 — ISSUE-023 EDITABLE IMPORT PROVENANCE REPAIRED
+
+- **Scope:** ISSUE-023 only. No business code, evaluation rule, graph behavior, ISSUE-002/003/004/005/006/007, Calibration, or HFSS implementation was modified.
+- **Before:** the current `.venv\Scripts\python.exe` imported `hfss_optimization_agent` from `C:\Users\82074\Documents\Codex\2026-08-12\langgraph-state-interface-adapter-checkpoint-best-2\HFSS_Optimization_Agent_VSCode\src`.
+- **Root cause:** the current `.venv` had been copied or moved after an editable install; its absolute `__editable__.hfss_optimization_agent-0.1.0.pth` and `direct_url.json` still referenced the old workspace. `uv.lock` correctly declared the root project as editable `.`.
+- **Repair:** ran current-repository `uv sync --frozen --inexact --cache-dir .uv-cache`. The first offline attempt could not obtain the uncached `setuptools>=68` build requirement; the approved normal sync built and rebound only the local project editable. No lock or global Python/PYTHONPATH configuration changed, and the old workspace was not touched.
+- **After:** ordinary import, `.pth`, `direct_url.json`, and `uv pip show` all resolve to `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode` and its `src` directory.
+- **Regression:** added `tests/test_import_provenance.py`; targeted result 1 PASS. The subprocess removes inherited `PYTHONPATH` and asserts that the project `.venv` imports from the current repository `src`.
+- **Package Offline CLI:** now runs the current graph and reaches `build_optimization_objective`, then completes INVALID without a candidate because ISSUE-002 remains the current first blocker.
+- **Main suite:** 95 collected, 89 PASS / 6 FAIL. The six pre-existing ISSUE-002/stale E2E failures remain; no new failure was introduced.
+- **HFSS:** NOT RUN. AEDT and all real Builder/solve paths were not started.

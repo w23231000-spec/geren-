@@ -28,7 +28,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-020 | LOW | OPEN | DOCUMENTATION / UX | 14 displayed stages do not map one-to-one to 17 graph nodes |
 | ISSUE-021 | HIGH | RESOLVED | HFSS / BUILDER | Explicit material SolveInside classification regression |
 | ISSUE-022 | HIGH | RESOLVED | HFSS / ARCHITECTURE | Production target-only design and independent project boundary |
-| ISSUE-023 | HIGH | OPEN | ENVIRONMENT / REPRODUCIBILITY | Package CLI imports a stale installation from another workspace |
+| ISSUE-023 | HIGH | RESOLVED | ENVIRONMENT / REPRODUCIBILITY | Package CLI imported a stale installation from another workspace |
 
 ## Open and partially resolved issues
 
@@ -284,20 +284,18 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Fixed:** no.
 - **Suggested next action:** document substeps or assign stable unique stage identifiers.
 
-### ISSUE-023 — Package CLI imports a stale installation from another workspace
+## Resolved issues retained for history
+
+### ISSUE-023 — Package CLI imported a stale installation from another workspace
 
 - **Classification:** ENVIRONMENT / REPRODUCIBILITY
-- **Severity / status:** HIGH / OPEN
-- **Location:** project `.venv` import metadata used by `.venv\Scripts\python.exe -m hfss_optimization_agent`.
-- **Description:** direct module invocation resolves `hfss_optimization_agent` from `C:\Users\82074\Documents\Codex\2026-08-12\langgraph-state-interface-adapter-checkpoint-best-2\HFSS_Optimization_Agent_VSCode\src`, not the current workspace. It executed an older graph trace and produced a misleading completed result.
-- **Impact:** package CLI verification can silently exercise stale code and cannot be used as current-tree evidence. Root scripts that insert the current `src` path are not affected by this observation.
-- **Trigger:** invoke the installed package without explicitly selecting the current source tree.
-- **Evidence:** module `__file__` paths and the observed old 14-node Offline trace on 2026-08-20; current-source `RUN_OFFLINE.py` produced the diagnosis/intent/objective trace instead.
-- **Workaround:** for current-tree verification, use the checked-in root entry scripts or an explicitly current source path; do not treat the stale module run as validation.
-- **Fixed:** no; environment installation was not changed in the ISSUE-001 task.
-- **Suggested next action:** under a separate task, rebuild/reinstall the project environment with explicit source provenance and add an import-origin preflight check.
-
-## Resolved issues retained for history
+- **Severity / status:** HIGH / RESOLVED
+- **Location:** project `.venv` editable-install metadata used by ordinary imports and `.venv\Scripts\python.exe -m hfss_optimization_agent`.
+- **Root cause:** the copied/moved `.venv` retained an absolute editable path in `__editable__.hfss_optimization_agent-0.1.0.pth` and `direct_url.json`, both pointing to `C:\Users\82074\Documents\Codex\2026-08-12\langgraph-state-interface-adapter-checkpoint-best-2\HFSS_Optimization_Agent_VSCode`. The current `uv.lock` was already correct with `source = { editable = "." }`; the new workspace had not re-synchronized its editable install.
+- **Resolution:** ran `uv sync --frozen --inexact --cache-dir .uv-cache` from the current repository. uv uninstalled only the stale project editable and installed `hfss-optimization-agent==0.1.0` from `file:///D:/Agent_Workspace/HFSS_Optimization_Agent_VSCode`; no lock, global Python, global `PYTHONPATH`, old workspace, or business source was changed.
+- **Evidence:** ordinary import, `.pth`, `direct_url.json`, and `uv pip show` now resolve to the current repository. The new subprocess regression passes. The package Offline CLI executes the current graph through `build_optimization_objective`, then exposes unchanged ISSUE-002.
+- **Fixed:** yes, 2026-08-20.
+- **Regression boundary:** `tests/test_import_provenance.py` launches the project `.venv` without `PYTHONPATH` and requires the imported package file to reside under the current repository `src` directory.
 
 ### ISSUE-001 — Undefined `evaluation` crashed optimization-intent output
 

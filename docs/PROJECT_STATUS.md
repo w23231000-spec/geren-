@@ -85,12 +85,13 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 ## Current validation level
 
 - Environment preflight: `PASS` on 2026-08-20; this does not verify license availability.
+- Package import provenance: `PASS`; the project `.venv` editable install, ordinary import, and module CLI resolve to `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode\src` (ISSUE-023 resolved).
 - ISSUE-001 direct presenter regression: `PASS`; full terminal presenter file: 8 passed.
-- Main test suite: `FAIL` — 94 collected, 88 passed, 6 failed. No failure contains the ISSUE-001 NameError; ISSUE-002 now prevents candidate stages.
+- Main test suite: `FAIL` — 95 collected, 89 passed, 6 failed. The new import-provenance regression passes; ISSUE-002 still prevents candidate stages.
 - Supplied optimizer tests: `PASS` — 7 passed.
 - Standalone supplied Builder test under Agent Python: `FAIL` during collection because `ansys` is not installed in that interpreter.
 - Current-source Offline Agent workflow: reaches `build_optimization_objective`, then completes with INVALID intent/objective and no candidate; Full Offline remains `BROKEN` under ISSUE-002.
-- Package CLI environment: `BROKEN / ENVIRONMENT MISMATCH`; direct `.venv` module invocation imports a stale installation from another workspace (ISSUE-023). Root scripts explicitly insert the current `src` path.
+- Package CLI environment: `WIRED / INTEGRATION TESTED`; direct `.venv` module invocation imports the current repository and executes the current diagnosis/intent/objective graph. Full Offline remains blocked by ISSUE-002.
 - Supplied optimizer + MockHFSS workflow: `BROKEN` by the same current graph path; not rerun separately after deterministic test proof.
 - Current real Full Workflow: `NOT RUN` and must not be run.
 
