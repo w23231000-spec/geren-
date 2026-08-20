@@ -45,6 +45,7 @@ if __name__ == "__main__":
         builder_source_root=ROOT / "vendor" / "hfss_builder",
         pyaedt_python=Path(configuration["pyaedt_python"]),
         contract_path=ROOT / "config" / "hfss_contract.pa_multi_2025_1.json",
+        evaluation_contract_path=ROOT / "config" / "evaluation_contract.production_v1.json",
         artifact_root=Path(configuration["artifact_root"]),
         task_id=task_id,
         quick=bool(configuration.get("quick_optimizer", True)),

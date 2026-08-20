@@ -15,6 +15,8 @@ class DiagnosisStatus(StrEnum):
 class DiagnosisIssueType(StrEnum):
     CORE_MATCHING_POOR = "CORE_MATCHING_POOR"
     CORE_TRANSMISSION_INSUFFICIENT = "CORE_TRANSMISSION_INSUFFICIENT"
+    CORE_S11_RULE_NOT_MET = "CORE_S11_RULE_NOT_MET"
+    CORE_S21_RULE_NOT_MET = "CORE_S21_RULE_NOT_MET"
     LOWER_FREQUENCY_MARGIN_INSUFFICIENT = "LOWER_FREQUENCY_MARGIN_INSUFFICIENT"
     UPPER_FREQUENCY_MARGIN_INSUFFICIENT = "UPPER_FREQUENCY_MARGIN_INSUFFICIENT"
 
@@ -32,11 +34,15 @@ INVALID = DiagnosisStatus.INVALID
 
 CORE_MATCHING_POOR = DiagnosisIssueType.CORE_MATCHING_POOR
 CORE_TRANSMISSION_INSUFFICIENT = DiagnosisIssueType.CORE_TRANSMISSION_INSUFFICIENT
+CORE_S11_RULE_NOT_MET = DiagnosisIssueType.CORE_S11_RULE_NOT_MET
+CORE_S21_RULE_NOT_MET = DiagnosisIssueType.CORE_S21_RULE_NOT_MET
 LOWER_FREQUENCY_MARGIN_INSUFFICIENT = DiagnosisIssueType.LOWER_FREQUENCY_MARGIN_INSUFFICIENT
 UPPER_FREQUENCY_MARGIN_INSUFFICIENT = DiagnosisIssueType.UPPER_FREQUENCY_MARGIN_INSUFFICIENT
 
 CORE_MATCHING = "CORE_MATCHING"
 CORE_TRANSMISSION = "CORE_TRANSMISSION"
+CORE_S11_COMPLIANCE = "CORE_S11_COMPLIANCE"
+CORE_S21_COMPLIANCE = "CORE_S21_COMPLIANCE"
 LOWER_FREQUENCY_MARGIN = "LOWER_FREQUENCY_MARGIN"
 UPPER_FREQUENCY_MARGIN = "UPPER_FREQUENCY_MARGIN"
 
@@ -153,9 +159,9 @@ class DiagnosisNode:
         if rule.get("hard_constraint"):
             parameter = str(rule.get("parameter", "")).upper()
             if parameter == "S11":
-                return CORE_MATCHING_POOR
-            if parameter == "S21" and rule.get("operator") == ">=":
-                return CORE_TRANSMISSION_INSUFFICIENT
+                return CORE_MATCHING_POOR if rule.get("operator") == "<=" else CORE_S11_RULE_NOT_MET
+            if parameter == "S21":
+                return CORE_TRANSMISSION_INSUFFICIENT if rule.get("operator") == ">=" else CORE_S21_RULE_NOT_MET
             return None
         band = tuple(rule.get("frequency_band") or ())
         plan = evaluation.frequency_plan
@@ -219,6 +225,8 @@ class DiagnosisNode:
     @staticmethod
     def _focus(primary, secondary):
         mapping = {CORE_MATCHING_POOR: CORE_MATCHING, CORE_TRANSMISSION_INSUFFICIENT: CORE_TRANSMISSION,
+                   CORE_S11_RULE_NOT_MET: CORE_S11_COMPLIANCE,
+                   CORE_S21_RULE_NOT_MET: CORE_S21_COMPLIANCE,
                    LOWER_FREQUENCY_MARGIN_INSUFFICIENT: LOWER_FREQUENCY_MARGIN,
                    UPPER_FREQUENCY_MARGIN_INSUFFICIENT: UPPER_FREQUENCY_MARGIN}
         result=[]

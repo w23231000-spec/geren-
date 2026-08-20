@@ -33,7 +33,7 @@ RUN_REAL_HFSS.py
 → checkpoint/artifacts/finalization
 ```
 
-This topology is `WIRED`, but the current working-tree Full Workflow remains `BROKEN`. ISSUE-001 is resolved: the current source route now reaches `build_optimization_objective`. ISSUE-002 is the current first blocker because empty evaluation rules produce INVALID intent/objective and early completion without optimizer or candidate validation.
+This topology is `WIRED`, but the current working-tree Full Workflow remains `BROKEN`. ISSUE-002 is resolved for Production: WF-001 now loads the versioned six-rule Production Evaluation Contract v1, and a 5–19 GHz test-only route proves rule evidence, neutral diagnosis, ACTIVE intent/objective, optimizer, candidate gate, and candidate HFSS reachability. ISSUE-003 is the current first blocker because candidate comparison calls unimported `emit_status`.
 
 ## Current code baseline
 
@@ -63,22 +63,22 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 | Nine-parameter schema and validation | `WIRED` | `UNIT TESTED` |
 | Deterministic Mock surrogate/optimizer/HFSS | `WIRED` | Component tests pass; current offline E2E `FAIL` |
 | Supplied electrical surrogate | `WIRED` | Vendor/runtime evidence passes; historically exercised in real E2E; current supplied-Mock workflow was not rerun |
-| Supplied optimizer provider integration / adapter wiring | `WIRED / NEEDS VERIFICATION` | Vendor optimizer tests pass and provider call is present; current Agent route does not reach it because of ISSUE-002 |
+| Supplied optimizer provider integration / adapter wiring | `WIRED / NEEDS VERIFICATION` | Vendor optimizer tests pass and the WF-001 route can reach the provider position; the supplied adapter itself was not executed in the ISSUE-002 test fixture |
 | Diagnosis/OptimizationObjective control over supplied optimizer behavior | `NOT WIRED / CAUSAL DISCONNECT` | Static call-order evidence: objective is copied to metadata only after the vendor run; ISSUE-005 remains OPEN |
-| Diagnosis, optimization intent, objective, ranking | `PARTIALLY WIRED` | Unit tests pass; current workflow reachability and behavior are separately classified in the validation matrix |
+| Diagnosis, optimization intent, objective, ranking | `PARTIALLY WIRED` | Production-direction rule failures reach neutral diagnosis and ACTIVE intent/objective in targeted tests; supplied-optimizer behavioral control remains ISSUE-005 |
 | HFSS contract, process isolation, timeout, lock, conversion | `WIRED` | Unit/integration tests pass; historically real exercised |
 | Target-only nine-parameter Builder | `WIRED` | Unit tested and historically real exercised |
 | Baseline and candidate independent projects | `WIRED` | `HISTORICALLY VERIFIED` |
 | Complex S-parameter and Touchstone export | `WIRED` | `HISTORICALLY VERIFIED` |
-| Rule evaluator and comparison | `WIRED`, not configured by entries | Unit tested; production E2E not valid |
+| Rule evaluator and comparison | `WIRED`; Production Contract v1 configured only in WF-001 | Rule/evidence/Diagnosis/Intent targeted tests pass; comparison reaches ISSUE-003 |
 | Surrogate/HFSS calibration | `PRESENT BUT UNUSED` | Calibration function unit tested; no production calibration report |
 | Checkpoint and artifact store | `WIRED` | Unit tested; current resume E2E fails |
 
 ## Current blockers
 
 - **ISSUE-001 — BLOCKER / RESOLVED:** presenter now explicitly receives the real baseline `EvaluationResult`; direct regression and current-source Agent/Offline execution prove the NameError is removed.
-- **ISSUE-002 — BLOCKER / CURRENT FIRST BLOCKER:** Production/Mock entries configure no evaluation rules, so baseline evaluation is deterministically `INVALID` and optimization intent cannot become `ACTIVE`.
-- **ISSUE-003 — BLOCKER / LATENT BLOCKER:** currently masked by ISSUE-002; candidate comparison calls `emit_status` without importing it.
+- **ISSUE-002 — BLOCKER / RESOLVED:** WF-001 loads Production Evaluation Contract v1; six authoritative HARD/SOFT rules retain rule-level evidence and hard failures reach neutral Diagnosis → ACTIVE OptimizationIntent.
+- **ISSUE-003 — BLOCKER / CURRENT FIRST BLOCKER:** a safe WF-001 test-only Graph probe reaches `compare_hfss_results` and reproduces the unimported `emit_status` NameError. It was not repaired in the ISSUE-002 scope.
 - **ISSUE-004 — HIGH:** rule evaluation and Best-update semantics are causally disconnected (`improved=False`, `score=0.0`).
 - **ISSUE-009 — HIGH:** historical paired results show surrogate/HFSS ranking reversal and calibration is not wired into Production.
 
@@ -87,11 +87,13 @@ Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
 - Environment preflight: `PASS` on 2026-08-20; this does not verify license availability.
 - Package import provenance: `PASS`; the project `.venv` editable install, ordinary import, and module CLI resolve to `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode\src` (ISSUE-023 resolved).
 - ISSUE-001 direct presenter regression: `PASS`; full terminal presenter file: 8 passed.
-- Main test suite: `FAIL` — 95 collected, 89 passed, 6 failed. The new import-provenance regression passes; ISSUE-002 still prevents candidate stages.
+- ISSUE-002 targeted regression: `PASS` — 40 passed across the new contract plus existing evaluator/diagnosis/intent/state coverage.
+- Main test suite: `FAIL` — 106 collected, 100 passed, 6 failed. The same one WF-002 CLI and five stale Mock graph/checkpoint/resume failures remain; no new failure was introduced.
 - Supplied optimizer tests: `PASS` — 7 passed.
 - Standalone supplied Builder test under Agent Python: `FAIL` during collection because `ansys` is not installed in that interpreter.
-- Current-source Offline Agent workflow: reaches `build_optimization_objective`, then completes with INVALID intent/objective and no candidate; Full Offline remains `BROKEN` under ISSUE-002.
-- Package CLI environment: `WIRED / INTEGRATION TESTED`; direct `.venv` module invocation imports the current repository and executes the current diagnosis/intent/objective graph. Full Offline remains blocked by ISSUE-002.
+- WF-001 test-only Production-band Graph: reaches optimizer, candidate gate, candidate HFSS, and enters `compare_hfss_results`, where ISSUE-003 raises the known NameError.
+- Current-source WF-002 Offline Agent: still uses its deprecated 1/2/3 GHz Mock/empty-rule configuration and completes INVALID; it was deliberately not adapted to the Production contract.
+- Package CLI environment: `WIRED / INTEGRATION TESTED`; direct `.venv` module invocation imports the current repository. Its exposed command remains the deprecated WF-002 empty-rule path and is not WF-001 evidence.
 - Supplied optimizer + MockHFSS workflow: `BROKEN` by the same current graph path; not rerun separately after deterministic test proof.
 - Current real Full Workflow: `NOT RUN` and must not be run.
 
@@ -116,7 +118,7 @@ The current vendor optimizer source/config hashes do match the hashes stored in 
 
 Marker: **REAL HFSS FULL WORKFLOW SHOULD NOT BE RUN**.
 
-The ISSUE-001 presenter exception is repaired. The current route can still perform the expensive baseline HFSS and then produce INVALID intent/objective because the evaluation rules are empty, ending without optimizer/candidate HFSS. ISSUE-002, latent ISSUE-003, and additional semantic disconnects remain.
+ISSUE-001 and ISSUE-002 are repaired. WF-001 has an explicit Production Evaluation Contract, but the safe current-tree route now proves ISSUE-003 at candidate comparison. ISSUE-003 and additional semantic disconnects remain, so a real run is still prohibited.
 
 ## Current development focus and next phase
 

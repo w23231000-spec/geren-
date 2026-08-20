@@ -18,18 +18,18 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 |---|---|---|---|---|---|
 | Baseline surrogate | PASS | PASS | PASS | PASS | Current main integration route executes it before the current downstream blocker |
 | Baseline HFSS orchestration | PASS | PASS | PASS | PASS | Fake backend integration passes; baseline stage is reached |
-| S-parameter rule evaluation | PASS | PASS | PASS | PASS | Evaluator is called and correctly returns INVALID for empty rules; configuration remains ISSUE-002 |
-| Baseline diagnosis | PASS | PASS | PASS | PASS | It consumes the observed INVALID evaluation |
-| Optimization Intent | PASS | PASS | PASS | PASS | Explicit presenter contract regression passes; current source route no longer raises ISSUE-001 |
-| Optimization Objective | PASS | PASS | PASS | PASS | Current source Offline route executes it with INVALID input; ACTIVE behavior remains blocked by ISSUE-002 |
+| S-parameter rule evaluation | PASS | PASS | PASS | PASS | WF-001 loads six Production v1 rules; independent hard failures, soft failures, worst evidence, and aggregate status pass targeted tests |
+| Baseline diagnosis | PASS | PASS | PASS | PASS | Production-direction S11/S21 hard failures retain neutral issue identities and signed evidence |
+| Optimization Intent | PASS | PASS | PASS | PASS | Both Production hard-rule failure types produce ACTIVE CORE_RECOVERY intent |
+| Optimization Objective | PASS | PASS | PASS | PASS | Safe WF-001 node/Graph routes produce ACTIVE objective; supplied optimizer behavioral control remains separate ISSUE-005 |
 | Supplied surrogate provider | PASS | PASS | NEEDS VERIFICATION | PASS | Formal supplied routes call it before optimizer blockers; current Agent-boundary execution was not isolated |
-| Supplied optimizer provider integration / adapter wiring | PASS | PASS | NEEDS VERIFICATION | FAIL | Provider call is wired and vendor tests pass, but current Agent route is blocked before invocation |
+| Supplied optimizer provider integration / adapter wiring | PASS | PASS | NEEDS VERIFICATION | PASS | Provider call is now upstream of the exposed ISSUE-003; vendor tests pass, but the supplied adapter was not executed in this repair |
 | Diagnosis/OptimizationObjective control of supplied optimizer behavior | FAIL | NOT AVAILABLE | FAIL | FAIL | ISSUE-005 causal disconnect: objective is metadata-only after vendor execution |
-| Candidate ranking | PASS | PASS | NEEDS VERIFICATION | FAIL | Generic unit behavior passes; supplied adapter returns one candidate and current route does not reach it |
-| Candidate parameter validation | PASS | PASS | NEEDS VERIFICATION | FAIL | Existing full-route evidence is masked by ISSUE-002 |
-| Candidate surrogate gate | PASS | PASS | NEEDS VERIFICATION | FAIL | Component behavior exists; current formal route does not reach it |
-| Candidate HFSS orchestration | PASS | PASS | PASS | FAIL | Fake-backend boundary passes; current formal route is blocked upstream |
-| Baseline/candidate comparison | PASS | PASS | FAIL | FAIL | ISSUE-003 is a local integration defect and is currently masked upstream |
+| Candidate ranking | PASS | PASS | NEEDS VERIFICATION | PASS | Safe Production-band route executes deterministic ranking; supplied adapter still returns one candidate |
+| Candidate parameter validation | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches candidate validation |
+| Candidate surrogate gate | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches and passes the candidate gate |
+| Candidate HFSS orchestration | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches candidate HFSS without AEDT |
+| Baseline/candidate comparison | PASS | PASS | FAIL | PASS | Route now enters comparison and exposes ISSUE-003 locally |
 | Candidate diagnosis | PASS | PASS | NEEDS VERIFICATION | FAIL | Unit evidence exists; current route does not reach it |
 | Best update | PASS | STALE | FAIL | FAIL | ISSUE-004 semantic disconnect is local; current route is also blocked upstream |
 | HFSS contract/port/complex conversion | PASS | PASS | PASS | PASS | Fake worker/backend integration passes and baseline HFSS route contains the boundary |
@@ -38,7 +38,7 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 | Worker process isolation/timeout | PASS | PASS | PASS | PASS | Child-process fake exercises the boundary; real current-tree execution remains NOT RUN |
 | Artifact store | PASS | PASS | PASS | PASS | Upstream artifacts are written before the downstream failure |
 | Checkpoint serialization | PASS | PASS | PASS | PASS | Serialization is locally proven and checkpoints are reached before the failure |
-| Resume/reuse | PASS | PASS | NEEDS VERIFICATION | PASS | Resume invokes the workflow, but current tests now stop on the ISSUE-002 route before isolating resume semantics |
+| Resume/reuse | PASS | PASS | NEEDS VERIFICATION | PASS | Local serialization/reuse evidence passes; five stale Mock graph tests still do not isolate current WF-001 resume semantics |
 | Calibration API | PASS | PASS | NOT AVAILABLE | FAIL | API is not connected to any formal workflow |
 | Environment preflight | PASS | NOT AVAILABLE | PASS | PASS | Current preflight result is PASS; it does not launch AEDT or prove a license |
 | Package editable import provenance | PASS | PASS | PASS | PASS | Project `.venv`, ordinary import, and module CLI resolve to the current repository `src` |
@@ -47,9 +47,9 @@ Baseline: `FS-2026-08-20`. This semantic correction uses only existing evidence;
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-002 current first blocker, with ISSUE-003 latent |
-| WF-002 deterministic Offline | FAIL | NOT AVAILABLE | FAIL | Current source reaches objective, then exits INVALID without candidate because of ISSUE-002 |
-| WF-003 supplied optimizer + MockHFSS | NOT RUN | NOT AVAILABLE | NOT RUN | FAIL readiness from shared ISSUE-002 route; it was not separately rerun |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-002 resolved; ISSUE-003 is current first blocker and was exposed by a safe test-only Graph probe |
+| WF-002 deterministic Offline | FAIL | NOT AVAILABLE | FAIL | Deprecated Mock path remains empty-rule/1–3 GHz and was deliberately not adapted to the Production contract |
+| WF-003 supplied optimizer + MockHFSS | NOT RUN | NOT AVAILABLE | NOT RUN | Deprecated Mock path was not adapted or rerun; Production Contract v1 is WF-001-only |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
 
 Interpretation:
@@ -60,13 +60,24 @@ Interpretation:
 
 ## Executed validation commands
 
+### ISSUE-002 Production Evaluation Contract v1
+
+- **Date:** 2026-08-20
+- **Targeted command:** `.venv\Scripts\python.exe -m pytest tests/test_production_evaluation_contract.py tests/test_sparameter_evaluator.py tests/test_diagnosis.py tests/test_optimization_intent.py tests/test_comparison_models.py -q`
+- **Result:** `PASS` — 40 passed.
+- **Evidence:** exact six-rule contract/FrequencyPlan, independent S21/S11 hard failures, both hard PASS, Lower/Upper soft failures without Overall FAIL, worst value/frequency, signed margin, violation intervals, neutral Diagnosis → ACTIVE Intent, checkpoint JSON round-trip, WF-001 composition loading, and test-only node reachability through ACTIVE objective.
+- **Full main suite:** `FAIL` — 106 collected, 100 passed, 6 failed. The same one WF-002 CLI and five stale Mock graph/checkpoint/resume failures remain; no new failure was introduced.
+- **Safe full-Graph probe:** entered `compare_hfss_results` after optimizer, candidate gate, and candidate HFSS, then reproduced ISSUE-003 `NameError: name 'emit_status' is not defined`. ISSUE-003 was recorded and not repaired.
+- **Vendor optimizer suite:** `PASS` — 7 passed.
+- **HFSS/AEDT:** NOT RUN.
+
 ### Main suite
 
 - **Date:** 2026-08-20
 - **Command:** `.venv\Scripts\python.exe -m pytest -q`
-- **Post-ISSUE-023 result:** `FAIL` — 95 collected, 89 passed, 6 failed.
+- **Post-ISSUE-002 result:** `FAIL` — 106 collected, 100 passed, 6 failed.
 - **Failures:** one CLI E2E and five comparison graph/checkpoint/resume tests.
-- **Current first proven cause:** ISSUE-002 empty rules produce INVALID intent/objective, so candidate stages are not reached. No failure contains the ISSUE-001 NameError.
+- **Current failure boundary:** the one WF-002 CLI and five Mock graph/checkpoint/resume tests retain empty-rule/1–3 GHz fixtures and stale expectations under ISSUE-008. Production ISSUE-002 is resolved; no failure is newly introduced by its tests.
 - **Secondary stale evidence:** graph trace expectations predate diagnosis/intent/objective nodes.
 
 ### ISSUE-001 targeted regression
@@ -74,13 +85,13 @@ Interpretation:
 - **Before:** existing `tests\test_cli.py::test_offline_cli_returns_zero_and_creates_complete_artifacts` failed in `build_optimization_intent → emit_optimization_intent` with `NameError: name 'evaluation' is not defined`.
 - **After direct:** `tests\test_terminal_output.py::test_optimization_intent_presenter_uses_explicit_evaluation_contract` — `PASS` (1 passed).
 - **After presenter file:** `tests\test_terminal_output.py` — `PASS` (8 passed).
-- **After original Agent boundary:** the CLI test no longer raises NameError; it fails later because no candidate artifact is produced under ISSUE-002.
+- **After original Agent boundary:** the CLI test no longer raises NameError; it fails later because deprecated WF-002 still has empty rules and produces no candidate artifact.
 
 ### Current-source Offline route
 
 - **Command:** `.venv\Scripts\python.exe RUN_OFFLINE.py`.
 - **Result:** process exits normally; checkpoint trace reaches `build_optimization_objective` and then `complete` with `optimization_intent=INVALID`, `optimization_objective=INVALID`, and no candidate.
-- **Interpretation:** ISSUE-001 is repaired; Full Offline remains `FAIL` because ISSUE-002 prevents the optimization/candidate half of the workflow.
+- **Interpretation:** this is the deprecated WF-002 formal Offline result. It was deliberately not given the WF-001-only Production contract and remains `FAIL` under ISSUE-008 cleanup scope.
 
 ### Package CLI import-origin check
 
@@ -88,9 +99,9 @@ Interpretation:
 - **Before:** `FAIL / ENVIRONMENT MISMATCH`; import resolved to the old `C:\Users\82074\Documents\Codex\2026-08-12\...\HFSS_Optimization_Agent_VSCode\src` editable path.
 - **Repair:** current-repository `uv sync --frozen --inexact --cache-dir .uv-cache`; `uv.lock` unchanged.
 - **After import:** `PASS`; package resolves to `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode\src\hfss_optimization_agent\__init__.py`.
-- **After module Offline CLI:** `PASS` for import/current-graph provenance; trace reaches `build_optimization_objective` and then `complete` with INVALID intent/objective under ISSUE-002.
+- **After module Offline CLI:** `PASS` for import/current-graph provenance; its deprecated WF-002 command reaches objective and completes INVALID with its unchanged empty-rule fixture.
 - **Regression:** `.venv\Scripts\python.exe -m pytest -q tests\test_import_provenance.py` — `PASS` (1 passed).
-- **Tracking:** ISSUE-023 RESOLVED; this does not change the Full Offline `FAIL` result caused by ISSUE-002.
+- **Tracking:** ISSUE-023 RESOLVED; the package CLI command remains WF-002 rather than the WF-001 Production entry.
 
 ### Supplied optimizer suite
 

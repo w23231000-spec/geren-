@@ -7,7 +7,9 @@ from typing import Any, Mapping, Sequence
 from ..core.models import EvaluationResult, FrequencyPlan
 from ..diagnosis import (
     CORE_MATCHING_POOR, CORE_TRANSMISSION_INSUFFICIENT,
+    CORE_S11_RULE_NOT_MET, CORE_S21_RULE_NOT_MET,
     CORE_MATCHING, CORE_TRANSMISSION,
+    CORE_S11_COMPLIANCE, CORE_S21_COMPLIANCE,
     LOWER_FREQUENCY_MARGIN, UPPER_FREQUENCY_MARGIN,
     LOWER_FREQUENCY_MARGIN_INSUFFICIENT, UPPER_FREQUENCY_MARGIN_INSUFFICIENT,
     DiagnosisResult, INVALID as DIAGNOSIS_INVALID, NO_ISSUE, DIAGNOSED,
@@ -67,7 +69,13 @@ class OptimizationIntentBuilder:
         if diagnosis.status != DIAGNOSED or not diagnosis.optimization_focus:
             return OptimizationIntent(INVALID, source_primary_issue=None, source_diagnosis_stage=diagnosis.stage)
         issue_types = {issue.issue_type for issue in diagnosis.issue_details}
-        mode = CORE_RECOVERY if {CORE_MATCHING_POOR, CORE_TRANSMISSION_INSUFFICIENT} & issue_types else MARGIN_EXPANSION
+        core_issues = {
+            CORE_MATCHING_POOR,
+            CORE_TRANSMISSION_INSUFFICIENT,
+            CORE_S11_RULE_NOT_MET,
+            CORE_S21_RULE_NOT_MET,
+        }
+        mode = CORE_RECOVERY if core_issues & issue_types else MARGIN_EXPANSION
         primary = diagnosis.optimization_focus[0]
         return OptimizationIntent(ACTIVE, mode, primary, list(diagnosis.optimization_focus[1:]), True,
                                   diagnosis.primary_issue.issue_type if diagnosis.primary_issue else None, diagnosis.stage)
@@ -88,6 +96,7 @@ class OptimizationObjectiveBuilder:
     @staticmethod
     def _metric(focus):
         return {CORE_MATCHING: "matching_penalty", CORE_TRANSMISSION: "transmission_penalty",
+                CORE_S11_COMPLIANCE: "s11_rule_penalty", CORE_S21_COMPLIANCE: "s21_rule_penalty",
                 LOWER_FREQUENCY_MARGIN: "lower_margin_penalty", UPPER_FREQUENCY_MARGIN: "upper_margin_penalty"}.get(focus, "unknown")
 
     @staticmethod
@@ -98,6 +107,12 @@ class OptimizationObjectiveBuilder:
             return max(0.0, -min(margins)) if margins else 0.0
         if focus == CORE_TRANSMISSION:
             margins = [r.get("margin_to_target") for r in rules if r.get("hard_constraint") and str(r.get("parameter", "")).upper() == "S21" and r.get("operator") == ">="]
+            return max(0.0, -min(margins)) if margins else 0.0
+        if focus == CORE_S11_COMPLIANCE:
+            margins = [r.get("margin_to_target") for r in rules if r.get("hard_constraint") and str(r.get("parameter", "")).upper() == "S11"]
+            return max(0.0, -min(margins)) if margins else 0.0
+        if focus == CORE_S21_COMPLIANCE:
+            margins = [r.get("margin_to_target") for r in rules if r.get("hard_constraint") and str(r.get("parameter", "")).upper() == "S21"]
             return max(0.0, -min(margins)) if margins else 0.0
         margin = evaluation.frequency_margin
         return max(0.0, float(margin.get("lower_margin_remaining", 0.0 if focus == LOWER_FREQUENCY_MARGIN else margin.get("upper_margin_remaining", 0.0)))) if focus == LOWER_FREQUENCY_MARGIN else max(0.0, float(margin.get("upper_margin_remaining", 0.0)))

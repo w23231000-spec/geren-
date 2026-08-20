@@ -12,6 +12,7 @@ from .agent.comparison_state import create_comparison_state
 from .composition import compose_comparison_workflow
 from .core.config import AppConfig, EvaluationConfig
 from .core.models import CandidateParameters
+from .evaluation.contract import load_production_evaluation_config
 from .hfss.contracts import HFSSRunContract, load_hfss_contract
 from .hfss.mock_hfss import MockHFSS
 from .hfss.pyaedt_composition import compose_pyaedt_hfss
@@ -141,6 +142,7 @@ def run_real_supplied_demo(
     builder_source_root: Path,
     pyaedt_python: Path,
     contract_path: Path,
+    evaluation_contract_path: Path | None = None,
     artifact_root: Path = Path("runs"),
     task_id: str | None = None,
     quick: bool = False,
@@ -156,6 +158,9 @@ def run_real_supplied_demo(
     builder_source_root = builder_source_root.resolve()
     artifact_root = artifact_root.resolve()
     contract = load_hfss_contract(contract_path.resolve())
+    if evaluation_contract_path is None:
+        raise ValueError("WF-001 requires Production Evaluation Contract v1")
+    production_evaluation = load_production_evaluation_config(evaluation_contract_path.resolve())
     if contract.design_name != "interposer_temple4":
         raise ValueError("The approved real workflow may solve only interposer_temple4")
     if contract.metadata.get("build_strategy") != "target_design_only":
@@ -167,7 +172,7 @@ def run_real_supplied_demo(
     baseline = supplied_baseline_candidate()
     config = AppConfig(
         artifact_root=artifact_root,
-        evaluation=EvaluationConfig(candidate_gate_score=-1.0),
+        evaluation=production_evaluation,
     )
     state = create_comparison_state(
         task_id=task_id,

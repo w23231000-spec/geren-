@@ -76,11 +76,11 @@ These decisions are reconstructed from current source/configuration and availabl
 
 ## ADR-010 — Rule evaluation is deterministic and refuses no-rule score fallback
 
-- **Status:** ACTIVE BUT INTEGRATION BROKEN
+- **Status:** ACTIVE; WIRED IN WF-001
 - **Decision:** S-parameter evaluation requires explicit rules; no rules produce `INVALID` rather than using the older scalar `score` path.
 - **Evidence level:** UNIT TESTED.
 - **Evidence:** `test_no_rules_is_invalid_and_never_score_fallback`.
-- **Consequence:** every formal entry must provide a rule contract. They currently do not (ISSUE-002), and legacy Best fields remain disconnected (ISSUE-004).
+- **Consequence:** WF-001 supplies Production Contract v1 and no-rule input remains invalid. Deprecated Mock workflows are not allowed to redefine Production rules. Legacy Best fields remain disconnected (ISSUE-004).
 
 ## ADR-011 — Diagnosis consumes Evaluation artifacts, not raw curves
 
@@ -106,3 +106,10 @@ These decisions are reconstructed from current source/configuration and availabl
 - **Evidence:** harness tests and graph runner.
 - **Consequence:** state is inspectable and portable, but resume is replay from START and has ISSUE-013/014 consistency risks.
 
+## ADR-014 — Production Evaluation Contract v1 is explicit and WF-001-only
+
+- **Status:** ACTIVE
+- **Decision:** WF-001 loads `config/evaluation_contract.production_v1.json`. Core 6–18 GHz has HARD `S21_dB <= -30 dB` and `S11_dB >= -0.5 dB`; Lower 5–6 GHz and Upper 18–19 GHz use the same targets as SOFT rules. Every rule uses all-points/worst-case evaluation. Vendor phase, worse-frequency, and passivity constraints remain optimizer-internal and are not Production PASS/FAIL rules.
+- **Evidence level:** INTEGRATION TESTED on the no-AEDT composition/evaluation/diagnosis/intent boundary; current real execution NOT RUN.
+- **Evidence:** contract-loader tests, structured rule-evidence tests, checkpoint round-trip, WF-001 composition capture, and safe Production-band node/Graph probes.
+- **Consequence:** WF-001 has one versioned source of evaluation truth. Rule-level evidence remains authoritative; Overall PASS/FAIL is only the hard-rule aggregate. New rule directions use neutral diagnosis types rather than conventional matching/insertion-loss interpretations.

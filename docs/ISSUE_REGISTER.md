@@ -7,7 +7,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ID | Severity | Status | Classification | Title |
 |---|---|---|---|---|
 | ISSUE-001 | BLOCKER | RESOLVED | BUG / REGRESSION | Undefined `evaluation` crashed optimization-intent output |
-| ISSUE-002 | BLOCKER | OPEN | INTEGRATION / EVALUATION | Formal entries provide no evaluation rules |
+| ISSUE-002 | BLOCKER | RESOLVED | INTEGRATION / EVALUATION | WF-001 lacked a Production Evaluation Contract |
 | ISSUE-003 | BLOCKER | OPEN | BUG / REGRESSION | Candidate comparison calls unimported `emit_status` |
 | ISSUE-004 | HIGH | OPEN | EVALUATION / STATE | Rule comparison cannot drive Best update or summary |
 | ISSUE-005 | HIGH | OPEN | OPTIMIZATION / ARCHITECTURE | Diagnosis objective does not control supplied optimizer |
@@ -32,35 +32,20 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 ## Open and partially resolved issues
 
-### ISSUE-002 — Formal entries provide no evaluation rules
-
-- **Classification:** INTEGRATION / EVALUATION
-- **Severity / status:** BLOCKER / OPEN
-- **Blocking order:** **CURRENT FIRST BLOCKER / exposed after ISSUE-001**. ISSUE-001 no longer aborts presentation; the empty evaluation contract now prevents an ACTIVE optimization route.
-- **Location:** `core/config.py::EvaluationConfig.rules=()`; all three run functions in `cli.py`; `evaluator.py::evaluate_sparameters`.
-- **Description:** no entry supplies rules, while the evaluator intentionally marks no-rules input `INVALID` and forbids legacy score fallback.
-- **Impact:** baseline diagnosis becomes invalid; optimization intent/objective cannot become ACTIVE; optimizer and candidate HFSS are skipped if ISSUE-001 is removed; misleading completion is possible.
-- **Trigger:** every formal Agent workflow with current configuration.
-- **Evidence:** unit test `test_no_rules_is_invalid_and_never_score_fallback`; failing E2E output shows `Baseline Evaluation INVALID`.
-- **Workaround:** none configured.
-- **Fixed:** no.
-- **Needs verification:** define a versioned evaluation contract and prove real and Mock frequency coverage.
-- **Suggested next action:** add explicit rules/FrequencyPlan through configuration/composition before enabling a real run.
-
 ### ISSUE-003 — Candidate comparison calls unimported `emit_status`
 
 - **Classification:** BUG / REGRESSION
 - **Severity / status:** BLOCKER / OPEN
-- **Blocking order:** **LATENT BLOCKER / currently masked by ISSUE-002**. It becomes reachable only after the intent/evaluation route can proceed through optimizer and candidate HFSS comparison.
+- **Blocking order:** **CURRENT FIRST BLOCKER / exposed after ISSUE-002**. A rule-configured safe WF-001 test-only route now reaches candidate comparison.
 - **Location:** `agent/comparison_nodes.py` import list and `compare_hfss_results` lines 320/324.
 - **Description:** `emit_status` is called but not imported.
 - **Impact:** candidate comparison, Offline E2E, supplied-Mock E2E, real candidate E2E.
 - **Trigger:** a valid route reaches comparison and produces an `EvaluationComparison`.
-- **Evidence:** static source inspection; currently masked by ISSUE-001/002.
+- **Evidence:** static source inspection plus the 2026-08-20 safe Graph probe, which reached `compare_hfss_results` after candidate HFSS and raised `NameError: name 'emit_status' is not defined`.
 - **Workaround:** none.
 - **Fixed:** no.
-- **Needs verification:** must be exercised by a rule-configured comparison test.
-- **Suggested next action:** import/test after ISSUE-001/002 integration design is settled.
+- **Needs verification:** repair must be covered by the rule-configured comparison route; not attempted in ISSUE-002 scope.
+- **Suggested next action:** repair ISSUE-003 only, then rerun the safe Production-band Graph route.
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
 
@@ -286,6 +271,19 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 ## Resolved issues retained for history
 
+### ISSUE-002 — WF-001 lacked a Production Evaluation Contract
+
+- **Classification:** INTEGRATION / EVALUATION
+- **Severity / status:** BLOCKER / RESOLVED
+- **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
+- **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.
+- **Authoritative contract:** `production-evaluation-v1`; Core 6–18 GHz HARD `S21_dB <= -30 dB` and `S11_dB >= -0.5 dB`; Lower 5–6 GHz and Upper 18–19 GHz use the same targets as SOFT rules; worst-case/all-points semantics; vendor phase/passivity constraints excluded from Production PASS/FAIL.
+- **Fix:** added a versioned JSON contract and loader, injected it only into WF-001, preserved existing rule-level evidence, and added direction-neutral `CORE_S11_RULE_NOT_MET` / `CORE_S21_RULE_NOT_MET` diagnosis and focus paths.
+- **Evidence:** targeted suite 40 PASS; WF-001 composition test captures six loaded rules; checkpoint round-trip preserves rule evidence; safe Production-band node chain produces ACTIVE intent/objective.
+- **Reachability after fix:** a full test-only Graph probe passes optimizer, candidate gate, and candidate HFSS, then exposes unchanged ISSUE-003 at `compare_hfss_results`.
+- **Scope exclusions preserved:** no Comparator/Best/vendor-objective/terminal-status redesign; WF-002/WF-003 were not adapted; HFSS/AEDT not run.
+- **Fixed:** yes.
+
 ### ISSUE-023 — Package CLI imported a stale installation from another workspace
 
 - **Classification:** ENVIRONMENT / REPRODUCIBILITY
@@ -293,7 +291,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Location:** project `.venv` editable-install metadata used by ordinary imports and `.venv\Scripts\python.exe -m hfss_optimization_agent`.
 - **Root cause:** the copied/moved `.venv` retained an absolute editable path in `__editable__.hfss_optimization_agent-0.1.0.pth` and `direct_url.json`, both pointing to `C:\Users\82074\Documents\Codex\2026-08-12\langgraph-state-interface-adapter-checkpoint-best-2\HFSS_Optimization_Agent_VSCode`. The current `uv.lock` was already correct with `source = { editable = "." }`; the new workspace had not re-synchronized its editable install.
 - **Resolution:** ran `uv sync --frozen --inexact --cache-dir .uv-cache` from the current repository. uv uninstalled only the stale project editable and installed `hfss-optimization-agent==0.1.0` from `file:///D:/Agent_Workspace/HFSS_Optimization_Agent_VSCode`; no lock, global Python, global `PYTHONPATH`, old workspace, or business source was changed.
-- **Evidence:** ordinary import, `.pth`, `direct_url.json`, and `uv pip show` now resolve to the current repository. The new subprocess regression passes. The package Offline CLI executes the current graph through `build_optimization_objective`, then exposes unchanged ISSUE-002.
+- **Evidence:** ordinary import, `.pth`, `direct_url.json`, and `uv pip show` now resolve to the current repository. The subprocess regression passes. The package Offline CLI executes the deprecated WF-002 path; it is not Production Evaluation evidence.
 - **Fixed:** yes, 2026-08-20.
 - **Regression boundary:** `tests/test_import_provenance.py` launches the project `.venv` without `PYTHONPATH` and requires the imported package file to reside under the current repository `src` directory.
 
@@ -306,7 +304,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Resolution:** presenter contract now explicitly accepts `evaluation`, and `build_optimization_intent` passes `state["baseline_evaluation"]`; no dummy, fallback, hard-coded margin, evaluation-rule, or objective behavior was introduced.
 - **Evidence:** original current-source CLI test reproduced `NameError`; direct regression passed; all 8 terminal presenter tests passed; post-fix main suite has 88 pass / 6 downstream failures without the NameError; current-source Offline route reaches `build_optimization_objective`.
 - **Fixed:** yes, 2026-08-20.
-- **Remaining boundary:** ISSUE-002 is now the current first blocker; ISSUE-003 remains latent.
+- **Remaining boundary at completion:** ISSUE-002 became the next blocker. ISSUE-002 is now resolved separately; ISSUE-003 is current first blocker.
 
 ### ISSUE-021 — Explicit material SolveInside classification regression
 

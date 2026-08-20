@@ -74,7 +74,7 @@ The source announces 14 presentation stages, but the graph has 17 nodes and reus
 | `run_baseline_hfss` | baseline, target | baseline HFSS/evaluation, initial Best | HFSS, evaluator, artifacts | raises on failed baseline HFSS |
 | `diagnose_baseline` | baseline evaluation | diagnosis/history | DiagnosisNode | none |
 | `freeze_baseline` | both baseline results | trace | checkpoint | raises if baseline missing |
-| `build_optimization_intent` | baseline diagnosis | intent | IntentBuilder, artifact, terminal | current blocker at terminal output |
+| `build_optimization_intent` | baseline diagnosis | intent | IntentBuilder, artifact, terminal | Production hard failures produce ACTIVE neutral focus |
 | `build_optimization_objective` | intent, evaluation | objective | ObjectiveBuilder | ACTIVE or complete |
 | `run_optimizer` | baseline, surrogate, objective | batch, queue | optimizer; optional surrogate reranking | raises on optimizer failure |
 | `select_optimized_candidate` | batch, queue | candidate, queue | artifact | none |
@@ -82,7 +82,7 @@ The source announces 14 presentation stages, but the graph has 17 nodes and reus
 | `recalculate_candidate_sparameters` | candidate | candidate result/history | surrogate | failure left to gate |
 | `candidate_sparameter_gate` | candidate surrogate | next action | router | RUN_HFSS or complete |
 | `run_candidate_hfss` | candidate | candidate HFSS/history | HFSS | failed result does not raise |
-| `compare_hfss_results` | baseline/candidate | evaluation/comparison/history | evaluator/comparator | latent missing import |
+| `compare_hfss_results` | baseline/candidate | evaluation/comparison/history | evaluator/comparator | current ISSUE-003 missing import |
 | `diagnose_candidate` | evaluation/comparison | diagnosis/history | DiagnosisNode | none |
 | `update_hfss_best` | evaluation, candidate, Best | optional Best | artifact/checkpoint | semantic disconnect exists |
 | `decide_after_hfss` | result/evaluation | next action | router | PASS and STOP both complete |
@@ -131,7 +131,7 @@ The source announces 14 presentation stages, but the graph has 17 nodes and reus
 | Artifact store | WIRED | UNIT TESTED | All Agent workflows |
 | JSON checkpoint | WIRED | UNIT TESTED; resume E2E FAIL | All Agent workflows |
 | Resume | PARTIALLY WIRED | Current E2E FAIL | Programmatic only |
-| Runtime configuration | ACTIVE / INCOMPLETE | Preflight PASS | Missing evaluation contract |
+| Runtime configuration | ACTIVE / INCOMPLETE | Production Evaluation Contract v1 integration tested; real run NOT RUN | Other runtime/readiness issues remain |
 | Package CLI | ACTIVE / PARTIAL | Offline CLI FAIL | No real-HFSS subcommand |
 | VS Code launches | ACTIVE | Preflight PASS; workflow launches not current PASS | User-facing entry set |
 | Regression preflight | ACTIVE | PASS | Read-only environment check |
@@ -164,9 +164,9 @@ The graph passes `optimization_objective` into the adapter, but the adapter reco
 
 ## Evaluation and diagnosis boundary
 
-`DeterministicEvaluator.evaluate_sparameters` evaluates explicit S11/S21 hard/soft band rules. `EvaluationComparator` compares baseline and candidate rule artifacts. `DiagnosisNode` consumes only `EvaluationResult`.
+`DeterministicEvaluator.evaluate_sparameters` evaluates explicit S11/S21 hard/soft band rules. WF-001 loads versioned `production-evaluation-v1`: Core 6–18 GHz HARD `S21_dB <= -30 dB` and `S11_dB >= -0.5 dB`, with identical SOFT targets on 5–6 and 18–19 GHz. All use all-points/worst-case evaluation. Vendor phase/passivity constraints are not Production PASS/FAIL rules. `EvaluationComparator` compares baseline and candidate rule artifacts. `DiagnosisNode` consumes only `EvaluationResult`; the Production directions use neutral S11/S21 rule-not-met issue/focus values.
 
-No entry supplies rules, so current Production evaluation is invalid. Rule evaluation also does not populate the legacy `improved`/`score` fields used by Best update. See ISSUE-002 and ISSUE-004.
+WF-001 supplies the contract and safe no-AEDT evidence reaches candidate comparison. Rule evaluation still does not populate the legacy `improved`/`score` fields used by Best update. ISSUE-002 is resolved; see ISSUE-003 and ISSUE-004 for the next downstream defects.
 
 ## Calibration boundary
 

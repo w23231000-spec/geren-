@@ -66,3 +66,16 @@ This file is append only. New task records are added at the end.
 - **Package Offline CLI:** now runs the current graph and reaches `build_optimization_objective`, then completes INVALID without a candidate because ISSUE-002 remains the current first blocker.
 - **Main suite:** 95 collected, 89 PASS / 6 FAIL. The six pre-existing ISSUE-002/stale E2E failures remain; no new failure was introduced.
 - **HFSS:** NOT RUN. AEDT and all real Builder/solve paths were not started.
+
+## 2026-08-20 — ISSUE-002 PRODUCTION EVALUATION CONTRACT V1 INTEGRATED
+
+- **Scope:** ISSUE-002 only. ISSUE-003/004/005/006, Comparator, Best update, vendor-objective causal control, terminal status vocabulary, WF-002/WF-003 frequency/data, and real HFSS were not repaired or redesigned.
+- **Authoritative contract:** Core 6–18 GHz HARD `S21_dB <= -30 dB` and `S11_dB >= -0.5 dB`; Lower 5–6 GHz and Upper 18–19 GHz use the same targets as SOFT rules; all-points/worst-case evaluation. Vendor phase/passivity/worse-frequency constraints remain optimizer-internal.
+- **Implementation:** added versioned `config/evaluation_contract.production_v1.json` plus a loader into existing `EvaluationConfig`/`SParameterRule`; only WF-001 `run_real_supplied_demo` receives it. Existing RuleEvaluationResult/EvaluationResult evidence fields and hard/soft status representation were retained.
+- **Diagnosis/Intent:** added direction-neutral `CORE_S11_RULE_NOT_MET` / `CORE_S21_RULE_NOT_MET` and compliance focuses. Both Production hard-rule directions retain signed evidence through Evaluation → Diagnosis → ACTIVE CORE_RECOVERY Intent/Objective. Legacy conventional-direction diagnoses remain compatible.
+- **Targeted tests:** 40 PASS. Coverage includes exact contract, isolated S11/S21 hard failures, hard PASS, Lower/Upper soft failures without Overall FAIL, worst point, signed margin, violation intervals, checkpoint JSON evidence, WF-001 composition injection, and ACTIVE objective reachability.
+- **Main suite:** 106 collected, 100 PASS / 6 FAIL. The same one deprecated WF-002 CLI and five stale Mock graph/checkpoint/resume failures remain; no new failure was introduced.
+- **Safe Graph reachability:** test-only 5–19 GHz Graph reached optimizer, candidate gate, candidate HFSS, and entered `compare_hfss_results`; it then exposed unchanged ISSUE-003 (`emit_status` NameError). Work stopped there as required.
+- **Vendor optimizer suite:** 7 PASS; no vendor config or behavior changed.
+- **Status:** ISSUE-002 RESOLVED. ISSUE-003 is now CURRENT FIRST BLOCKER.
+- **HFSS:** NOT RUN. AEDT/PyAEDT/real Builder/solve were not started.

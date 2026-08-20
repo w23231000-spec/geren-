@@ -7,6 +7,7 @@ from .calibration import (
 )
 from .evaluator import DeterministicEvaluator, SParameterRule, SParameterData, RuleEvaluationResult, FrequencyMarginResult
 from .comparator import EvaluationComparator
+from .contract import PRODUCTION_CONTRACT_ID, load_production_evaluation_config
 
 __all__ = [
     "CalibrationCase",
@@ -18,5 +19,7 @@ __all__ = [
     "RuleEvaluationResult",
     "FrequencyMarginResult",
     "EvaluationComparator",
+    "PRODUCTION_CONTRACT_ID",
+    "load_production_evaluation_config",
     "assess_calibration",
 ]
