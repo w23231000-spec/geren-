@@ -329,3 +329,14 @@ This file is append only. New task records are added at the end.
 - **Observed state:** clean HEAD `b50ea3c4df7fe8d52c39265afb929d2324ca5043`; the same local licensing service is now Running, port 1055 listens, and `lmgrd`/`ansyslmd` processes exist. No claim is made about who changed that external state.
 - **Decision:** connectivity passes but authority fails. The underlying local license provenance remains unverifiable/unacceptable, so no `lmstat`, AEDT, HFSS, Calibration, Canary, or Solve was started.
 - **Next gate:** an authorized administrator must supply/confirm a legitimate ANSYS/organization entitlement and endpoint capable of legal `hfss_gui` checkout. Only then may a fresh clean-HEAD campaign be issued.
+
+## 2026-08-24 - Seventh real Calibration, reconciliation, and native-call heartbeat repair
+
+- **Scope/authority:** the user authorized bounded real Calibration; clean HEAD `2248da81d77edefb3ab7372040ca54a8edfa9ec4`, campaign `hfss-calibration-20260824-124719`, baseline plus two deterministic candidates, `ExecutionPolicy(3,0)`, headless, 7200-second timeout, zero retries.
+- **Observed progress:** preflight passed and an independent AEDT session completed exact `interposer_temple4` materials, geometry, ports/boundaries, Setup1, Sweep, report, and project save before submitting `analyze_setup`. The prior FlexNet `-15,10` did not appear.
+- **Failure/root cause:** synchronous native Solve starved the same-process Python heartbeat for the 120-second stale bound. Job supervision terminated and verified the tree; no response/result/Touchstone exists.
+- **Reconciliation:** exact operation `op_f7b18d41bbe3a71e7ac1315143b60578` / attempt `att_e3d942c4f2d2300a154a753265d03a15` became confirmed failed with evidence `art_b067a5b684f8701089b178ecd449c88c`, digest `901f5cf1e59e2feb12eb3fb58f47d6db508c7e041600c9f21f749a31b407fac6`. No retry/refund; zero residual process/Agent lock.
+- **Repair:** PyAEDT opts into a separate Job-contained heartbeat companion that preserves parent PID and has bounded cleanup. The independent 7200-second deadline, finite stale/termination bounds, and zero-retry policy remain. Calibration entry now configures UTF-8 output.
+- **Offline validation:** focused process/lock/worker/Calibration set `PASS` (40 in 3.11 s); full suite `PASS` (233 in 36.65 s); configured AEDT Python imports/CLI pass without launching AEDT.
+- **User boundary:** after the repair and checks, the user chose to perform the next physical run manually. No replacement manifest, HFSS/AEDT process, or physical budget was started/consumed in this repair step.
+- **Git:** implementation and synchronized project-memory changes are ready for final diff/status review; commit is recorded only if performed after that review.

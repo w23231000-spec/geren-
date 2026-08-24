@@ -40,9 +40,10 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-031 | BLOCKER | RESOLVED OFFLINE | CALIBRATION / AUTHORITY | Calibration Evidence 1.1 is policy/cardinality/provider/artifact/recomputation bound |
 | ISSUE-032 | BLOCKER | RESOLVED OFFLINE | HFSS / RUNTIME | AEDT 2025 R1 Python 3.10 could not import the isolated worker entry |
 | ISSUE-033 | HIGH | RESOLVED FOR NEW RUNS | RELIABILITY / RECONCILIATION | Calibration campaign did not preregister UNKNOWN reconciliation authority |
-| ISSUE-034 | HIGH | RESOLVED OFFLINE | HFSS / SUPERVISION | Fifteen-second worker heartbeat killed valid AEDT cold startup |
-| ISSUE-035 | BLOCKER | NEEDS VERIFICATION | HFSS / PYAEDT | PyAEDT gRPC returned bool/None while upstream license checkout was failing |
-| ISSUE-036 | BLOCKER | OPEN | HFSS / LICENSING / ENVIRONMENT | Configured license server is unreachable and local license provenance is not acceptable for use |
+| ISSUE-034 | HIGH | SUPERSEDED | HFSS / SUPERVISION | A longer same-process heartbeat still failed during blocking native Solve |
+| ISSUE-035 | BLOCKER | RESOLVED BY PHYSICAL BUILD EVIDENCE | HFSS / PYAEDT | Exact target creation and complete Builder path were observed in the seventh campaign |
+| ISSUE-036 | BLOCKER | AUTHORITY REVIEW OPEN | HFSS / LICENSING / ENVIRONMENT | Prior checkout failure did not recur; entitlement provenance remains a separate review item |
+| ISSUE-037 | BLOCKER | RESOLVED OFFLINE | HFSS / SUPERVISION | Blocking native Solve starved the worker's Python-thread heartbeat |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -412,31 +413,41 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-034 — Worker heartbeat killed valid AEDT cold startup
 
 - **Classification:** HFSS / PROCESS SUPERVISION / TIMEOUT
-- **Severity / status:** HIGH / RESOLVED OFFLINE on 2026-08-24; physical rerun pending
+- **Severity / status:** HIGH / SUPERSEDED BY ISSUE-037 on 2026-08-24
 - **Trigger/evidence:** after ISSUE-032 repair, PyAEDT 0.18.1 began `Initializing new Desktop session`; the 15-second heartbeat threshold expired while the embedded Python was blocked in AEDT startup. The supervisor terminated and verified the process tree. No Builder stage, `.aedt`, Solve, `.s2p`, residual process, or lock remained.
-- **Resolution:** the real PyAEDT composition now declares a 120-second heartbeat-loss bound, separate from the 7200-second solve/action deadline and 5-second termination verification grace. This remains finite and does not create retries.
+- **Resolution history:** the 120-second bound allowed cold startup and the full build to proceed, but the seventh campaign proved that changing the bound does not make a Python-thread heartbeat reliable during a blocking native solve.
 - **Reconciliation:** the preregistered grant was used to attach immutable journal/process/lock/no-result evidence and conclude the exact UNKNOWN attempt `CONFIRMED_FAILED`. Its budget/attempt remain consumed; the campaign is not resumed.
-- **Evidence after:** composition regression asserts 120 seconds; process-supervision tests still exercise short injected heartbeat timeouts and bounded termination. Full offline suite must pass before a new campaign.
-- **Fixed:** offline configuration yes; real cold start and full solve still need the new exact-revision campaign.
+- **Evidence after:** the seventh campaign reached `analyze_setup` before the same-process emitter stopped. The historical cold-start finding remains valid.
+- **Disposition:** retained as historical evidence; the general repair is ISSUE-037.
 
 ### ISSUE-035 — PyAEDT did not return the newly inserted target design object
 
 - **Classification:** HFSS / PYAEDT / GRPC COMPATIBILITY
-- **Severity / status:** BLOCKER / NEEDS VERIFICATION; upstream ISSUE-036 blocks attribution
+- **Severity / status:** BLOCKER / RESOLVED BY PHYSICAL BUILD EVIDENCE on 2026-08-24
 - **Trigger/evidence:** the third authorized probe started AEDT 2025 R1, created `pa_multi.aedt`, and attempted to insert only `interposer_temple4`. PyAEDT 0.18.1 `Desktop.active_design` received `None`/`bool`; later probes reported no top designs. Subsequent `batch.log` review proves every design-stage probe simultaneously failed the `hfss_gui` license checkout with FlexNet `-15,10`, so the design/API symptom cannot be isolated from the upstream license failure.
 - **Resolution:** the isolated worker installs a narrow compatibility hook before Hfss construction. After the first stale-proxy observation it invokes PyAEDT's own `grpc_plugin.recreate_application(True)` once, reacquires only the exact original project, then retries exact target resolution within 30 seconds. Exact project and design names are mandatory; it never selects or creates a fallback design.
 - **Safety/evidence:** all failed attempts were explicitly reconciled as confirmed failed. The fifth is operation `op_958d6e55c74c48235f8c487efd08ea1e`, attempt `att_bac8e3b29c8efc0cca73c7472905c8b6`, evidence `art_d694f78574d7d34fa9119268a9c42d04`. No process/Agent lock remained; no new attempt/refund/retry occurred. Unit regressions prove exact-project proxy refresh, bool acknowledgement, delayed activation, and wrong-design fail-closed behavior.
-- **Fixed:** compatibility logic is unit tested, but physical attribution is not proven. A legitimate reachable license server must close ISSUE-036 before this issue can be verified.
+- **Physical closure evidence:** campaign `hfss-calibration-20260824-124719` created exact `interposer_temple4`, completed materials, geometry, ports/boundaries, Setup1, Sweep, and report creation, then saved a non-empty `pa_multi.aedt` before submitting Solve.
 
 ### ISSUE-036 — Real HFSS license authority is unreachable/unacceptable
 
 - **Classification:** HFSS / LICENSING / ENVIRONMENT / AUTHORITY
-- **Severity / status:** BLOCKER / OPEN on 2026-08-24
+- **Severity / status:** BLOCKER / OPERATIONAL FAILURE NOT REPRODUCED; AUTHORITY REVIEW OPEN on 2026-08-24
 - **Trigger/evidence:** `batch.log` for campaigns `102020`, `103140`, `104554`, and `105414` records FlexNet `-15,10`, feature `hfss_gui`, and connection refusal at the configured `1055@localhost` endpoint. A later user-authorized gate recheck observes the same local service Running and port 1055 listening; this removes the connectivity symptom only, not the license-authority/provenance blocker.
 - **Authority finding:** the only local license file inspected identifies third-party/unverifiable provenance rather than a verifiable ANSYS/organization entitlement. It was not enabled or used; attempting to start the service failed before any state change.
-- **Impact:** Calibration has zero accepted physical cases and no confirmed Solve result. Canary/readiness issuance and Phase 6 remain prohibited. ISSUE-035 cannot be physically attributed while license checkout fails upstream.
-- **Required resolution:** supply a legitimate ANSYS/organization license server endpoint and entitlement, or have an authorized administrator configure/start it. Re-run a no-Solve license/readiness check, then issue a fresh clean-HEAD campaign. Do not reuse any failed Run.
+- **Current evidence/impact:** the seventh campaign's `batch.log` contains no prior FlexNet `-15,10`; AEDT completed the exact build and accepted `analyze_setup` submission. License connectivity is not the observed cause of that stop, but this does not independently verify entitlement provenance. Calibration still has zero accepted physical cases and no confirmed Solve result.
+- **Required resolution:** keep entitlement provenance under explicit operator review. Independently, commit and manually test the ISSUE-037 repair using a fresh clean-HEAD campaign; do not reuse any failed Run.
 - **Safety:** no service was started, no license daemon/port became active, all physical processes were terminated, and every exact UNKNOWN with preregistered authority was reconciled as failed without retry/refund.
+
+### ISSUE-037 — Blocking native Solve starved the Python-thread heartbeat
+
+- **Classification:** HFSS / PROCESS SUPERVISION / NATIVE CALL
+- **Severity / status:** BLOCKER / RESOLVED OFFLINE on 2026-08-24; real rerun pending
+- **Trigger/evidence:** campaign `hfss-calibration-20260824-124719`, operation `op_f7b18d41bbe3a71e7ac1315143b60578`, attempt `att_e3d942c4f2d2300a154a753265d03a15`, completed the exact build and entered synchronous `hfss.analyze_setup(..., blocking=True)`. The worker heartbeat stopped for the 120-second stale bound, so Job supervision terminated the tree and conservatively returned UNKNOWN.
+- **Root cause/resolution:** the heartbeat emitter was a Python thread inside the same worker. Only PyAEDT workers now opt into a separate `heartbeat_companion` process that records the parent PID and inherits the same kill-on-close Job. The 7200-second hard deadline, stale threshold, termination verification, and zero-retry policy are unchanged.
+- **Reconciliation:** verified zero processes/Agent lock and no response/result/Touchstone before concluding `CONFIRMED_FAILED`. Evidence `art_b067a5b684f8701089b178ecd449c88c`, digest `901f5cf1e59e2feb12eb3fb58f47d6db508c7e041600c9f21f749a31b407fac6`; attempt/budget remain consumed and the Run is not resumed.
+- **Offline evidence:** native-call starvation and hard-timeout regressions plus focused worker/process/lock/Calibration tests pass (40 in 3.11 s); full suite passes (233 in 36.65 s). Configured AEDT Python imports the companion and worker CLI without launching AEDT.
+- **Residual:** a fresh physical campaign must confirm Solve/result/Touchstone; none is inferred.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.

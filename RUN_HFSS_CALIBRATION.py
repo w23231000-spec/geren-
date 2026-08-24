@@ -15,9 +15,11 @@ from hfss_optimization_agent.evaluation.calibration_campaign import run_calibrat
 from hfss_optimization_agent.harness.calibration_safety import (
     validate_calibration_collection_configuration,
 )
+from hfss_optimization_agent.harness.terminal import configure_utf8_output
 
 
 def main() -> int:
+    configure_utf8_output()
     config = json.loads((ROOT / "runtime_config.json").read_text(encoding="utf-8"))
     manifest_path = os.environ.get("HFSS_CALIBRATION_MANIFEST")
     if manifest_path:

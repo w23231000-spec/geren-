@@ -404,15 +404,15 @@ These decisions are reconstructed from current source/configuration and availabl
 
 ## ADR-051 - Real AEDT heartbeat loss is bounded at 120 seconds
 
-- **Status:** ACTIVE; OFFLINE VERIFIED; PHYSICAL RERUN PENDING
+- **Status:** SUPERSEDED IN PART BY ADR-054; HISTORICAL
 - **Decision:** Production/Calibration PyAEDT composition uses a 120-second heartbeat-loss threshold. The solve/action deadline remains 7200 seconds and termination verification remains separately bounded; test workers may use shorter injected thresholds.
 - **Reason:** AEDT 2025 R1 cold Desktop initialization can block the embedded Python heartbeat thread for more than the generic 15-second worker threshold even though the process is progressing.
-- **Evidence:** the second authorized probe reached PyAEDT Desktop initialization and was terminated only by the 15-second stale-heartbeat rule; process/lock cleanup and evidence reconciliation succeeded.
-- **Consequence:** cold start gets a bounded grace period without weakening the hard action deadline or adding retry. A 120-second heartbeat loss still terminates the process tree and yields no assumed success.
+- **Evidence:** the second authorized probe reached PyAEDT Desktop initialization; the seventh proved that a 120-second bound alone still falsely terminates a blocking native solve when its emitter is a same-process Python thread.
+- **Consequence:** the finite stale threshold remains active, but PyAEDT heartbeat emission now follows ADR-054.
 
 ## ADR-052 - PyAEDT gRPC design recovery is exact-name-only and bounded
 
-- **Status:** ACTIVE; OFFLINE VERIFIED; PHYSICAL RERUN PENDING
+- **Status:** ACTIVE; PHYSICAL TARGET BUILD VERIFIED; SOLVE RESULT PENDING
 - **Decision:** when PyAEDT 0.18.1 receives `bool`/`None` and the current gRPC proxy cannot see the inserted design, the worker may recreate the PyAEDT application proxy once, reacquire only the exact original project, and retry exact design resolution for at most 30 seconds. Exact project/design equality remains mandatory.
 - **Reason:** the fifth probe reported an empty top-design list after repeated activation, proving proxy staleness rather than a naming delay. PyAEDT already uses `recreate_application(True)` for supported multi-desktop/release transitions.
 - **Evidence:** immutable reconciliation evidence for the third through fifth probes plus unit tests for exact-project refresh, bool acknowledgement, delayed activation, and wrong-name rejection.
@@ -420,8 +420,16 @@ These decisions are reconstructed from current source/configuration and availabl
 
 ## ADR-053 - Legitimate license authority is a physical evidence prerequisite
 
-- **Status:** ACTIVE; PHYSICAL BLOCKER OBSERVED
+- **Status:** ACTIVE; OPERATIONAL CHECKOUT FAILURE NOT REPRODUCED; AUTHORITY REVIEW OPEN
 - **Decision:** AEDT process/gRPC startup alone does not satisfy readiness. Calibration and Canary require a reachable, legitimately provisioned ANSYS/organization license authority that can check out the required HFSS feature. Unverified third-party license sources are outside the execution boundary.
 - **Reason:** four campaign batch logs show the shell can start while `hfss_gui` fails with FlexNet `-15,10`; downstream empty-design/PyAEDT symptoms are not independently attributable.
-- **Evidence:** exact sixth-campaign reconciliation `art_8094c55489184ab113e28b033d7a21b1`, closed port 1055, stopped service, and matching earlier batch logs.
-- **Consequence:** ISSUE-036 blocks all further real actions. After legitimate administrator configuration, readiness must be recomputed and a new clean-HEAD campaign issued; failed Runs are never resumed.
+- **Evidence:** exact sixth-campaign reconciliation `art_8094c55489184ab113e28b033d7a21b1` and matching earlier logs preserve the historical failure; the seventh campaign had no `-15,10`, completed the build, and submitted Solve.
+- **Consequence:** an operator must still explicitly accept/confirm entitlement provenance for any physical run, but ISSUE-036 is not used to explain the seventh stop. Failed Runs are never resumed; each replacement campaign binds a fresh clean HEAD and short-lived authority.
+
+## ADR-054 - Native-call PyAEDT heartbeat uses a Job-contained companion process
+
+- **Status:** ACTIVE; OFFLINE VERIFIED; REAL RERUN PENDING
+- **Decision:** the PyAEDT worker emits liveness from a separate companion process while ordinary supervised Python workers retain the thread emitter. The companion records the parent worker PID, inherits the same kill-on-close Windows Job, and is stopped with bounded cleanup. Heartbeat staleness does not replace the independent 7200-second hard action timeout.
+- **Reason:** synchronous native `analyze_setup` can starve all Python threads in its caller for longer than the finite heartbeat bound; a liveness signal inside that interpreter is not independent.
+- **Evidence:** the seventh campaign reached Solve and then lost only the in-process heartbeat; native-call starvation, hard-timeout, parent-death, lock, worker-contract, and Calibration regressions pass offline.
+- **Consequence:** active native Solve can continue to its hard deadline while the supervisor still detects worker death, companion death, cancellation, timeout, and unverifiable cleanup. UNKNOWN remains fail-closed and never auto-retries.

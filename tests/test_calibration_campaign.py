@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -132,6 +133,33 @@ def test_collection_manifest_rejects_two_solve_policy():
     payload["execution_policy"]["max_hfss_solve_launches"] = 2
     with pytest.raises(ValueError, match="exactly three"):
         CalibrationCollectionManifestV1.from_dict(payload)
+
+
+def test_calibration_entry_configures_utf8_before_validation(monkeypatch, tmp_path):
+    import RUN_HFSS_CALIBRATION as entry
+
+    calls = []
+    monkeypatch.setattr(entry, "configure_utf8_output", lambda: calls.append("utf8"))
+    monkeypatch.setattr(
+        entry,
+        "validate_calibration_collection_configuration",
+        lambda *_args, **_kwargs: calls.append("validate") or authorization(),
+    )
+    monkeypatch.setattr(
+        entry,
+        "run_calibration_campaign",
+        lambda *_args, **_kwargs: calls.append("run")
+        or SimpleNamespace(
+            passed=True,
+            task_id="calibration-entry-test",
+            run_id="run:calibration-entry-test",
+            evidence_path=tmp_path / "evidence.json",
+            evidence=SimpleNamespace(digest="1" * 64),
+        ),
+    )
+
+    assert entry.main() == 0
+    assert calls == ["utf8", "validate", "run"]
 
 
 def test_fake_three_case_campaign_creates_reproducible_passing_evidence(

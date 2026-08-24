@@ -552,7 +552,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--request", type=Path, required=True)
     parser.add_argument("--response", type=Path, required=True)
     args = parser.parse_args(argv)
-    with worker_heartbeat_from_environment():
+    with worker_heartbeat_from_environment(native_call_safe=True):
         try:
             response = _execute(args.stage, _read_json(args.request))
         except Exception as exc:

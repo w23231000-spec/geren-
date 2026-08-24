@@ -13,6 +13,7 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
 from contextlib import contextmanager
@@ -59,12 +60,16 @@ class SupervisedProcessResult:
     heartbeat_path: Path
 
 
-def _atomic_heartbeat(path: Path) -> None:
+def _atomic_heartbeat(path: Path, *, worker_pid: int | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     temporary.write_text(
         json.dumps(
-            {"pid": os.getpid(), "monotonic": time.monotonic(), "wall_time": time.time()},
+            {
+                "pid": os.getpid() if worker_pid is None else worker_pid,
+                "monotonic": time.monotonic(),
+                "wall_time": time.time(),
+            },
             sort_keys=True,
             separators=(",", ":"),
         ),
@@ -74,8 +79,15 @@ def _atomic_heartbeat(path: Path) -> None:
 
 
 @contextmanager
-def worker_heartbeat_from_environment() -> Iterator[None]:
-    """Emit a heartbeat for a worker when the supervisor configured one."""
+def worker_heartbeat_from_environment(*, native_call_safe: bool = False) -> Iterator[None]:
+    """Emit a heartbeat for a worker when the supervisor configured one.
+
+    Ordinary Python workers use a thread. PyAEDT opts into a companion process
+    because a blocking native AEDT call can starve every Python thread while the
+    physical solve is still progressing. The companion inherits the worker's
+    process-containment job, and the independent action timeout remains the hard
+    upper bound for a genuinely stuck native call.
+    """
 
     raw_path = os.environ.get(HEARTBEAT_PATH_ENV)
     if not raw_path:
@@ -87,6 +99,36 @@ def worker_heartbeat_from_environment() -> Iterator[None]:
     except ValueError:
         interval = 1.0
     interval = min(max(interval, 0.05), 5.0)
+    if native_call_safe:
+        _atomic_heartbeat(path, worker_pid=os.getpid())
+        creation_flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        companion = subprocess.Popen(
+            (
+                sys.executable,
+                "-m",
+                "hfss_optimization_agent.harness.heartbeat_companion",
+                str(path),
+                str(interval),
+                str(os.getpid()),
+            ),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=False,
+            creationflags=creation_flags,
+        )
+        try:
+            yield
+        finally:
+            if companion.poll() is None:
+                companion.terminate()
+                try:
+                    companion.wait(timeout=min(interval * 2.0, 1.0))
+                except subprocess.TimeoutExpired:
+                    companion.kill()
+                    companion.wait(timeout=1.0)
+        return
+
     stop = threading.Event()
 
     def emit() -> None:

@@ -122,9 +122,10 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - **ISSUE-031 — RESOLVED OFFLINE:** Calibration Evidence 1.1 and readiness recomputation reject formal/semantic fabrication before Canary admission.
 - **ISSUE-032 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the first worker exited before AEDT on Python-3.10 `StrEnum` import; lazy package boundaries plus compatibility enum now pass under the configured AEDT/PyAEDT Python.
 - **ISSUE-033 — RESOLVED FOR NEW RUNS:** new Calibration campaigns preregister short-lived reconciliation authority; the original failed-import Run remains immutable `WAITING_RECONCILIATION` and is not resumed.
-- **ISSUE-034 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the second probe reached PyAEDT Desktop initialization, then the generic 15-second heartbeat killed a valid cold start. That exact UNKNOWN was evidence-reconciled as failed; real composition now uses a finite 120-second heartbeat bound.
-- **ISSUE-035 — NEEDS VERIFICATION:** the exact-name compatibility path is unit tested, but all design-stage probes also failed license checkout; the PyAEDT symptom cannot be physically isolated until ISSUE-036 is closed.
-- **ISSUE-036 — OPEN / CURRENT REAL BLOCKER:** four campaign `batch.log` files prove the earlier FlexNet `-15,10` failures. A later gate recheck observes the same local service now Running, `1055@localhost` listening, and `lmgrd`/`ansyslmd` processes, but the underlying local license provenance remains unverifiable/unacceptable. Port availability alone cannot authorize HFSS; a legitimate ANSYS/organization entitlement is still required.
+- **ISSUE-034 — SUPERSEDED BY ISSUE-037:** increasing the stale-heartbeat bound fixed cold startup but did not make an in-process Python heartbeat reliable during a blocking native solve.
+- **ISSUE-035 — RESOLVED BY PHYSICAL BUILD EVIDENCE:** the seventh campaign created exact `interposer_temple4`, completed Builder geometry/materials/ports/boundaries/Setup1/Sweep/report, and saved the project before submitting Solve.
+- **ISSUE-036 — OPERATIONAL CHECKOUT FAILURE NOT REPRODUCED / AUTHORITY REVIEW OPEN:** the seventh campaign did not reproduce FlexNet `-15,10` and reached Solve submission. That removes licensing connectivity as the observed flow blocker; it does not independently establish entitlement provenance.
+- **ISSUE-037 — RESOLVED OFFLINE / REAL RERUN PENDING:** synchronous `analyze_setup` starved the Python-thread heartbeat for 120 seconds. PyAEDT workers now use a separate Job-contained heartbeat companion process; the 7200-second hard action timeout and zero-retry policy remain unchanged.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
 - **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
 - **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
@@ -142,7 +143,7 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Final full main suite: `PASS` — 203 passed in 50.69 s, explicit exit code 0. The count decreased because 16 obsolete one-pass characterization tests are preserved but disabled, not because current V2 tests were skipped.
 - Final post-reliability/post-documentation full suite: `PASS` — 205 passed in 53.33 s, explicit exit code 0; the two added tests are V2 completed no-op and concurrent single-physical-workflow proof.
 - Python syntax compilation for changed modules: `PASS`.
-- Real AEDT startup/target-design probes: `BROKEN BEFORE SOLVE`; six bounded campaigns, zero accepted physical cases/confirmed Solve results, zero current residual processes/Agent locks.
+- Real AEDT/target build: seventh bounded campaign reached exact build and Solve submission; no accepted physical case/confirmed Solve result yet; zero current residual processes/Agent locks.
 - Current-tree real HFSS E2E: `NOT RUN`.
 - ISSUE-019 focused contract/adapter suite: `PASS` — 33 passed in 0.67 s; final full offline suite: `PASS` — 213 passed in 45.71 s.
 - Calibration-authority/model/real-safety focused set: `PASS` — 73 passed in 1.70 s.
@@ -155,14 +156,15 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Post-ISSUE-035 focused worker/process/reconciliation set: `PASS` — 41 passed in 1.87 s; final full suite `PASS` — 228 passed in 47.27 s.
 - Post-delayed-activation repair focused worker/backend/process set: `PASS` — 31 passed in 1.24 s; final full suite `PASS` — 229 passed in 46.74 s.
 - Post-gRPC-application-refresh repair focused worker/backend/process set: `PASS` — 32 passed in 1.28 s; final full suite `PASS` — 230 passed in 46.45 s.
+- Post-ISSUE-037 native-call supervision set: `PASS` — 40 passed in 3.11 s; final full suite `PASS` — 233 passed in 36.65 s.
 - Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
 
-**AEDT HAS BEEN STARTED UNDER BOUNDED AUTHORITY; NO HFSS SOLVE OR E2E RESULT EXISTS YET.**
+**THE EXACT TARGET WAS BUILT AND SOLVE WAS SUBMITTED; NO CONFIRMED HFSS RESULT, TOUCHSTONE, CALIBRATION, OR E2E RESULT EXISTS YET.**
 
-The first authorized worker exited before PyAEDT because of Python-3.10 import incompatibility. The second reached Desktop initialization but hit the old heartbeat bound. Every later design-stage campaign has a batch log proving `hfss_gui` license checkout failed before any Builder geometry/Setup/Sweep/Solve/Touchstone result. All actionable UNKNOWN attempts are reconciled as failed, automatic retry remained zero, and no residual process or Agent lock remains. Calibration/Canary are now blocked on legitimate license authority, not another speculative Builder change.
+The seventh authorized campaign at revision `2248da81d77edefb3ab7372040ca54a8edfa9ec4` passed preflight, started an independent headless AEDT session, created exact `interposer_temple4`, completed Builder geometry/materials/ports/boundaries/Setup1/Sweep/report, saved `pa_multi.aedt`, and submitted `analyze_setup`. Its `batch.log` contains no prior FlexNet `-15,10`. The worker's same-process Python heartbeat then stopped during the blocking native call; after exactly the finite 120-second stale bound, Job supervision terminated and verified the tree. The exact UNKNOWN was evidence-reconciled as confirmed failed without retry/refund. No structured response, accepted result, Touchstone, residual process, or Agent lock exists.
 
 ## Next phase boundary
 
-Obtain a legitimate ANSYS/organization license entitlement and server endpoint, with administrator confirmation that `hfss_gui` can be legally checked out. Port 1055 being open is insufficient. After legitimate configuration, recheck entitlement without solving, rerun the offline suite, and issue a fresh clean-HEAD three-case campaign; never resume any failed Calibration Run.
+Commit the offline-verified native-call heartbeat repair, verify a clean exact HEAD, issue a new short-lived three-case authority, and run a fresh Calibration campaign. Never resume the reconciled seventh Run. A passing three-case Calibration remains mandatory before Canary readiness can be issued.

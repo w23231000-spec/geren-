@@ -146,10 +146,10 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 
 - **Entry:** `python -m hfss_optimization_agent.hfss.pyaedt_worker --stage composite|build|solve|extract`; invoked only by `JsonSubprocessHFSSBackend` in Production. Formal attested execution uses `composite`; individual stages remain compatibility/test paths.
 - **Classification:** `INTERNAL PRODUCTION WORKER`. It is a subprocess boundary inside WF-001, not a second canonical Production Workflow and not an independently counted Production entry.
-- **Call chain:** Builder attestation and snapshot before license → composite request JSON → Job-assigned heartbeated worker → snapshot Builder import → build → solve → extract complex data → validate the full returned grid against the sweep contract → Touchstone/structured export → digest-bound response JSON.
+- **Call chain:** Builder attestation and snapshot before license → composite request JSON → Job-assigned worker plus Job-contained native-call heartbeat companion → snapshot Builder import → build → solve → extract complex data → validate the full returned grid against the sweep contract → Touchstone/structured export → digest-bound response JSON.
 - **Side effects:** launches/controls AEDT and writes projects/exports.
-- **Verification:** composite protocol, attestation drift, full returned-grid validation, timeout/cancel upper bound, descendant termination, parent-death cleanup, residual-process UNKNOWN, and evidence-bound lock-quarantine archival pass offline. The configured AEDT 2025 R1 Python 3.10 now imports the lazy worker CLI with exit 0. The first current-revision physical probe had exited before AEDT because of the former eager `StrEnum` import; no build/solve occurred. All three stages are historically real verified for an older tree; the fixed current worker still needs a physical rerun.
-- **Known issues:** actual AEDT lifecycle and physical output remain unverified. Unverified cleanup is fail-closed as `UNKNOWN` with a quarantined lock; release is explicit, evidence-bound, and archives rather than deletes the marker.
+- **Verification:** composite protocol, attestation drift, full returned-grid validation, native-call heartbeat independence, timeout/cancel upper bound, descendant termination, parent-death cleanup, residual-process UNKNOWN, and evidence-bound lock archival pass offline. The configured AEDT 2025 R1 Python 3.10 imports both the companion and worker CLI. The seventh physical campaign verified exact target build through Solve submission; completed Solve/extraction remains pending.
+- **Known issues:** accepted physical output remains unverified. Unverified cleanup is fail-closed as `UNKNOWN` with a quarantined lock; release is explicit, evidence-bound, and archives rather than deletes the marker.
 
 ## WF-012 — Electrical-equivalent diagnostic mains
 
@@ -195,11 +195,11 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 
 ## WF-017 — Authorized three-case real-HFSS Calibration collection
 
-- **Entries:** `PREPARE_HFSS_CALIBRATION.py` issues authority without AEDT; `RUN_HFSS_CALIBRATION.py` executes only when `HFSS_CALIBRATION_MANIFEST` is explicitly supplied.
+- **Entries:** `PREPARE_HFSS_CALIBRATION.py` issues authority without AEDT; `RUN_HFSS_CALIBRATION.py` configures UTF-8 console output and executes only when `HFSS_CALIBRATION_MANIFEST` is explicitly supplied.
 - **Admission:** checked-in defaults are disabled. Issuance requires a clean exact HEAD and binds Agent/optimizer/surrogate/Builder/PyAEDT/protocol/policy bytes, exact HFSS contract and model alignment, expiry, three deterministic candidate snapshots (baseline plus two interior points), and `ExecutionPolicy(3,0)`.
 - **Call chain:** validate authority before composition → Harness/RunStore registration → for each case freeze candidate → supplied surrogate receipt → one composite real HFSS action → freeze result, exact `.aedt`, and exact `.s2p` → assess approved policy → publish strict immutable Calibration Evidence.
 - **Safety:** every physical action is approval-, budget-, attempt-, idempotency-, and ambiguity-bound; no automatic retry. Any UNKNOWN/timeout/residual process stops normal progress.
-- **Verification:** fake three-case end-to-end campaign passes with 15 typed source receipts; manifest drift/default-disable/budget tests pass offline. Six bounded real campaigns have run, but no accepted case exists. Batch evidence isolates unreachable/unacceptable license authority as the current upstream blocker; physical Calibration remains `BROKEN BEFORE SOLVE`.
+- **Verification:** fake three-case end-to-end campaign passes with 15 typed source receipts; manifest drift/default-disable/budget tests pass offline. The seventh bounded campaign completed the exact target build and submitted Solve, then exposed same-process heartbeat starvation; it was reconciled without retry. No accepted physical case exists, and the companion-process repair awaits a fresh manual campaign.
 
 ## WF-018 — Exact Canary readiness issuance
 

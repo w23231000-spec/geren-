@@ -60,6 +60,18 @@ with worker_heartbeat_from_environment():
 '''
 
 
+NATIVE_CALL_SAFE_WORKER = r'''
+import sys
+import time
+from hfss_optimization_agent.harness.process_supervisor import worker_heartbeat_from_environment
+with worker_heartbeat_from_environment(native_call_safe=True):
+    sys.setswitchinterval(10.0)
+    deadline = time.monotonic() + float(sys.argv[1])
+    while time.monotonic() < deadline:
+        pass
+'''
+
+
 def run_long_worker(tmp_path, *, cancel_event=None, timeout=0.25):
     pid_path = tmp_path / "child.pid"
     started = time.monotonic()
@@ -100,6 +112,41 @@ def test_cancel_has_strict_upper_bound_and_leaves_no_worker_or_child(tmp_path):
         timer.cancel()
     assert elapsed < 1.75
     assert FileLicenseLock.pid_is_alive(child_pid) is False
+
+
+def test_native_call_safe_heartbeat_survives_worker_gil_starvation(tmp_path):
+    result = SupervisedProcessRunner().run(
+        (sys.executable, "-c", NATIVE_CALL_SAFE_WORKER, "0.8"),
+        cwd=tmp_path,
+        environment=None,
+        heartbeat_path=tmp_path / "native-heartbeat.json",
+        policy=SupervisionPolicy(
+            timeout_seconds=3.0,
+            heartbeat_timeout_seconds=0.3,
+            termination_grace_seconds=1.0,
+            poll_interval_seconds=0.02,
+        ),
+    )
+    assert result.returncode == 0
+    assert result.elapsed_seconds >= 0.8
+
+
+def test_native_call_safe_heartbeat_does_not_weaken_hard_timeout(tmp_path):
+    started = time.monotonic()
+    with pytest.raises(ProcessTimedOut):
+        SupervisedProcessRunner().run(
+            (sys.executable, "-c", NATIVE_CALL_SAFE_WORKER, "30"),
+            cwd=tmp_path,
+            environment=None,
+            heartbeat_path=tmp_path / "native-timeout-heartbeat.json",
+            policy=SupervisionPolicy(
+                timeout_seconds=0.4,
+                heartbeat_timeout_seconds=1.0,
+                termination_grace_seconds=1.0,
+                poll_interval_seconds=0.02,
+            ),
+        )
+    assert time.monotonic() - started < 2.0
 
 
 class UnknownCompositeBackend(HFSSBackendInterface):

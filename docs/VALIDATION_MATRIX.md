@@ -41,7 +41,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | Best update | PASS | PASS | PASS | PASS | `BestPolicy` seeds from baseline Evaluation evidence and promotes only through a matching eligible `ComparisonRecord` |
 | Authoritative terminal outcome/exit code | PASS | PASS | PASS | PASS | Baseline/candidate success, NO_SOLUTION, rejected, invalid, failed, cancelled, waiting, and historical completed mappings are explicitly tested |
 | Real-entry fail-closed interlock | PASS | PASS | PASS | PASS | Checked-in config has no manifest; boolean-only, missing/noncanonical/expired/drifted readiness fails before worker composition/workspace creation |
-| Readiness causal identity | PASS | PASS | PASS | PASS | Git/source/Goal/Run/contracts/approval/policy/cardinality/provider/source-receipt bindings and semantic recomputation pass offline; no physical Calibration exists under ISSUE-009/036 |
+| Readiness causal identity | PASS | PASS | PASS | PASS | Git/source/Goal/Run/contracts/approval/policy/cardinality/provider/source-receipt bindings and semantic recomputation pass offline; no passing physical Calibration exists under ISSUE-009/037 |
 | Real HFSS solve-launch ceiling | PASS | PASS | PASS | PASS | Concurrent distinct approved actions admit at most two; ordinal 3 is rejected transactionally, cached replay consumes no new launch, automatic retries are fixed at zero |
 | SQLite RunStore schema/lifecycle | PASS | PASS | PASS | PASS | Run/operation/attempt/reservation/artifact/event/checkpoint identities and lifecycle transitions pass file-backed SQLite tests |
 | Action receipt crash recovery | PASS | PASS | PASS | PASS | Provider success is durable before Graph checkpoint; injected checkpoint crash resumes without repeating baseline HFSS callback |
@@ -55,11 +55,11 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | Run invocation fencing | PASS | PASS | PASS | PASS | Concurrent full V2 invocations have one physical workflow; action admission/checkpoint uses fence and follower returns the same terminal State |
 | Event ledger / structured decision trace | PASS | PASS | PASS | PASS | Lifecycle events are sequenced and append-only; idempotent Policy events bind input revision/hash, evidence, policy, reason, action, and next step |
 | HFSS contract/port/complex conversion | PASS | PASS | PASS | PASS | Fake worker/backend integration passes and baseline HFSS route contains the boundary |
-| Target-only Builder | PASS | PASS | PASS | PASS | Stubbed Builder integration passes; real current-tree execution remains NOT RUN |
+| Target-only Builder | PASS | PASS | PASS | PASS | Stubbed integration passes; the seventh campaign physically created exact `interposer_temple4` and completed the Builder path through Solve submission |
 | Standalone Builder test harness | PASS | FAIL | NOT RUN | NOT AVAILABLE | Collection fails in Agent Python because `ansys` is absent |
 | Builder attestation/drift boundary | PASS | PASS | PASS | PASS | Builder drift and wrong snapshot digest fail before license-lock acquisition; worker imports only the attested snapshot |
-| HFSS composite request | PASS | PASS | PASS | PASS | One attested build→solve→extract request/response is digest-bound in fake-backend integration; real AEDT NOT RUN |
-| Windows worker process isolation/timeout/cancel/parent death | PASS | PASS | PASS | PASS | Real Windows parent+descendant tests prove bounded timeout/cancel/parent-death cleanup and zero residual test PIDs; real AEDT NEEDS VERIFICATION |
+| HFSS composite request | PASS | PASS | PASS | PASS | Fake request/response is digest-bound; real AEDT verified build and Solve submission, but no accepted Solve/extraction response exists |
+| Windows worker process isolation/timeout/cancel/parent death | PASS | PASS | PASS | PASS | Real Windows tests plus seventh-campaign Job termination prove bounded cleanup; native-call companion is OFFLINE VERIFIED and awaits physical rerun |
 | Residual-process UNKNOWN/lock quarantine | PASS | PASS | PASS | PASS | Injected kill-verification/unverified descendant becomes UNKNOWN; quarantine release requires accepted empty-process evidence bound to exact marker bytes/token and archives audit evidence |
 | Artifact store | PASS | PASS | PASS | PASS | Canonical JSON and provider-native file publish/replay pass containment, concurrency, mutable-source, tamper, and receipt verification; supporting artifacts commit with the Tool result |
 | Final Run Manifest | PASS | PASS | PASS | PASS | Typed terminal paths emit a strict immutable manifest with ledger cutoff, decisions/events/artifacts, policy versions, terminal outcome, Run identity, and calibration summary |
@@ -68,16 +68,16 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | V1/V2 historical checkpoint boundary | PASS | PASS | PASS | PASS | Explicit reader classifies completed/interrupted V1 evidence and preserves source; formal SQLite composition has no legacy path/probe and cannot resume file checkpoints |
 | SQLite checkpoint CAS | PASS | PASS | PASS | PASS | Revision/fence/manifest CAS, historical-digest replay rejection, terminal no-op, and Windows connection-close regressions pass |
 | Resume/reuse | PASS | PASS | PASS | PASS | Receipt replay, evidence-bound UNKNOWN resolution, double resume, waiting recovery, and completed strict no-op pass; saved-node continuation remains absent under ISSUE-013 |
-| Calibration Evidence / real gate | PASS | PASS | PASS | PASS | Calibration Evidence 1.1 authority/recomputation passes offline; current paired physical evidence is absent because license checkout fails under ISSUE-036 |
-| HFSS returned frequency-grid contract | PASS | PASS | PASS | PASS | Count, finite/monotonic values, endpoints, every linear/log point, unit drift, explicit fail-closed, and adapter pre-acceptance failure pass offline; real AEDT is NOT RUN |
-| Environment preflight | PASS | FAIL | FAIL | PASS | File/package/headless checks pass, but real batch evidence proves the configured license endpoint cannot provide `hfss_gui`; ISSUE-036 blocks physical admission |
+| Calibration Evidence / real gate | PASS | PASS | PASS | PASS | Calibration Evidence 1.1 authority/recomputation passes offline; current paired physical evidence is absent because the seventh campaign stopped during baseline Solve under ISSUE-037 |
+| HFSS returned frequency-grid contract | PASS | PASS | PASS | PASS | Count, finite/monotonic values, endpoints, every linear/log point, unit drift, and fail-closed behavior pass offline; real extraction was not reached |
+| Environment preflight | PASS | PASS | PASS | PASS | Agent/PyAEDT/AEDT/headless/lock preflight passed and the campaign reached Solve submission; entitlement provenance remains an external review item |
 | Package editable import provenance | PASS | PASS | PASS | PASS | Project `.venv`, ordinary import, and module CLI resolve to the current repository `src` |
 
 ## Current full-workflow results
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-009 has no physical Calibration because ISSUE-036 blocks legitimate license checkout; ISSUE-010/031 are resolved for collection/offline authority |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-009 has no passing physical Calibration; ISSUE-037 repair is offline verified but has not completed a fresh manual campaign |
 | WF-002 deterministic Offline | PASS | NOT AVAILABLE | PASS | Test-backed full route uses explicit Offline Contract v1, promotes candidate, and emits typed success |
 | WF-003 supplied optimizer + MockHFSS | PASS | NOT AVAILABLE | PASS | Formal entry delegates to supplied-Tools Closed-loop V2; actual supervised optimizer worker + MockHFSS reaches typed END |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
@@ -382,6 +382,16 @@ Interpretation:
 - **Observed:** clean HEAD `b50ea3c4df7fe8d52c39265afb929d2324ca5043`; local `Ansys PLE Licensing 2026 R1` now reports Running, `:::1055` listens, and `lmgrd`/`ansyslmd` processes exist. The actor that changed service state is not inferred.
 - **Authority result:** `FAIL`. The configured endpoint remains `1055@localhost` backed by the previously identified unverifiable local license source. Connectivity does not establish legitimate entitlement or authorize feature checkout.
 - **Safety:** no `lmutil`, AEDT, HFSS worker, Builder, Solve, Calibration, or Canary was invoked during this recheck. ISSUE-036 remains OPEN.
+
+### Seventh authorized Calibration and native-call heartbeat finding
+
+- **Authority:** clean HEAD `2248da81d77edefb3ab7372040ca54a8edfa9ec4`, campaign `hfss-calibration-20260824-124719`, baseline attempt only, zero automatic retries.
+- **Real milestones:** preflight passed; independent headless AEDT created exact `interposer_temple4`; materials, geometry, ports/boundaries, Setup1, Sweep, report, and project save completed; `analyze_setup` was submitted. No prior FlexNet `-15,10` appears in this campaign log.
+- **Stop/result:** same-process Python heartbeat stopped during blocking native Solve. The finite 120-second stale bound terminated the Job. No response JSON, structured HFSS result, Touchstone, accepted case, Calibration Evidence, or E2E result exists.
+- **Reconciliation:** operation `op_f7b18d41bbe3a71e7ac1315143b60578` / attempt `att_e3d942c4f2d2300a154a753265d03a15` is `CONFIRMED_FAILED`; evidence `art_b067a5b684f8701089b178ecd449c88c`, digest `901f5cf1e59e2feb12eb3fb58f47d6db508c7e041600c9f21f749a31b407fac6`. No retry/refund and no residual process/Agent lock.
+- **Repair:** PyAEDT uses a Job-contained companion process for native-call-safe heartbeat; ordinary workers retain thread heartbeat. Calibration console output now configures UTF-8.
+- **Verification:** focused process/lock/worker/Calibration suite `PASS` — 40 in 3.11 s; full offline suite `PASS` — 233 in 36.65 s; configured AEDT Python import/CLI probes pass without launching AEDT.
+- **Evidence level:** repair `OFFLINE VERIFIED`; target build `REAL HFSS VERIFIED` for this exact historical revision only; completed Solve/Calibration/Canary/E2E `NOT RUN / NEEDS VERIFICATION`.
 
 ## Historical real HFSS evidence
 

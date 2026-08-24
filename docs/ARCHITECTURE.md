@@ -229,7 +229,7 @@ GuardedHFSSAdapter
 → verify Builder attestation + create/reverify attempt snapshot
 → FileLicenseLock
 → JsonSubprocessHFSSBackend + HFSSCompositeRequest
-   → one Job-assigned heartbeated worker
+   → one Job-assigned worker + Job-contained native-call heartbeat companion
       → snapshot nine_parameter_builder → interposer_temple4 project
       → validate design/Setup1 → analyze_setup
       → complex 2×2 S parameters + Touchstone + JSON
@@ -298,9 +298,9 @@ Phase 3 places optimizer and HFSS workers behind `SupervisedProcessRunner`. Phas
 
 The PyAEDT worker runs on AEDT 2025 R1's embedded Python 3.10 while the Agent runtime remains Python 3.12+. Root and `hfss` package exports are therefore lazy, and shared enum contracts use `_compat.StrEnum`; the isolated worker import path must not eagerly traverse Agent/Harness composition. A configured-interpreter `--help` regression proves this boundary without importing or launching AEDT. New physical Calibration Runs also preregister an expiring `reconcile_unknown` grant at Run creation. This does not weaken UNKNOWN or add retry: it only permits the exact evidence-bound Phase-5B operator resolution if an indeterminate action occurs.
 
-Real PyAEDT composition uses a finite 120-second heartbeat-loss threshold because AEDT cold-start calls can block the embedded Python heartbeat thread longer than the generic 15-second worker default. This is independent of the 7200-second solve deadline and 5-second termination-verification grace. Test workers may override the threshold downward to exercise bounded failure; Production has no heartbeat-triggered retry.
+Real PyAEDT composition keeps a finite 120-second heartbeat-loss threshold, but emits liveness from a separate companion process because cold startup and synchronous native Solve can starve Python threads in the worker. The companion preserves the parent worker PID in atomic heartbeat payloads and inherits the same kill-on-close Windows Job; it is therefore contained by timeout, cancellation, supervisor death, and cleanup. Other Python workers retain the thread emitter. This remains independent of the 7200-second solve deadline and 5-second termination-verification grace; Production has no heartbeat-triggered retry.
 
-Real AEDT process startup is not equivalent to a successful HFSS license checkout. Current batch evidence shows the shell/gRPC server can start while `hfss_gui` fails with FlexNet `-15,10`; downstream empty-design symptoms are therefore not valid Builder/PyAEDT attribution. Physical evidence collection requires a reachable legitimate ANSYS/organization license authority. An unverified local license source is outside the accepted execution boundary and cannot authorize Calibration or Canary.
+Real AEDT process startup is not by itself equivalent to a successful HFSS license checkout. Four earlier batch logs showed `hfss_gui` FlexNet `-15,10`; the seventh campaign did not reproduce that error and reached Solve submission, so licensing connectivity is no longer the observed flow blocker. Entitlement provenance remains an explicit operator/authority review boundary and is not inferred from port availability or process startup.
 
 PyAEDT 0.18.1 on AEDT 2025 R1 gRPC may acknowledge `SetActiveDesign` with `True`/`None`, while the application proxy that issued `InsertDesign` can remain stale and report no designs. The worker applies a narrow target-only compatibility hook: it may invoke PyAEDT's supported gRPC application recreation once, reacquire only the exact same project, and for at most 30 seconds repeat `SetActiveDesign(exact_name)` plus `GetDesign`/`GetActiveDesign`. It accepts only exact project and design names; a terminal error includes the normalized top-design list and refresh fact. Wrong/missing identities fail; no `huitu` or placeholder design is selected or created.
 
