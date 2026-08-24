@@ -251,3 +251,16 @@ This file is append only. New task records are added at the end.
 - **Evidence level:** ISSUE-019 is `RESOLVED OFFLINE`. Real AEDT output and lifecycle remain `NOT RUN / NEEDS VERIFICATION`.
 - **Safety:** no HFSS/AEDT/ADS process, worker, license action, build, solve, extraction, or Canary was started.
 - **Git:** cumulative Phase 0-5D plus ISSUE-019 diff is now entering the user-authorized final review/commit step; commit evidence is recorded in the subsequent entry.
+
+## 2026-08-24 - Committed revision Calibration Evidence and blocker acceptance review
+
+- **Committed baseline:** user-authorized cumulative implementation commit `cd29846aef5cdf99b36aa74fda717231bcd3450e` (Phase 0-5D plus ISSUE-019). The repository was clean immediately after commit.
+- **Identity preparation:** collected exact Agent, optimizer/surrogate, Builder, PyAEDT executable, worker protocol, Production policy, HFSS contract, Evaluation contract, contract ID, and comparison-context identities without invoking a provider. The full inventory is in `docs/CALIBRATION_AND_CANARY_REVIEW.md`.
+- **Data inventory:** no current `calibration-evidence/1.0` exists. Historical run `real-vscode-20260818-101711` contains two Touchstone exports and paired JSON, but lacks attributable Agent/Builder revision identity, carries a different optimizer identity, and previously produced ranking agreement 0.0. It remains `HISTORICALLY VERIFIED / CALIBRATION FAILED` only.
+- **Authority finding:** registered ISSUE-031. The current schema/readiness path accepts one-case/vacuous ranking, arbitrary policy, partial provider identity, and empty source-artifact receipts. This is a Phase 6 `BLOCKER` even though structural canonical tests pass.
+- **Mandatory blockers:** ISSUE-009 (no current passing paired evidence), ISSUE-010 (unapproved physical alignment), and ISSUE-031 (insufficient Calibration authority) remain `BLOCK`.
+- **Conditional review:** ISSUE-013 and ISSUE-015/026 are recommended only for explicit bounded-Canary acceptance; ISSUE-018 should close before Canary; ISSUE-028 residual sparse identity is non-real scope only. These are recommendations, not user acceptance.
+- **Readiness:** no readiness manifest was created. Formal Phase 6 status remains `NO-GO`.
+- **Validation basis:** current implementation full suite remains `PASS` (213 in 45.71 s); the review is source/artifact/Git evidence analysis and does not add a real-execution claim.
+- **HFSS/AEDT/ADS:** `NOT RUN`. No worker, license action, build, solve, extraction, or Canary occurred.
+- **Git:** this review is being recorded in a final evidence-only commit; future readiness must freshly bind that commit's exact clean HEAD.

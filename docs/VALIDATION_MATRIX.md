@@ -41,7 +41,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | Best update | PASS | PASS | PASS | PASS | `BestPolicy` seeds from baseline Evaluation evidence and promotes only through a matching eligible `ComparisonRecord` |
 | Authoritative terminal outcome/exit code | PASS | PASS | PASS | PASS | Baseline/candidate success, NO_SOLUTION, rejected, invalid, failed, cancelled, waiting, and historical completed mappings are explicitly tested |
 | Real-entry fail-closed interlock | PASS | PASS | PASS | PASS | Checked-in config has no manifest; boolean-only, missing/noncanonical/expired/drifted readiness fails before worker composition/workspace creation |
-| Readiness causal identity | PASS | PASS | PASS | PASS | Exact Git HEAD/clean tree, Agent/optimizer/surrogate/Builder/PyAEDT/protocol, Goal, RunManifest, contracts, passing Calibration Evidence, task/run, expiry, approval, and policy bindings pass strict regressions |
+| Readiness causal identity | PASS | PASS | FAIL | PASS | Git/source/Goal/Run/contracts/approval bindings pass, but Calibration authority lacks approved policy/cardinality/complete providers/source receipts under ISSUE-031 |
 | Real HFSS solve-launch ceiling | PASS | PASS | PASS | PASS | Concurrent distinct approved actions admit at most two; ordinal 3 is rejected transactionally, cached replay consumes no new launch, automatic retries are fixed at zero |
 | SQLite RunStore schema/lifecycle | PASS | PASS | PASS | PASS | Run/operation/attempt/reservation/artifact/event/checkpoint identities and lifecycle transitions pass file-backed SQLite tests |
 | Action receipt crash recovery | PASS | PASS | PASS | PASS | Provider success is durable before Graph checkpoint; injected checkpoint crash resumes without repeating baseline HFSS callback |
@@ -68,7 +68,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | V1/V2 historical checkpoint boundary | PASS | PASS | PASS | PASS | Explicit reader classifies completed/interrupted V1 evidence and preserves source; formal SQLite composition has no legacy path/probe and cannot resume file checkpoints |
 | SQLite checkpoint CAS | PASS | PASS | PASS | PASS | Revision/fence/manifest CAS, historical-digest replay rejection, terminal no-op, and Windows connection-close regressions pass |
 | Resume/reuse | PASS | PASS | PASS | PASS | Receipt replay, evidence-bound UNKNOWN resolution, double resume, waiting recovery, and completed strict no-op pass; saved-node continuation remains absent under ISSUE-013 |
-| Calibration Evidence / real gate | PASS | PASS | PASS | PASS | Strict paired evidence is wired into readiness and RunStore admission; current real paired evidence remains absent and real execution is NOT RUN |
+| Calibration Evidence / real gate | PASS | PASS | FAIL | PASS | Canonical structure/digest/context binding passes, but authoritative sufficiency is BROKEN under ISSUE-031; current paired evidence is absent and real execution is NOT RUN |
 | HFSS returned frequency-grid contract | PASS | PASS | PASS | PASS | Count, finite/monotonic values, endpoints, every linear/log point, unit drift, explicit fail-closed, and adapter pre-acceptance failure pass offline; real AEDT is NOT RUN |
 | Environment preflight | PASS | NOT AVAILABLE | PASS | PASS | Current preflight result is PASS; it does not launch AEDT or prove a license |
 | Package editable import provenance | PASS | PASS | PASS | PASS | Project `.venv`, ordinary import, and module CLI resolve to the current repository `src` |
@@ -77,7 +77,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: entry is intentionally blocked and current tree is dirty; accepted current calibration evidence is absent; ISSUE-010/012/013 remain open and ISSUE-015/026 retain real-AEDT residuals; ISSUE-028 remains partial domain-wide; ISSUE-019 is resolved offline only |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: exact committed identity is available, but ISSUE-009/010/031 block; ISSUE-013 and ISSUE-015/026 need explicit conditional acceptance; ISSUE-019 is resolved offline |
 | WF-002 deterministic Offline | PASS | NOT AVAILABLE | PASS | Test-backed full route uses explicit Offline Contract v1, promotes candidate, and emits typed success |
 | WF-003 supplied optimizer + MockHFSS | PASS | NOT AVAILABLE | PASS | Formal entry delegates to supplied-Tools Closed-loop V2; actual supervised optimizer worker + MockHFSS reaches typed END |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
@@ -91,12 +91,22 @@ Interpretation:
 - WF-001 has readiness `FAIL`, but its actual current real-HFSS and E2E results are `NOT RUN`; readiness is not substituted for an execution result.
 
 ## Executed validation commands
+### Committed revision Calibration and Canary review
+
+- **Date:** 2026-08-24.
+- **Reviewed implementation revision:** `cd29846aef5cdf99b36aa74fda717231bcd3450e`; repository was clean when causal source/provider/contract identities were collected.
+- **Data inventory:** no current `calibration-evidence/1.0` artifact exists. The historical paired run has no attributable Agent/Builder revision, its optimizer identity differs, and its reconstructed ranking agreement is 0.0.
+- **Authority review:** `FAIL` — current contracts permit vacuous one-case ranking, arbitrary policy, partial provider bindings, and empty source-artifact receipts (ISSUE-031).
+- **Blocker result:** ISSUE-009/010/031 `BLOCK`; ISSUE-013 and ISSUE-015/026 are recommended only for explicit conditional Canary acceptance; ISSUE-018 should close before Canary.
+- **Output:** exact identity inventory and evidence-collection requirements are recorded in `docs/CALIBRATION_AND_CANARY_REVIEW.md`.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+
 ### ISSUE-019 HFSS returned-grid contract
 
 - **Date:** 2026-08-24.
-- **Focused command:** `.venvScriptspython.exe -m pytest -q tests/test_hfss_guarded_adapter.py tests/test_pyaedt_worker_contract.py tests/test_hfss_worker_backend.py` — `PASS`, 33 passed in 0.67 s.
+- **Focused command:** `.venv\Scripts\python.exe -m pytest -q tests/test_hfss_guarded_adapter.py tests/test_pyaedt_worker_contract.py tests/test_hfss_worker_backend.py` — `PASS`, 33 passed in 0.67 s.
 - **Related safety/Closed-loop/chaos selection:** Production safety, process safety, Phase 4, and all Phase 5B suites passed.
-- **Final full main suite:** `.venvScriptspython.exe -m pytest -q` — `PASS`, 213 passed in 45.71 s, explicit exit code 0.
+- **Final full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 213 passed in 45.71 s, explicit exit code 0.
 - **Proven:** the shared rule rejects count, start, stop, intermediate, unit, and unverifiable explicit-grid drift; the Guarded Adapter returns structured failure before acceptance; exact Production linear grids pass.
 - **Evidence boundary:** fake/contract data only. No HFSS/AEDT/ADS process, solve, extraction, license action, or Canary ran.
 

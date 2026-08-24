@@ -37,6 +37,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-029 | HIGH | RESOLVED OFFLINE | AGENT CONTROL / ROUTING | Candidate queue and diagnosis had no feedback loop |
 | ISSUE-030 | HIGH | RESOLVED OFFLINE | RELIABILITY / RECONCILIATION | UNKNOWN/corrupt checkpoints lacked evidence-bound recovery and chaos proof |
 
+| ISSUE-031 | BLOCKER | OPEN | CALIBRATION / AUTHORITY | Readiness accepts structurally valid but insufficient Calibration Evidence |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -111,10 +112,10 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Trigger:** use surrogate ranking as evidence of HFSS improvement.
 - **Phase 5C resolution:** added strict canonical `calibration-evidence/1.0` binding paired cases, policy/report, context, provider fingerprints, source artifact IDs, pass status, and digest. A real Readiness Manifest must embed passing evidence; readiness workflow binding and RunStore registration independently reject failing, context-mismatched, digest-drifted, or provider-drifted evidence before worker/action admission.
 - **Evidence after:** canonical round-trip/drift tests, readiness rejection tests, formal real-composition binding test, and full main suite pass offline. No HFSS/AEDT was launched.
-- **Residual:** no accepted calibration evidence exists for the current exact code/provider/model combination. The historical evidence remains a calibration failure and cannot authorize a Canary. Calibration generation remains an explicit external/library workflow, not an automatic extra HFSS action.
+- **Residual:** no accepted calibration evidence exists for the current exact code/provider/model combination. The historical evidence remains a calibration failure and cannot authorize a Canary. Review of the committed implementation also exposed ISSUE-031: readiness does not yet enforce an approved policy, comparable-case cardinality, complete causal provider identity, or non-empty source-artifact receipts.
 - **Workaround:** keep physical claims blocked and create reviewed paired evidence under separately authorized solve/data collection.
-- **Fixed:** partially; enforcement is `OFFLINE VERIFIED`, current physical calibration is absent.
-- **Suggested next action:** resolve ISSUE-010 model alignment, define the approved policy/cases, collect paired evidence under separate authority, and issue a matching readiness manifest only if it passes.
+- **Fixed:** partially; structural enforcement is `OFFLINE VERIFIED`, but authoritative sufficiency remains `BROKEN` under ISSUE-031 and current physical calibration is absent.
+- **Suggested next action:** resolve ISSUE-031 and ISSUE-010, define the approved policy/cases, collect paired evidence under separate authority, and issue a matching readiness manifest only if it passes.
 
 ### ISSUE-010 — Physical model alignment remains unresolved
 
@@ -371,6 +372,21 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 - **Classification:** INTEGRATION / EVALUATION
 - **Severity / status:** BLOCKER / RESOLVED
+### ISSUE-031 — Readiness accepts structurally valid but insufficient Calibration Evidence
+
+- **Classification:** CALIBRATION / AUTHORITY / PROVENANCE
+- **Severity / status:** BLOCKER / OPEN
+- **Location:** `evaluation/calibration.py`, `domain/contracts.py::CalibrationEvidence`, `harness/real_hfss_safety.py::RealHFSSReadinessManifestV1`.
+- **Description:** the schema requires non-empty unique case IDs and some provider fingerprints, but it permits one case, arbitrary policy version/thresholds, any non-empty provider subset, and empty `source_artifact_ids`. `_ranking_agreement` returns 1.0 when there is no comparable pair. Readiness trusts the embedded `passed` report and checks only the provider keys supplied by the evidence.
+- **Impact:** a canonical, digest-stable object can be structurally valid without proving an approved policy, ranking evidence, the complete HFSS/surrogate causal identity, or immutable physical source artifacts. Such an object must not authorize Phase 6.
+- **Trigger:** construct passing evidence with one/non-comparable case, lenient thresholds, partial provider bindings, or no source receipts.
+- **Evidence:** current source inspection plus existing tests that deliberately construct accepted evidence with incomplete policy fields and no source artifact IDs; the full suite proves current behavior rather than sufficiency. No real tool was run.
+- **Workaround:** keep `real_hfss_enabled=false` and do not issue a readiness manifest.
+- **Fixed:** no.
+- **Required fix:** version and validate an approved policy; require enough comparable cases; bind the complete causal provider/contract identities; require immutable source-artifact receipts; recompute/validate the report from those receipts or bind an independently verified assessment digest.
+- **Exit evidence:** regressions must reject one-case/vacuous ranking, arbitrary policy, missing provider keys, empty/tampered source receipts, and report recomputation drift before readiness acceptance.
+- **Canary disposition:** mandatory `BLOCK@@; not eligible for risk acceptance.
+
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.
 - **Authoritative contract:** `production-evaluation-v1`; Core 6–18 GHz HARD `S21_dB <= -30 dB` and `S11_dB >= -0.5 dB`; Lower 5–6 GHz and Upper 18–19 GHz use the same targets as SOFT rules; worst-case/all-points semantics; vendor phase/passivity constraints excluded from Production PASS/FAIL.

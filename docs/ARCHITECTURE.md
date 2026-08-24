@@ -253,7 +253,7 @@ WF-001 supplies the Production contract and safe no-AEDT evidence completes cand
 
 ## Calibration boundary
 
-`evaluation/calibration.py` validates paired frequency grids, ports, impedance, context, complex RMSE, dB RMSE, and ranking agreement. `create_calibration_evidence` freezes the report, policy, case identities, exact provider fingerprints, context, source evidence, pass status, and digest as `calibration-evidence/1.0`. Readiness Manifest V1 must embed passing evidence; formal workflow binding and RunStore registration independently verify digest, context, and provider identity before worker/action admission. Calibration collection is deliberately not an automatic Graph action because it would require separately authorized physical solves. No passing current-revision physical evidence exists.
+`evaluation/calibration.py` validates paired frequency grids, ports, impedance, context, complex RMSE, dB RMSE, and ranking agreement. `create_calibration_evidence` freezes the report, policy, case identities, provider fingerprints, context, source evidence IDs, pass status, and digest as `calibration-evidence/1.0`. Readiness Manifest V1 structurally requires passing evidence and verifies its digest/context plus the provider keys it contains before worker/action admission. Current authority is not sufficient for a real run: the contract permits vacuous single-case ranking, arbitrary policy, partial provider identity, and empty source receipts (ISSUE-031). Calibration collection remains outside the Graph because it requires separately authorized physical solves. No passing current-revision physical evidence exists.
 
 ## Artifact flow
 

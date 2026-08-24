@@ -12,10 +12,11 @@ Evolve the deterministic baseline→candidate Workflow into an engineering Agent
 | Item | Current fact |
 |---|---|
 | Branch | `master` |
-| HEAD before Phase 5D | `08f001e84f463936b2bacc7ff90d77d18b7887a6` — `fix: import comparison status presenter` |
-| Working tree | Authorized Phase 0 through Phase 5D changes are unstaged/uncommitted |
+| Implementation baseline | `cd29846aef5cdf99b36aa74fda717231bcd3450e` — `feat: converge closed-loop agent v2` |
+| Current HEAD | Evidence-only finalization commit containing this snapshot; query Git because a commit cannot contain its own hash |
+| Working tree | Expected clean after the evidence-only finalization commit; readiness must recheck it at use time |
 | Staged files | None |
-| Automatic commit | Not performed |
+| Commit authority | User explicitly authorized the implementation and final evidence commits |
 | Original history | Not recovered; the prospective repository baseline remains the traceability anchor |
 
 ## Current Production Workflow
@@ -94,8 +95,8 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 
 | Capability | Current implementation | Evidence |
 |---|---|---|
-| Calibration Evidence | `calibration-evidence/1.0` freezes paired cases, policy/report, comparison context, provider fingerprints, source evidence IDs, pass status, and canonical digest | `WIRED / UNIT TESTED` |
-| Real calibration gate | Readiness Manifest V1 must embed passing calibration evidence whose context and provider fingerprints match the requested real Run; RunStore repeats the digest/context/provider checks before registration | `WIRED / INTEGRATION TESTED`; no current real calibration dataset is accepted |
+| Calibration Evidence | `calibration-evidence/1.0` freezes paired cases, policy/report, comparison context, provider fingerprints, source evidence IDs, pass status, and canonical digest | `WIRED / UNIT TESTED`; authority sufficiency `BROKEN` under ISSUE-031 |
+| Real calibration gate | Readiness embeds passing Calibration Evidence and checks digest/context/provider keys, but approved policy, comparable cardinality, complete provider identity, and source receipts are not mandatory yet | `WIRED / INTEGRATION TESTED` structurally; `NO-GO` for real use |
 | Provider-native immutability | Optimizer/HFSS request, response, report, `.aedt`, Touchstone, journal, and selected workspace files are copied after provider completion into content-addressed immutable attempt artifacts and registered in the same `SUCCEEDED` transaction | `OFFLINE VERIFIED` with fake `.aedt`/Touchstone and supplied worker artifacts; real AEDT `NOT RUN` |
 | Replay verification | Cached Tool results verify both the canonical result receipt and every registered supporting native artifact before reuse; freeze/publish uncertainty is `UNKNOWN` | `UNIT TESTED / INTEGRATION TESTED` |
 | Structured trace | Closed-loop Policy writes idempotent `policy_decision` events containing input checkpoint revision/hash, policy version, reason, evidence IDs, action, and next step | `INTEGRATION TESTED` |
@@ -109,19 +110,21 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 | Policy/budget binding | Readiness fingerprints include canonical Production policy digest; RunManifest repeats policy ID/budget; policy budget permits one baseline and one candidate solve while RunStore independently enforces `2/0` | `UNIT TESTED / INTEGRATION TESTED` |
 | Old Graph cleanup | The 18-node one-pass builder and `compose_comparison_workflow` are deleted; shared transactional invoke logic is `workflow_runner.py`; the former test is retained as a disabled historical characterization file | `CODE PRESENT / OFFLINE VERIFIED` by reachability scan and full suite |
 | Checkpoint cleanup | Formal SQLite composition has no legacy path/read hook. V1/V2 file parsing remains explicit and evidence-only; no historical file can authorize continuation | `UNIT TESTED / OFFLINE VERIFIED` |
-| Final readiness review | All current offline tests pass, but current physical calibration is absent, AEDT lifecycle/endpoints are unverified, and the dirty tree cannot match an exact clean-HEAD readiness manifest | `NO-GO FOR PHASE 6` |
+| HFSS frequency-grid contract | Shared converter/worker validation requires count, finite monotonic values, and point-by-point linear/log agreement; unverifiable explicit grids fail closed | `UNIT TESTED / INTEGRATION TESTED / OFFLINE VERIFIED`; real AEDT `NOT RUN` |
+| Final readiness review | The implementation is committed and all current offline tests pass, but current physical calibration is absent, model alignment is unresolved, and Calibration Evidence authority is insufficient under ISSUE-031 | `NO-GO FOR PHASE 6` |
 
 ## Current blockers and deferred architecture work
 
-| HFSS frequency-grid contract | Shared converter/worker validation requires count, finite monotonic values, and point-by-point linear/log agreement; unverifiable explicit grids fail closed | `UNIT TESTED / INTEGRATION TESTED / OFFLINE VERIFIED`; real AEDT `NOT RUN` |
 - **ISSUE-005 — RESOLVED OFFLINE:** `OptimizationObjective` now changes the canonical `OptimizerRequest` and the vendor runtime objective CSV; the supplied worker returns and verifies the effective-objective digest.
-- **ISSUE-009 — PARTIALLY RESOLVED:** calibration evidence and the real-run gate are wired, but no accepted current-revision paired dataset exists; the historical ranking reversal remains failing evidence.
+- **ISSUE-009 — PARTIALLY RESOLVED / BLOCK:** no accepted current-provider paired dataset exists; the historical ranking reversal remains failing evidence.
+- **ISSUE-010 — OPEN / BLOCK:** model alignment remains unconfirmed; the example grid and Production grid disagree and material/formula assumptions remain unresolved.
+- **ISSUE-031 — OPEN / BLOCKER:** Calibration Evidence can be structurally valid without adequate case cardinality, approved policy, complete causal provider identity, or immutable physical source receipts.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
 - **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
 - **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
 - **ISSUE-028 — PARTIALLY RESOLVED:** formal real registration now rejects missing Agent/PyAEDT/provider/source/revision/contract identities. General non-real/programmatic manifests still permit intentionally sparse fingerprints, so the domain-wide issue is not closed.
 - **ISSUE-029 — RESOLVED OFFLINE:** the queue/diagnosis feedback loop is now the sole formal Production topology; real physical behavior remains `NOT RUN`.
-- Phase 5D migration cleanup and Production adoption are complete at `OFFLINE VERIFIED`; accepted current calibration evidence, blocker acceptance/closure, a clean committed revision, and Canary evidence remain later work.
+- Phase 5D migration cleanup, Production adoption, ISSUE-019 closure, and the implementation baseline are `OFFLINE VERIFIED / COMMITTED`. See `CALIBRATION_AND_CANARY_REVIEW.md` for exact identities and blocker dispositions.
 
 ## Current validation level
 
@@ -142,8 +145,8 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 
 **NOT READY — REAL HFSS FULL WORKFLOW MUST NOT BE RUN.**
 
-The checked-in code-level default remains fail-closed and contains no readiness manifest. A future Canary must be supplied through a short-lived external manifest and still requires every agreed offline gate, explicit acceptance or closure of remaining real-run blockers, and separate user authorization. The current dirty working tree itself fails the clean/exact-HEAD gate. No AEDT launch, project build, solve, extraction, ADS call, license acquisition, or real HFSS worker start occurred.
+The checked-in code-level default remains fail-closed and contains no readiness manifest. A future Canary requires ISSUE-009/010/031 closure, explicit acceptance of conditional residuals, a freshly collected clean exact-HEAD identity, a short-lived external manifest, and separate user authorization. No AEDT launch, project build, solve, extraction, ADS call, license acquisition, or real HFSS worker start occurred.
 
 ## Next phase boundary
 
-Phase 5D is `IMPLEMENTED / OFFLINE VERIFIED`, not committed. WF-001 now uses Closed-loop V2 but is still `NOT READY / NOT RUN`. The next possible phase is Phase 6 only after a clean committed exact revision, accepted current-revision paired calibration evidence, explicit closure/acceptance of remaining real blockers, a short-lived exact readiness manifest, and separate user authorization. Real HFSS remains prohibited until then.
+Phase 5D and ISSUE-019 are `OFFLINE VERIFIED / COMMITTED`; WF-001 remains `NOT READY / NOT RUN`. The next engineering step is to fix ISSUE-031, close ISSUE-018, and obtain an approved model-alignment contract plus calibration policy. Paired physical evidence collection then requires separate authorization. Phase 6 follows only after that evidence passes, the exact final HEAD is bound in a short-lived readiness manifest, conditional blockers are explicitly accepted, and the user separately authorizes the Canary.
