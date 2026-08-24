@@ -5,16 +5,16 @@ Repository root: `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`
 
 ## Current objective
 
-Evolve the deterministic baseline→candidate Workflow into an engineering Agent that repeatedly observes, diagnoses, decides, acts, evaluates, and decides again. Phases 0-5D and ISSUE-019 established the sole Closed-loop V2 Production topology and its offline safety envelope. The current task hardens Calibration authority, decouples Builder parameter tests from PyAEDT, versions the user-approved Builder-authoritative model alignment/recommended policy, and adds separately authorized three-solve Calibration plus two-solve Canary issuance paths. Real execution remains impossible until the changed tree is offline verified and committed as a clean exact revision.
+Evolve the deterministic baseline→candidate Workflow into an engineering Agent that repeatedly observes, diagnoses, decides, acts, evaluates, and decides again. Phases 0-5D and ISSUE-019 established the sole Closed-loop V2 Production topology and its offline safety envelope. Calibration authority, Builder test isolation, the user-approved Builder-authoritative model alignment/recommended policy, and separately authorized three-solve Calibration plus two-solve Canary issuance paths are now offline verified and committed. Real execution remains possible only while the issuer observes a clean exact Git revision and every short-lived gate passes.
 
 ## Git and working-tree evidence
 
 | Item | Current fact |
 |---|---|
 | Branch | `master` |
-| Implementation baseline | `b42378f55de22690f12b7b62ee0ee7da107db6b8` — starting revision for Calibration-authority work |
-| Current HEAD | `b42378f55de22690f12b7b62ee0ee7da107db6b8`; a new exact revision will be recorded after offline verification |
-| Working tree | Dirty by the authorized ISSUE-018/031, model-alignment, Calibration-collection, and Canary-issuer changes; therefore no real manifest is currently admissible |
+| Implementation baseline | `5aca68ca73ee978425f867943b4a3e764fde5278` — `feat: harden calibration authority and prepare real canary` |
+| Current HEAD | Evidence-only synchronization commit containing this snapshot; query Git because a commit cannot contain its own hash |
+| Working tree | Expected clean immediately after this evidence-only synchronization commit; both physical issuers recheck rather than trust this statement |
 | Staged files | None |
 | Commit authority | User explicitly authorized the implementation and final evidence commits |
 | Original history | Not recovered; the prospective repository baseline remains the traceability anchor |
