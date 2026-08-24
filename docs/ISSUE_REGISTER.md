@@ -432,7 +432,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 
 - **Classification:** HFSS / LICENSING / ENVIRONMENT / AUTHORITY
 - **Severity / status:** BLOCKER / OPEN on 2026-08-24
-- **Trigger/evidence:** `batch.log` for campaigns `102020`, `103140`, `104554`, and `105414` records FlexNet `-15,10`, feature `hfss_gui`, and connection refusal at the configured `1055@localhost` endpoint. Port 1055 is not listening and the matching Windows service is stopped. The Codex process lacks service-control permission.
+- **Trigger/evidence:** `batch.log` for campaigns `102020`, `103140`, `104554`, and `105414` records FlexNet `-15,10`, feature `hfss_gui`, and connection refusal at the configured `1055@localhost` endpoint. A later user-authorized gate recheck observes the same local service Running and port 1055 listening; this removes the connectivity symptom only, not the license-authority/provenance blocker.
 - **Authority finding:** the only local license file inspected identifies third-party/unverifiable provenance rather than a verifiable ANSYS/organization entitlement. It was not enabled or used; attempting to start the service failed before any state change.
 - **Impact:** Calibration has zero accepted physical cases and no confirmed Solve result. Canary/readiness issuance and Phase 6 remain prohibited. ISSUE-035 cannot be physically attributed while license checkout fails upstream.
 - **Required resolution:** supply a legitimate ANSYS/organization license server endpoint and entitlement, or have an authorized administrator configure/start it. Re-run a no-Solve license/readiness check, then issue a fresh clean-HEAD campaign. Do not reuse any failed Run.

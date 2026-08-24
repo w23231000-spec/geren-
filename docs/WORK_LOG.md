@@ -322,3 +322,10 @@ This file is append only. New task records are added at the end.
 - **Reconciliation:** exact operation `op_450ae811bb520e722e541d4b9a91456f` / attempt `att_95f454115faf49f8cef1fdf95386995b` became confirmed failed with evidence `art_8094c55489184ab113e28b033d7a21b1`, digest `60e901ef3f3013b89ba954b0f399a187acccddafeffbdf974f68ee0f673392cd`; no retry/refund/new attempt. Process and Agent-lock scans are empty.
 - **Environment audit:** port 1055 is closed and the exact matching auto-start Windows service is stopped. A start request was denied by Windows service-control permissions, so no service state changed. The discovered local license file has third-party/unverifiable provenance and was not enabled or used.
 - **Disposition:** registered ISSUE-036 as the current Phase-6 blocker and moved ISSUE-035 back to `NEEDS VERIFICATION`. Real Calibration/Canary/E2E stop here until a legitimate ANSYS/organization license server is supplied/configured by an authorized administrator. Offline implementation remains `PASS` (230 tests).
+
+## 2026-08-24 - Read-only license gate recheck
+
+- **Request/scope:** user permitted testing. Rechecked Git/project memory, service/port/process identity, and the configured endpoint without launching AEDT or invoking a license checkout tool.
+- **Observed state:** clean HEAD `b50ea3c4df7fe8d52c39265afb929d2324ca5043`; the same local licensing service is now Running, port 1055 listens, and `lmgrd`/`ansyslmd` processes exist. No claim is made about who changed that external state.
+- **Decision:** connectivity passes but authority fails. The underlying local license provenance remains unverifiable/unacceptable, so no `lmstat`, AEDT, HFSS, Calibration, Canary, or Solve was started.
+- **Next gate:** an authorized administrator must supply/confirm a legitimate ANSYS/organization entitlement and endpoint capable of legal `hfss_gui` checkout. Only then may a fresh clean-HEAD campaign be issued.

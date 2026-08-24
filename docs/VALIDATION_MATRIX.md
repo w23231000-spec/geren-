@@ -377,6 +377,12 @@ Interpretation:
 - **License boundary:** port 1055 is not listening. Starting the exact stopped Windows service was denied for lack of service-control permission and changed no state. The discovered local license provenance is unverified/unacceptable and was not enabled or used.
 - **Result:** ISSUE-036 `OPEN / BLOCKER`; real Calibration, Canary, and E2E remain `NOT RUN / BROKEN BEFORE SOLVE`. Last full offline suite remains `PASS` — 230 in 46.45 s.
 
+### License gate recheck after external service-state change
+
+- **Observed:** clean HEAD `b50ea3c4df7fe8d52c39265afb929d2324ca5043`; local `Ansys PLE Licensing 2026 R1` now reports Running, `:::1055` listens, and `lmgrd`/`ansyslmd` processes exist. The actor that changed service state is not inferred.
+- **Authority result:** `FAIL`. The configured endpoint remains `1055@localhost` backed by the previously identified unverifiable local license source. Connectivity does not establish legitimate entitlement or authorize feature checkout.
+- **Safety:** no `lmutil`, AEDT, HFSS worker, Builder, Solve, Calibration, or Canary was invoked during this recheck. ISSUE-036 remains OPEN.
+
 ## Historical real HFSS evidence
 
 Historical status is not current-working-tree validation.
