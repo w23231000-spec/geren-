@@ -355,6 +355,13 @@ Interpretation:
 - **Repair:** exact-target gRPC design resolver accepts object return or bounded polling and rejects wrong names. Unit tests cover bool acknowledgement and wrong-design fail-closed behavior.
 - **Post-repair verification:** worker/process/reconciliation focus `PASS` — 41 in 1.87 s; configured AEDT Python worker import exit 0; final full suite `PASS` — 228 in 47.27 s.
 
+### Fourth authorized Calibration delayed-design probe and repair
+
+- **Observed result:** clean HEAD `52067ba5f0743d51b530f6665b6d2773bcc10f91` reached the exact-target compatibility hook, but AEDT did not expose `interposer_temple4` during the 30-second read-only polling window. The worker eventually emitted the same fail-closed constructor error and supervision terminated the tree. No geometry milestone, Setup/Sweep, Solve result, or Touchstone exists.
+- **Cleanup/reconciliation:** process and Agent-lock scans were empty. Operation `op_ad9593d53eebacb86685fa638e62e6ff` / attempt `att_092ca07a34dc4a2166c18159ba67e20d` is explicitly `CONFIRMED_FAILED`; evidence `art_f614467f305ca1930bbf235cd6725519`, digest `ab957331f76d41b24caf708665c730656b2634119159c4322500a40220f4bfc6`. Attempt count and conservative budget remain one/consumed; no retry or refund occurred.
+- **Repair:** the resolver now repeats exact-name activation throughout the finite interval instead of activating once and only reading. It captures normalized `GetTopDesignList()` evidence on timeout and retains exact-name rejection of `huitu`/fallbacks.
+- **Post-repair verification:** worker/backend/process focus `PASS` — 31 in 1.24 s; final full main suite `PASS` — 229 in 46.74 s.
+
 ## Historical real HFSS evidence
 
 Historical status is not current-working-tree validation.

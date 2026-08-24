@@ -135,6 +135,42 @@ def test_grpc_active_design_compatibility_never_selects_wrong_design():
         _resolve_active_design(Project(), "interposer_temple4", timeout_seconds=0.0)
 
 
+def test_grpc_active_design_compatibility_retries_delayed_activation(monkeypatch):
+    class Design:
+        def GetName(self):
+            return "interposer_temple4"
+
+    class Project:
+        def __init__(self):
+            self.activations = 0
+
+        def SetActiveDesign(self, name):
+            assert name == "interposer_temple4"
+            self.activations += 1
+            return Design() if self.activations == 3 else None
+
+        def GetDesign(self, _name):
+            return None
+
+        def GetActiveDesign(self):
+            return None
+
+        def GetTopDesignList(self):
+            return ("HFSS;interposer_temple4",)
+
+    project = Project()
+    monkeypatch.setattr(
+        "hfss_optimization_agent.hfss.pyaedt_worker.time.sleep", lambda _: None
+    )
+
+    resolved = _resolve_active_design(
+        project, "interposer_temple4", timeout_seconds=1.0
+    )
+
+    assert resolved.GetName() == "interposer_temple4"
+    assert project.activations == 3
+
+
 @pytest.mark.parametrize(
     ("unit", "expected"),
     [("Hz", 1.0), ("kHz", 1e3), ("MHz", 1e6), ("GHz", 1e9), ("THz", 1e12)],

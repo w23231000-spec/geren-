@@ -36,14 +36,13 @@ def _resolve_active_design(project_object, name: str, *, timeout_seconds: float 
     """
 
     deadline = time.monotonic() + max(0.0, float(timeout_seconds))
-    try:
-        selected = project_object.SetActiveDesign(name)
-    except Exception:
-        selected = None
-    if selected is not None and not isinstance(selected, bool) and hasattr(selected, "GetName"):
-        return selected
+    observed_designs: tuple[str, ...] = ()
     while True:
         for method_name, arguments in (
+            # AEDT can acknowledge InsertDesign before the new design is visible
+            # through gRPC. Retrying activation is what crosses that boundary;
+            # one early SetActiveDesign followed only by reads does not.
+            ("SetActiveDesign", (name,)),
             ("GetDesign", (name,)),
             ("GetActiveDesign", ()),
         ):
@@ -61,10 +60,18 @@ def _resolve_active_design(project_object, name: str, *, timeout_seconds: float 
                     return candidate
             except Exception:
                 pass
+        list_designs = getattr(project_object, "GetTopDesignList", None)
+        if callable(list_designs):
+            try:
+                observed_designs = tuple(
+                    str(value).rsplit(";", 1)[-1] for value in list_designs()
+                )
+            except Exception:
+                pass
         if time.monotonic() >= deadline:
             raise RuntimeError(
                 f"AEDT did not expose the exact active design {name!r} within "
-                f"{timeout_seconds:.1f}s"
+                f"{timeout_seconds:.1f}s; observed top designs={observed_designs!r}"
             )
         time.sleep(min(0.2, max(0.0, deadline - time.monotonic())))
 
