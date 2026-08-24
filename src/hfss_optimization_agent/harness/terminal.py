@@ -124,13 +124,23 @@ def emit_optimization_intent(
 def print_run_summary(summary: dict[str, Any]) -> None:
     """Render the common run summary with Chinese labels."""
 
-    status_names = {"completed": "已完成", "running": "运行中", "failed": "失败"}
+    status_names = {
+        "succeeded_baseline": "基线已满足目标",
+        "succeeded_candidate": "候选已满足目标",
+        "rejected": "目标未达成",
+        "invalid": "评价无效",
+        "running": "运行中",
+        "failed": "失败",
+        "cancelled": "已取消",
+        "completed": "历史完成状态",
+    }
     emit_status("运行结果", status_names.get(str(summary.get("status")), str(summary.get("status"))))
     fields = (
         ("任务编号", "task_id"),
         ("优化候选", "optimized_candidate"),
         ("最佳方案", "best_candidate"),
         ("最佳得分", "best_score"),
+        ("终态原因", "terminal_reason"),
         ("产物目录", "artifact_dir"),
     )
     for label, key in fields:

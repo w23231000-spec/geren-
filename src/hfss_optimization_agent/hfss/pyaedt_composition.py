@@ -5,7 +5,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from .contracts import HFSSRunContract
+from .contracts import (
+    BuilderAttestation,
+    HFSSRunContract,
+    attest_builder,
+    verify_builder_attestation,
+)
 from .guarded_adapter import GuardedHFSSAdapter, GuardedHFSSConfig
 from .worker_backend import JsonSubprocessHFSSBackend, JsonWorkerConfig
 
@@ -26,6 +31,7 @@ def compose_pyaedt_hfss(
     cores: int = 4,
     tasks: int = 1,
     gpus: int = 0,
+    builder_attestation: BuilderAttestation | None = None,
 ) -> GuardedHFSSAdapter:
     """Create a process-isolated real adapter without importing PyAEDT in the Agent process."""
 
@@ -35,6 +41,12 @@ def compose_pyaedt_hfss(
         raise FileNotFoundError(f"PyAEDT Python interpreter does not exist: {interpreter}")
     if not (builder_root / "nine_parameter_builder.py").is_file():
         raise FileNotFoundError(f"Supplied HFSS builder does not exist: {builder_root}")
+    if builder_attestation is None:
+        builder_attestation = attest_builder(builder_root, contract.builder_id)
+    elif builder_attestation.builder_id != contract.builder_id:
+        raise ValueError("Builder attestation ID differs from HFSS contract")
+    else:
+        verify_builder_attestation(builder_root, builder_attestation)
     package_src = Path(__file__).resolve().parents[2]
     existing_pythonpath = os.environ.get("PYTHONPATH")
     pythonpath = str(package_src)
@@ -49,6 +61,9 @@ def compose_pyaedt_hfss(
             ),
             build_timeout_seconds=build_timeout_seconds,
             extract_timeout_seconds=extract_timeout_seconds,
+            builder_attestation=builder_attestation,
+            heartbeat_timeout_seconds=15.0,
+            termination_grace_seconds=5.0,
             environment={
                 "PYTHONPATH": pythonpath,
                 "PYTHONUTF8": "1",

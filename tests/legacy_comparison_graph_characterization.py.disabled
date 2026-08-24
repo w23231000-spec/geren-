@@ -1,0 +1,698 @@
+"""Offline end-to-end tests for the confirmed baseline/candidate comparison sequence."""
+
+from concurrent.futures import ThreadPoolExecutor
+import json
+from pathlib import Path
+import threading
+
+import pytest
+
+from hfss_optimization_agent.agent.comparison_state import (
+    baseline_hfss_result,
+    baseline_sparameter_result,
+    best_candidate,
+    candidate_evaluation,
+    candidate_hfss_result,
+    candidate_sparameter_result,
+    current_comparison,
+    create_comparison_state,
+    with_changes,
+)
+from hfss_optimization_agent.composition import compose_comparison_workflow
+from hfss_optimization_agent.core.config import AppConfig
+from hfss_optimization_agent.core.models import HFSSResult
+from hfss_optimization_agent.domain.canonical_json import canonical_dumps, canonical_loads
+from hfss_optimization_agent.domain.contracts import (
+    CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+    CalibrationEvidence,
+    FrozenMap,
+)
+from hfss_optimization_agent.evaluation.contract import load_offline_evaluation_config
+from hfss_optimization_agent.hfss.mock_hfss import MockHFSS
+from hfss_optimization_agent.harness.checkpoint import JsonComparisonCheckpointStore
+from hfss_optimization_agent.harness.core import HarnessSettings
+from hfss_optimization_agent.harness.run_store import (
+    ApprovalGrant,
+    OperationStatus,
+    RunInvocationDisposition,
+)
+from hfss_optimization_agent.optimization.deterministic_batch_optimizer import (
+    DeterministicBatchOptimizer,
+)
+from hfss_optimization_agent.parameters.nine_parameter_schema import (
+    supplied_baseline_candidate,
+    supplied_nine_parameter_schema,
+)
+from hfss_optimization_agent.sparameters.mock_surrogate import DeterministicSurrogate
+
+
+CONTRACT_PATH = Path(__file__).parents[1] / "config" / "evaluation_contract.offline_v1.json"
+
+
+def offline_config(tmp_path, *, gate=0.0):
+    evaluation = load_offline_evaluation_config(CONTRACT_PATH)
+    evaluation.candidate_gate_score = gate
+    return AppConfig(artifact_root=tmp_path, evaluation=evaluation)
+
+
+def invoke(tmp_path, *, factor=1.05, gate=0.0):
+    baseline = supplied_baseline_candidate()
+    schema = supplied_nine_parameter_schema()
+    config = offline_config(tmp_path, gate=gate)
+    surrogate = DeterministicSurrogate(baseline.values)
+    optimizer = DeterministicBatchOptimizer((factor,))
+    hfss = MockHFSS(baseline_values=baseline.values)
+    state = create_comparison_state(
+        task_id="comparison-test",
+        baseline_parameters=baseline,
+        target_specification={"minimum_score": -1.0},
+    )
+    final = compose_comparison_workflow(
+        task_id=state["manifest"].task_id,
+        baseline_parameters=baseline,
+        schema=schema,
+        config=config,
+        sparameters=surrogate,
+        optimizer=optimizer,
+        hfss=hfss,
+    ).invoke(state)
+    return final, surrogate, optimizer, hfss
+
+
+def test_confirmed_business_sequence_runs_each_formal_baseline_and_candidate_stage(tmp_path):
+    final, surrogate, optimizer, hfss = invoke(tmp_path)
+    assert final["status"] == "succeeded_candidate"
+    assert final["terminal_outcome"].reason_code == "candidate_target_met"
+    # Optimizer reranking and the selected-candidate node share one Harness receipt.
+    assert surrogate.call_count == 2
+    assert optimizer.call_count == 1
+    assert hfss.call_count == 2
+    optimization_metadata = final["optimization_run"].metadata.to_dict()
+    evidence = optimization_metadata["surrogate_ranking_evidence"]
+    assert len(evidence) == len(final["optimization_run"].candidate_ids)
+    assert optimization_metadata["effective_objective_digest"]
+    assert optimization_metadata["surrogate_ranking_evidence_digest"]
+    assert best_candidate(final).candidate_id == "optimized-001"
+    assert current_comparison(final).classification == "FULLY_ACHIEVED"
+    assert current_comparison(final).promotion_eligible is True
+    assert final["execution_trace"] == (
+        "initialize_task",
+        "calculate_baseline_sparameters",
+        "run_baseline_hfss",
+        "diagnose_baseline",
+        "freeze_baseline",
+        "build_optimization_intent",
+        "build_optimization_objective",
+        "run_optimizer:deterministic-001",
+        "select_optimized_candidate:optimized-001",
+        "validate_optimized_candidate",
+        "recalculate_candidate_sparameters",
+        "candidate_sparameter_gate:run_hfss",
+        "run_candidate_hfss",
+        "compare_hfss_results",
+        "diagnose_candidate",
+        "update_hfss_best:updated",
+        "decide_after_hfss:pass",
+        "complete",
+        "final_run_manifest",
+    )
+    task = tmp_path / "comparison-test"
+    assert (tmp_path / ".runstore" / "runstore.sqlite3").exists()
+    artifact_roles = {item.role for item in final["artifact_refs"]}
+    assert {
+        "run_manifest",
+        "baseline_sparameters",
+        "baseline_hfss",
+        "baseline_evaluation",
+        "optimizer_result",
+        "candidate_sparameters",
+        "candidate_hfss",
+        "candidate_evaluation",
+        "evaluation_comparison",
+        "terminal_outcome",
+        "final_run_manifest",
+    } <= artifact_roles
+    for reference in final["artifact_refs"]:
+        assert (task / reference.uri).exists()
+
+
+def test_candidate_sparameter_gate_prevents_second_hfss_call(tmp_path):
+    final, _surrogate, _optimizer, hfss = invoke(tmp_path, factor=0.95, gate=0.0)
+    assert hfss.call_count == 1
+    assert candidate_hfss_result(final) is None
+    assert best_candidate(final).candidate_id == "baseline"
+    assert final["status"] == "rejected"
+    assert final["terminal_outcome"].reason_code == "candidate_gate_rejected"
+    assert "candidate_sparameter_gate:stop" in final["execution_trace"]
+    status_ref = next(
+        item for item in final["artifact_refs"] if item.role == "candidate_gate_status"
+    )
+    assert (tmp_path / "comparison-test" / status_ref.uri).exists()
+
+
+def test_worse_hfss_candidate_never_replaces_baseline_best(tmp_path):
+    final, _surrogate, _optimizer, hfss = invoke(tmp_path, factor=0.95, gate=-1.0)
+    assert hfss.call_count == 2
+    assert final["status"] == "rejected"
+    assert current_comparison(final).classification == "DEGRADED"
+    assert current_comparison(final).promotion_eligible is False
+    assert best_candidate(final).candidate_id == "baseline"
+    assert "update_hfss_best:retained" in final["execution_trace"]
+
+
+def test_completed_checkpoint_restores_both_baseline_and_candidate_results(tmp_path):
+    final, *_ = invoke(tmp_path)
+    restored = compose_comparison_workflow(
+        task_id="comparison-test",
+        baseline_parameters=supplied_baseline_candidate(),
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(supplied_baseline_candidate().values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=MockHFSS(baseline_values=supplied_baseline_candidate().values),
+    ).nodes.checkpoint
+    restored.bind("run:comparison-test")
+    loaded = restored.load()
+    assert loaded["status"] == final["status"]
+    assert baseline_sparameter_result(loaded).candidate_id == "baseline"
+    assert candidate_sparameter_result(loaded).candidate_id == "optimized-001"
+    assert best_candidate(loaded).candidate_id == "optimized-001"
+    assert baseline_hfss_result(loaded).candidate_id == "baseline"
+    assert candidate_hfss_result(loaded).candidate_id == "optimized-001"
+    assert candidate_evaluation(loaded).status == "PASS"
+
+
+def test_restart_from_checkpoint_reuses_all_completed_expensive_stages(tmp_path):
+    original, *_ = invoke(tmp_path)
+    baseline = supplied_baseline_candidate()
+    surrogate = DeterministicSurrogate(baseline.values)
+    optimizer = DeterministicBatchOptimizer((1.05,))
+    hfss = MockHFSS(baseline_values=baseline.values)
+    resumed_config = offline_config(tmp_path)
+    resumed_config.harness = HarnessSettings(
+        approvals=(ApprovalGrant("late-approval", "real_hfss", "user"),)
+    )
+    runner = compose_comparison_workflow(
+        task_id="comparison-test",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=resumed_config,
+        sparameters=surrogate,
+        optimizer=optimizer,
+        hfss=hfss,
+    )
+    before = runner.nodes.harness.store.get_run("run:comparison-test")
+    before_counts = {
+        table: runner.nodes.harness.store.count_rows(
+            table, run_id="run:comparison-test"
+        )
+        for table in (
+            "approvals",
+            "operations",
+            "attempts",
+            "budget_reservations",
+            "events",
+            "artifacts",
+            "checkpoints",
+        )
+    }
+    resumed = runner.invoke(
+        create_comparison_state(
+            task_id="comparison-test",
+            baseline_parameters=baseline,
+            target_specification={"minimum_score": -1.0},
+        )
+    )
+    after = runner.nodes.harness.store.get_run("run:comparison-test")
+    after_counts = {
+        table: runner.nodes.harness.store.count_rows(
+            table, run_id="run:comparison-test"
+        )
+        for table in (
+            "approvals",
+            "operations",
+            "attempts",
+            "budget_reservations",
+            "events",
+            "artifacts",
+            "checkpoints",
+        )
+    }
+    assert resumed == original
+    assert surrogate.call_count == 0
+    assert optimizer.call_count == 0
+    assert hfss.call_count == 0
+    assert (
+        resumed["optimization_run"].metadata.to_dict()[
+            "surrogate_ranking_evidence_digest"
+        ]
+        == original["optimization_run"].metadata.to_dict()[
+            "surrogate_ranking_evidence_digest"
+        ]
+    )
+    assert after.latest_checkpoint_revision == before.latest_checkpoint_revision
+    assert after_counts == before_counts
+
+
+def test_provider_receipt_survives_graph_checkpoint_crash_without_repeat(tmp_path):
+    baseline = supplied_baseline_candidate()
+    first_hfss = MockHFSS(baseline_values=baseline.values)
+    state = create_comparison_state(
+        task_id="crash-window",
+        baseline_parameters=baseline,
+        target_specification={"minimum_score": -1.0},
+    )
+    runner = compose_comparison_workflow(
+        task_id="crash-window",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer((1.05,)),
+        hfss=first_hfss,
+    )
+    original_save = runner.nodes.checkpoint.save
+    crashed = False
+
+    def fail_after_baseline_hfss(checkpoint_state):
+        nonlocal crashed
+        if checkpoint_state["hfss_results"] and not crashed:
+            crashed = True
+            raise RuntimeError("injected crash after provider receipt")
+        return original_save(checkpoint_state)
+
+    runner.nodes.checkpoint.save = fail_after_baseline_hfss
+    with pytest.raises(RuntimeError, match="injected crash"):
+        runner.invoke(state)
+    assert first_hfss.call_count == 1
+    baseline_start = next(
+        event
+        for event in runner.nodes.harness.store.list_events("run:crash-window")
+        if event["event_type"] == "physical_start_authorized"
+        and event["payload"]["kind"] == "hfss"
+        and event["payload"]["subject_id"] == "baseline"
+    )
+    baseline_operation = runner.nodes.harness.store.get_operation(
+        baseline_start["operation_id"]
+    )
+    assert baseline_operation.status is OperationStatus.SUCCEEDED
+    assert baseline_operation.attempt_count == 1
+    runner.nodes.harness.artifacts.verify(baseline_operation.artifact)
+
+    resumed_hfss = MockHFSS(baseline_values=baseline.values)
+    resumed_runner = compose_comparison_workflow(
+        task_id="crash-window",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer((1.05,)),
+        hfss=resumed_hfss,
+    )
+    final = resumed_runner.invoke(state)
+    assert final["status"] == "succeeded_candidate"
+    # The reopened provider runs only the candidate; baseline comes from its receipt.
+    assert resumed_hfss.call_count == 1
+    starts = [
+        event["payload"]
+        for event in resumed_runner.nodes.harness.store.list_events("run:crash-window")
+        if event["event_type"] == "physical_start_authorized"
+    ]
+    assert len(
+        [item for item in starts if item["kind"] == "hfss" and item["subject_id"] == "baseline"]
+    ) == 1
+
+
+def test_unknown_graph_run_waits_and_reinvoke_does_not_call_provider(tmp_path):
+    class AmbiguousHFSS:
+        def __init__(self):
+            self.call_count = 0
+
+        def run(self, candidate):
+            self.call_count += 1
+            raise RuntimeError("worker connection lost after launch")
+
+    baseline = supplied_baseline_candidate()
+    uncertain = AmbiguousHFSS()
+    state = create_comparison_state(
+        task_id="unknown-graph",
+        baseline_parameters=baseline,
+        target_specification={"minimum_score": -1.0},
+    )
+    runner = compose_comparison_workflow(
+        task_id="unknown-graph",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=uncertain,
+    )
+    waiting = runner.invoke(state)
+    assert waiting["status"] == "waiting_reconciliation"
+    assert waiting["decision_outcome"].action == "waiting_reconciliation"
+    assert uncertain.call_count == 1
+
+    replacement = MockHFSS(baseline_values=baseline.values)
+    reopened = compose_comparison_workflow(
+        task_id="unknown-graph",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=replacement,
+    ).invoke(state)
+    assert reopened == waiting
+    assert replacement.call_count == 0
+
+
+def test_interrupted_phase1_v2_without_action_ledger_waits_for_reconciliation(tmp_path):
+    baseline = supplied_baseline_candidate()
+    legacy = with_changes(
+        create_comparison_state(
+            task_id="legacy-v2",
+            baseline_parameters=baseline,
+            target_specification={"minimum_score": -1.0},
+        ),
+        {"status": "running", "execution_trace": ("initialize_task",)},
+    )
+    path = tmp_path / "legacy-v2" / "checkpoint.json"
+    JsonComparisonCheckpointStore(path).save(legacy)
+    original = path.read_bytes()
+    surrogate = DeterministicSurrogate(baseline.values)
+    optimizer = DeterministicBatchOptimizer()
+    hfss = MockHFSS(baseline_values=baseline.values)
+    result = compose_comparison_workflow(
+        task_id="legacy-v2",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=surrogate,
+        optimizer=optimizer,
+        hfss=hfss,
+    ).invoke(legacy)
+    assert result["status"] == "waiting_reconciliation"
+    assert result["decision_outcome"].reason_code == "legacy_v2_missing_action_receipts"
+    assert surrogate.call_count == optimizer.call_count == hfss.call_count == 0
+    assert path.read_bytes() == original
+
+
+def test_concurrent_graph_invocations_have_one_writer_and_one_physical_workflow(tmp_path):
+    baseline = supplied_baseline_candidate()
+    entered = threading.Event()
+    release = threading.Event()
+    follower_seen = threading.Event()
+
+    class BlockingSurrogate(DeterministicSurrogate):
+        def run(self, candidate):
+            if candidate.candidate_id == "baseline" and not entered.is_set():
+                entered.set()
+                assert release.wait(5.0)
+            return super().run(candidate)
+
+    state = create_comparison_state(
+        task_id="concurrent-graph",
+        baseline_parameters=baseline,
+        target_specification={"minimum_score": -1.0},
+    )
+    first_surrogate = BlockingSurrogate(baseline.values)
+    first_optimizer = DeterministicBatchOptimizer()
+    first_hfss = MockHFSS(baseline_values=baseline.values)
+    first = compose_comparison_workflow(
+        task_id="concurrent-graph",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=first_surrogate,
+        optimizer=first_optimizer,
+        hfss=first_hfss,
+    )
+    second_surrogate = DeterministicSurrogate(baseline.values)
+    second_optimizer = DeterministicBatchOptimizer()
+    second_hfss = MockHFSS(baseline_values=baseline.values)
+    second = compose_comparison_workflow(
+        task_id="concurrent-graph",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=second_surrogate,
+        optimizer=second_optimizer,
+        hfss=second_hfss,
+    )
+    original_claim = second.nodes.harness.store.claim_run_invocation
+
+    def tracked_claim(*args, **kwargs):
+        claim = original_claim(*args, **kwargs)
+        if claim.disposition is RunInvocationDisposition.IN_FLIGHT:
+            follower_seen.set()
+        return claim
+
+    second.nodes.harness.store.claim_run_invocation = tracked_claim
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        owner = pool.submit(first.invoke, state)
+        assert entered.wait(5.0)
+        follower = pool.submit(second.invoke, state)
+        assert follower_seen.wait(5.0)
+        release.set()
+        owner_result = owner.result(timeout=10.0)
+        follower_result = follower.result(timeout=10.0)
+    assert follower_result == owner_result
+    assert first_surrogate.call_count == 3
+    assert first_optimizer.call_count == 1
+    assert first_hfss.call_count == 2
+    assert second_surrogate.call_count == second_optimizer.call_count == second_hfss.call_count == 0
+
+
+def test_real_structured_hfss_failure_is_unknown_not_succeeded_action(tmp_path):
+    class StructuredFailureHFSS:
+        def __init__(self):
+            self.call_count = 0
+
+        def run(self, candidate):
+            self.call_count += 1
+            return HFSSResult(
+                candidate_id=candidate.candidate_id,
+                success=False,
+                error="HFSSStageError: worker timeout; termination unverified",
+            )
+
+    baseline = supplied_baseline_candidate()
+    authorization_id = "offline-test-authorization"
+    calibration = CalibrationEvidence(
+        schema_version=CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+        evidence_id="calibration:structured-failure",
+        created_at="2026-08-20T00:00:00+00:00",
+        policy_version="paired-surrogate-hfss/1.0",
+        comparison_context_id="context:real-failure-contract",
+        passed=True,
+        case_ids=("cal-a",),
+        provider_fingerprints=FrozenMap.from_mapping(
+            {"supplied_surrogate_source_sha256": "3" * 64}
+        ),
+        policy=FrozenMap.from_mapping({"max_complex_rmse": 0.02}),
+        report=FrozenMap.from_mapping(
+            {
+                "passed": True,
+                "comparison_context_id": "context:real-failure-contract",
+                "cases": [{"case_id": "cal-a"}],
+            }
+        ),
+    )
+    state = create_comparison_state(
+        task_id="real-failure-contract",
+        baseline_parameters=baseline,
+        target_specification={"minimum_score": -1.0},
+        real_execution=True,
+        code_revision="0" * 40,
+        provider_fingerprints={
+            "agent_source_sha256": "1" * 64,
+            "supplied_optimizer_source_sha256": "2" * 64,
+            "supplied_surrogate_source_sha256": "3" * 64,
+            "hfss_builder_source_sha256": "4" * 64,
+            "pyaedt_executable_sha256": "5" * 64,
+            "hfss_worker_protocol": "hfss-composite-request/1.0",
+        },
+        config_fingerprints={
+            "real_hfss_authorization_id": authorization_id,
+            "readiness_id": "offline-structured-failure-test",
+            "hfss_contract_id": "offline-contract",
+            "hfss_contract_sha256": "6" * 64,
+            "evaluation_contract_id": "offline-evaluation",
+            "evaluation_contract_sha256": "7" * 64,
+            "calibration_evidence_sha256": calibration.digest,
+            "calibration_evidence": canonical_loads(canonical_dumps(calibration)),
+        },
+    )
+    config = offline_config(tmp_path)
+    config.harness = HarnessSettings(
+        required_approval_scopes={"hfss": "real_hfss"},
+        approvals=(
+            ApprovalGrant(authorization_id, "real_hfss", "offline_test"),
+        ),
+    )
+    failed_provider = StructuredFailureHFSS()
+    runner = compose_comparison_workflow(
+        task_id=state["manifest"].task_id,
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=config,
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=failed_provider,
+    )
+    waiting = runner.invoke(state)
+    assert waiting["status"] == "waiting_reconciliation"
+    assert failed_provider.call_count == 1
+    unknown_events = [
+        event
+        for event in runner.nodes.harness.store.list_events(state["manifest"].run_id)
+        if event["event_type"] == "operation_unknown"
+    ]
+    assert len(unknown_events) == 1
+    operation = runner.nodes.harness.store.get_operation(unknown_events[0]["operation_id"])
+    assert operation.status is OperationStatus.UNKNOWN
+
+
+def test_waiting_run_normalizes_old_running_checkpoint_after_commit_crash(tmp_path):
+    class AmbiguousHFSS:
+        def __init__(self):
+            self.call_count = 0
+
+        def run(self, candidate):
+            self.call_count += 1
+            raise RuntimeError("worker outcome lost")
+
+    baseline = supplied_baseline_candidate()
+    state = create_comparison_state(
+        task_id="waiting-checkpoint-crash",
+        baseline_parameters=baseline,
+        target_specification={"minimum_score": -1.0},
+    )
+    uncertain = AmbiguousHFSS()
+    runner = compose_comparison_workflow(
+        task_id=state["manifest"].task_id,
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=uncertain,
+    )
+    original_save = runner.nodes.checkpoint.save
+
+    def crash_on_waiting(checkpoint_state):
+        if checkpoint_state["status"] == "waiting_reconciliation":
+            raise RuntimeError("injected waiting checkpoint crash")
+        return original_save(checkpoint_state)
+
+    runner.nodes.checkpoint.save = crash_on_waiting
+    with pytest.raises(RuntimeError, match="waiting checkpoint crash"):
+        runner.invoke(state)
+    assert uncertain.call_count == 1
+
+    replacement = MockHFSS(baseline_values=baseline.values)
+    recovered = compose_comparison_workflow(
+        task_id=state["manifest"].task_id,
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=replacement,
+    ).invoke(state)
+    assert recovered["status"] == "waiting_reconciliation"
+    assert recovered["decision_outcome"].action == "waiting_reconciliation"
+    assert replacement.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ("legacy_status", "reason_code"),
+    [
+        ("running", "legacy_v1_insufficient_evidence"),
+        ("completed", "legacy_v1_historical_evidence_only"),
+    ],
+)
+def test_v1_classification_is_durable_after_source_removal(
+    tmp_path, legacy_status, reason_code
+):
+    task_id = f"legacy-v1-{legacy_status}"
+    baseline = supplied_baseline_candidate()
+    state = create_comparison_state(
+        task_id=task_id,
+        baseline_parameters=baseline,
+        target_specification={"minimum_score": -1.0},
+    )
+    path = tmp_path / task_id / "checkpoint.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        json.dumps(
+            {
+                "task_id": task_id,
+                "status": legacy_status,
+                "baseline_parameters": {"candidate_id": "baseline"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    original = path.read_bytes()
+    surrogate = DeterministicSurrogate(baseline.values)
+    optimizer = DeterministicBatchOptimizer()
+    hfss = MockHFSS(baseline_values=baseline.values)
+    runner = compose_comparison_workflow(
+        task_id=task_id,
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=surrogate,
+        optimizer=optimizer,
+        hfss=hfss,
+    )
+    waiting = runner.invoke(state)
+    assert waiting["status"] == "waiting_reconciliation"
+    assert waiting["decision_outcome"].reason_code == reason_code
+    assert path.read_bytes() == original
+    assert surrogate.call_count == optimizer.call_count == hfss.call_count == 0
+
+    path.unlink()
+    replacement = MockHFSS(baseline_values=baseline.values)
+    reopened = compose_comparison_workflow(
+        task_id=task_id,
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=replacement,
+    ).invoke(state)
+    assert reopened == waiting
+    assert replacement.call_count == 0
+
+
+def test_legacy_v2_manifest_conflict_is_durably_fail_closed(tmp_path):
+    baseline = supplied_baseline_candidate()
+    current = create_comparison_state(
+        task_id="legacy-v2-conflict",
+        run_id="run:legacy-v2-conflict",
+        comparison_context_id="context:new",
+        baseline_parameters=baseline,
+    )
+    legacy = create_comparison_state(
+        task_id="legacy-v2-conflict",
+        run_id="run:legacy-v2-conflict",
+        comparison_context_id="context:old",
+        baseline_parameters=baseline,
+    )
+    path = tmp_path / "legacy-v2-conflict" / "checkpoint.json"
+    JsonComparisonCheckpointStore(path).save(legacy)
+    result = compose_comparison_workflow(
+        task_id="legacy-v2-conflict",
+        baseline_parameters=baseline,
+        schema=supplied_nine_parameter_schema(),
+        config=offline_config(tmp_path),
+        sparameters=DeterministicSurrogate(baseline.values),
+        optimizer=DeterministicBatchOptimizer(),
+        hfss=MockHFSS(baseline_values=baseline.values),
+    ).invoke(current)
+    assert result["status"] == "waiting_reconciliation"
+    assert result["decision_outcome"].reason_code == "legacy_v2_manifest_identity_conflict"

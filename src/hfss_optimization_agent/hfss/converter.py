@@ -6,13 +6,14 @@ import math
 from ..core.models import ComplexSParameters
 from ..harness.errors import HFSSContractError
 from .backend import RawSParameterData
-from .contracts import HFSSRunContract
+from .contracts import HFSSRunContract, validate_sweep_frequency_grid
 
 
 def convert_raw_sparameters(
     raw: RawSParameterData,
     contract: HFSSRunContract,
 ) -> ComplexSParameters:
+    validate_sweep_frequency_grid(raw.frequency_hz, contract.sweep)
     if raw.representation != contract.extractor_format:
         raise HFSSContractError(
             f"Extractor returned {raw.representation!r}; contract requires {contract.extractor_format!r}"

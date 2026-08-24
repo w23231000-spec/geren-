@@ -4,6 +4,8 @@ import math
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .enums import SUCCESS_WORKFLOW_STATUSES, WorkflowStatus
+
 
 @dataclass(slots=True)
 class CandidateParameters:
@@ -126,6 +128,34 @@ class EvaluationComparison:
     baseline_frequency_margin: dict[str, Any] = field(default_factory=dict)
     candidate_frequency_margin: dict[str, Any] = field(default_factory=dict)
     frequency_margin_delta: dict[str, Any] = field(default_factory=dict)
+    promotion_eligible: bool = False
+    promotion_reason: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalOutcome:
+    """Authoritative terminal meaning bound to one run and evidence context."""
+
+    status: WorkflowStatus
+    reason_code: str
+    reason: str
+    run_id: str = ""
+    context_id: str = ""
+    candidate_id: str | None = None
+    evidence_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", WorkflowStatus(self.status))
+        object.__setattr__(self, "evidence_ids", tuple(self.evidence_ids))
+        if len(self.evidence_ids) != len(set(self.evidence_ids)):
+            raise ValueError("TerminalOutcome evidence IDs must be unique")
+
+    @property
+    def successful(self) -> bool:
+        return self.status in SUCCESS_WORKFLOW_STATUSES
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

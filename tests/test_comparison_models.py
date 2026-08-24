@@ -3,9 +3,13 @@
 import pytest
 
 from hfss_optimization_agent.agent.comparison_state import (
+    append_candidate_snapshots,
+    baseline_hfss_result,
+    baseline_sparameter_result,
     comparison_state_from_dict,
     comparison_state_to_dict,
     create_comparison_state,
+    optimization_batch,
 )
 from hfss_optimization_agent.core.models import (
     CandidateParameters,
@@ -18,6 +22,7 @@ from hfss_optimization_agent.parameters.nine_parameter_schema import (
     supplied_baseline_candidate,
     supplied_nine_parameter_schema,
 )
+from hfss_optimization_agent.domain.contracts import OptimizationRunRecord
 
 
 def response() -> ComplexSParameters:
@@ -64,19 +69,26 @@ def test_comparison_state_round_trip_preserves_complex_curves_and_batch():
     s_result = SParameterResult("baseline", True, response(), {"screening_score": 0.0})
     candidate = CandidateParameters("candidate", 1, dict(baseline.values))
     batch = OptimizationBatch("run", True, [candidate], "candidate", 1)
-    state["baseline_sparameter_result"] = s_result
-    state["optimization_batch"] = batch
-    state["candidate_queue"] = [candidate]
-    state["baseline_hfss_result"] = HFSSResult(
-        "baseline",
-        True,
-        complex_response=response(),
-        execution_metadata={"comparison_context_id": "aligned-v1"},
+    state["candidates"] = append_candidate_snapshots(
+        state,
+        [candidate],
+        source="optimizer",
+        parent_candidate_id="baseline",
     )
-    state["hfss_history"] = [state["baseline_hfss_result"]]
+    state["sparameter_results"] = (s_result,)
+    state["optimization_run"] = OptimizationRunRecord.from_batch(batch)
+    state["candidate_queue"] = (candidate.candidate_id,)
+    state["hfss_results"] = (
+        HFSSResult(
+            "baseline",
+            True,
+            complex_response=response(),
+            execution_metadata={"comparison_context_id": "aligned-v2"},
+        ),
+    )
     restored = comparison_state_from_dict(comparison_state_to_dict(state))
-    assert restored["baseline_sparameter_result"].response.imag == s_result.response.imag
-    assert restored["optimization_batch"].recommended_candidate_id == "candidate"
-    assert restored["candidate_queue"][0].values == candidate.values
-    assert restored["baseline_hfss_result"].complex_response.real == response().real
-    assert restored["hfss_history"][0].execution_metadata["comparison_context_id"] == "aligned-v1"
+    assert baseline_sparameter_result(restored).response.imag == s_result.response.imag
+    assert optimization_batch(restored).recommended_candidate_id == "candidate"
+    assert restored["candidate_queue"] == ("candidate",)
+    assert baseline_hfss_result(restored).complex_response.real == response().real
+    assert baseline_hfss_result(restored).execution_metadata["comparison_context_id"] == "aligned-v2"

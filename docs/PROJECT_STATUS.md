@@ -1,131 +1,149 @@
 # Project Status
 
-Baseline reconstructed at: **2026-08-20 10:32:34 +08:00**  
-Repository root: `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`  
-Snapshot label: `FS-2026-08-20`; captured prospectively by the new-repository baseline commit `52dc0dea34df0f85e53e43ca91bdf56cacf7b0ff`
+Updated: **2026-08-24 +08:00**
+Repository root: `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`
 
 ## Current objective
 
-Build a deterministic, recoverable LangGraph workflow that uses a nine-parameter electrical surrogate and optimizer to propose a TSV–BGA–RDL candidate, then compares independent baseline and candidate HFSS projects without overwriting the supplied model.
+Evolve the deterministic baseline→candidate Workflow into an engineering Agent that repeatedly observes, diagnoses, decides, acts, evaluates, and decides again. Phases 0-5C established fail-closed execution, strict State V2, transactional Harness/RunStore, causal supervised Tools, bounded closed-loop Policy, readiness identity, reconciliation/chaos, calibration/native evidence, and structured final evidence. Phase 5D makes Closed-loop V2 the sole formal topology and removes the old one-pass Graph/manual checkpoint path. ISSUE-019 now closes the remaining offline HFSS frequency-grid acceptance gap without enabling HFSS.
 
-## Current Production Workflow
-
-**Canonical Production Workflow = 1: WF-001.** Entry evidence identifies `RUN_REAL_HFSS.py` as that sole intended Production entry. WF-011 is an `INTERNAL PRODUCTION WORKER` invoked by WF-001 and is not an independent Production Workflow.
-
-```text
-RUN_REAL_HFSS.py
-→ run_real_supplied_demo
-→ create ComparisonAgentState
-→ compose_comparison_workflow
-→ baseline surrogate
-→ baseline real HFSS Build/Solve/Extract
-→ baseline rule evaluation
-→ baseline diagnosis
-→ freeze baseline
-→ optimization intent
-→ optimization objective
-→ conditional optimizer
-→ candidate selection and validation
-→ candidate surrogate and gate
-→ candidate real HFSS Build/Solve/Extract
-→ deterministic comparison and diagnosis
-→ Best update
-→ checkpoint/artifacts/finalization
-```
-
-This topology is `WIRED`, but the current working-tree Full Workflow remains `BROKEN`. ISSUE-002 is resolved for Production, and ISSUE-003 is resolved by importing the existing status presenter into candidate comparison. A 5–19 GHz test-only WF-001 route now proves rule evidence, neutral diagnosis, ACTIVE intent/objective, optimizer, candidate gate, candidate HFSS, comparison, candidate diagnosis, Best-update reachability, and terminal completion. That route exposes ISSUE-004 as the current first blocker: comparison reports `FULLY_ACHIEVED`, but the legacy Best predicate retains baseline.
-
-## Current code baseline
+## Git and working-tree evidence
 
 | Item | Current fact |
 |---|---|
-| Git repository | `NEW REPOSITORY BASELINE`; initialized 2026-08-20 after original-history recovery was found impossible |
-| Original Git history / remote | `UNKNOWN / NOT RECOVERED`; no original remote was identified or configured |
 | Branch | `master` |
-| Baseline commit | `52dc0dea34df0f85e53e43ca91bdf56cacf7b0ff` — `baseline: reconstructed project state before integration fixes` |
-| Baseline provenance docs commit | `40a26b36548a6a1eb6eee66f0c3b8b48cfaddea5` — `docs: record new repository baseline` |
-| Baseline commit state | Clean immediately after commit; 139 project files tracked; runtime/cache/HFSS artifacts excluded by `.gitignore` |
-| Current baseline meaning | Prospective development anchor for the reconstructed `FS-2026-08-20` state; not a recovered historical commit |
-| Python | 3.12.13, project `.venv` |
-| Package | `hfss-optimization-agent 0.1.0` |
-| LangGraph | 1.2.11 |
-| PyAEDT runtime | Separate interpreter, PyAEDT 0.18.1; environment preflight passes |
-| Dependency source | `pyproject.toml` plus `uv.lock`; project `.venv` has no `pip` module |
+| HEAD before Phase 5D | `08f001e84f463936b2bacc7ff90d77d18b7887a6` — `fix: import comparison status presenter` |
+| Working tree | Authorized Phase 0 through Phase 5D changes are unstaged/uncommitted |
+| Staged files | None |
+| Automatic commit | Not performed |
+| Original history | Not recovered; the prospective repository baseline remains the traceability anchor |
 
-Selected snapshot hashes are recorded in `docs/VALIDATION_MATRIX.md`.
+## Current Production Workflow
 
-## Established capabilities
+**Canonical Production Workflow = WF-001**, entered only through `RUN_REAL_HFSS.py`. Its sole reachable topology is now `closed-loop-agent-v2`:
 
-| Capability | Implementation status | Verification status |
+```text
+bootstrap baseline → sole Policy/controller router → prepare/optimize
+→ consume/screen candidate queue → HFSS/evaluate/diagnose/Best
+→ next candidate | reoptimize | retry-safe | reconcile | typed finalize
+```
+Formal Offline and supplied-Mock entries delegate to the same V2 topology. Real manifests are admitted only by the explicit Production composition after exact readiness binding. Production uses `bounded-production-policy-v1` and `ClosedLoopBudget.production_canary()`: one baseline plus at most one candidate HFSS action, zero safe retries, and the independent RunStore `ExecutionPolicy(2, 0)` ceiling.
+
+## Phase 2 result
+
+| Capability | Current implementation | Evidence |
 |---|---|---|
-| Unified comparison State and JSON serialization | `WIRED` | `UNIT TESTED` |
-| LangGraph topology and composition injection | `WIRED / BROKEN` | Current E2E tests `FAIL` |
-| Nine-parameter schema and validation | `WIRED` | `UNIT TESTED` |
-| Deterministic Mock surrogate/optimizer/HFSS | `WIRED` | Component tests pass; current offline E2E `FAIL` |
-| Supplied electrical surrogate | `WIRED` | Vendor/runtime evidence passes; historically exercised in real E2E; current supplied-Mock workflow was not rerun |
-| Supplied optimizer provider integration / adapter wiring | `WIRED / NEEDS VERIFICATION` | Vendor optimizer tests pass and the WF-001 route can reach the provider position; the supplied adapter itself was not executed in the ISSUE-002 test fixture |
-| Diagnosis/OptimizationObjective control over supplied optimizer behavior | `NOT WIRED / CAUSAL DISCONNECT` | Static call-order evidence: objective is copied to metadata only after the vendor run; ISSUE-005 remains OPEN |
-| Diagnosis, optimization intent, objective, ranking | `PARTIALLY WIRED` | Production-direction rule failures reach neutral diagnosis and ACTIVE intent/objective in targeted tests; supplied-optimizer behavioral control remains ISSUE-005 |
-| HFSS contract, process isolation, timeout, lock, conversion | `WIRED` | Unit/integration tests pass; historically real exercised |
-| Target-only nine-parameter Builder | `WIRED` | Unit tested and historically real exercised |
-| Baseline and candidate independent projects | `WIRED` | `HISTORICALLY VERIFIED` |
-| Complex S-parameter and Touchstone export | `WIRED` | `HISTORICALLY VERIFIED` |
-| Rule evaluator and comparison | `WIRED`; Production Contract v1 configured only in WF-001 | Rule/evidence/Diagnosis/Intent targeted tests pass; rule-configured comparison regression and safe Graph pass |
-| Surrogate/HFSS calibration | `PRESENT BUT UNUSED` | Calibration function unit tested; no production calibration report |
-| Checkpoint and artifact store | `WIRED` | Unit tested; current resume E2E fails |
+| SQLite RunStore | One WAL/FULL-synchronous store owns Runs, approvals, operations, attempts, budget reservations, artifacts, append-only events, and append-only checkpoint revisions | `WIRED / UNIT TESTED / INTEGRATION TESTED` |
+| Action identity/idempotency | Stable semantic operation key plus caller key; equivalent concurrent requests share one operation/attempt/result and only one provider callback starts | `UNIT TESTED / INTEGRATION TESTED` |
+| Crash-safe receipt replay | Strict decoder + canonical immutable result are committed as `SUCCEEDED` before Graph checkpoint. Crash in that window replays the receipt without another provider call | `INTEGRATION TESTED` |
+| UNKNOWN/reconciliation | Lost lease, real structured HFSS failure, or post-provider receipt uncertainty becomes `UNKNOWN`; budget is retained, Run becomes `WAITING_RECONCILIATION`, and automatic retry is forbidden | `UNIT TESTED / INTEGRATION TESTED` |
+| Approval and budget | Server-side per-kind costs/scopes are immutable Run policy. Admission, approval validation, budget reservation, attempt claim, and start authorization share one `BEGIN IMMEDIATE` transaction | `UNIT TESTED`, including concurrency, crash, expiry, revocation, missing scope, and cost-spoof rejection |
+| Run writer fencing | A heartbeated Run invocation lease/fence admits one Graph writer; operation heartbeats protect long actions; stale writers cannot checkpoint or admit actions | `INTEGRATION TESTED` |
+| Checkpoint | SQLite revisions use manifest identity, writer fence, revision CAS, historical-digest replay rejection, and atomic terminal transition | `UNIT TESTED / INTEGRATION TESTED` |
+| Immutable artifacts | Authoritative canonical JSON uses safe contained paths, operation/attempt/content identity, fsynced unique temp files, create-once publish, and replay digest/size verification | `UNIT TESTED / INTEGRATION TESTED` |
+| Completed Run | Same identity returns the existing terminal checkpoint without provider, approval, operation, event, artifact, or checkpoint mutation | `INTEGRATION TESTED` |
+| Migration | `JsonComparisonCheckpointStore` is an explicit historical evidence reader only. Normal V2 composition never probes `checkpoint.json`; completed/interrupted V1 cannot enter executable RunStore resume | `UNIT TESTED / OFFLINE VERIFIED` |
 
-## Current blockers
+Phase 0/1 controls remain active: the real entry is fail-closed, comparison evidence controls promotion, terminal meaning is typed, State/JSON is strict and alias-free, and Mock evaluation uses its own contract.
 
-- **ISSUE-001 — BLOCKER / RESOLVED:** presenter now explicitly receives the real baseline `EvaluationResult`; direct regression and current-source Agent/Offline execution prove the NameError is removed.
-- **ISSUE-002 — BLOCKER / RESOLVED:** WF-001 loads Production Evaluation Contract v1; six authoritative HARD/SOFT rules retain rule-level evidence and hard failures reach neutral Diagnosis → ACTIVE OptimizationIntent.
-- **ISSUE-003 — BLOCKER / RESOLVED:** candidate comparison imports the existing `emit_status` presenter; the rule-configured regression and safe WF-001 Graph complete comparison without the NameError.
-- **ISSUE-004 — HIGH / CURRENT FIRST BLOCKER:** rule evaluation and Best-update semantics are causally disconnected (`improved=False`, `score=0.0`). The safe route reports `FULLY_ACHIEVED` yet records `update_hfss_best:retained` with baseline still Best.
-- **ISSUE-009 — HIGH:** historical paired results show surrogate/HFSS ranking reversal and calibration is not wired into Production.
+## Phase 3 result
+
+| Capability | Current implementation | Evidence |
+|---|---|---|
+| OptimizerRequest | Goal, baseline diagnosis, Agent objective, baseline evidence, provider/config fingerprints, and translated vendor objective form one canonical request/digest | `WIRED / UNIT TESTED / INTEGRATION TESTED` |
+| Effective objective | Agent focus/priority/penalty are translated into the vendor runtime objective CSV; the worker and vendor summary must echo the effective-objective digest | `INTEGRATION TESTED` with the supplied quick optimizer |
+| Supplied optimizer worker | Agent execution uses a heartbeated supervised JSON subprocess; vendor execution no longer occurs in the Graph/Agent process | `OFFLINE VERIFIED` |
+| Auditable candidate set | The adapter returns every Pareto row with vendor objective/constraint/metric evidence, per-candidate digest, and candidate-set digest | `INTEGRATION TESTED` |
+| Surrogate ranking evidence | Every reranked candidate records canonical surrogate/evaluation/artifact/rank evidence; evidence is persisted in RunStore and reused from receipts/checkpoints | `INTEGRATION TESTED` |
+| HFSS composite request | Formal Production HFSS uses one build→solve→extract composite worker request, bound to the candidate, contract, and Builder attestation | `WIRED / OFFLINE VERIFIED`; real AEDT `NOT RUN` |
+| Builder attestation | Builder source bytes are attested before license acquisition, copied to an attempt snapshot, re-attested, and the worker imports only the snapshot | `UNIT TESTED / INTEGRATION TESTED` |
+| Process lifecycle | Windows workers are assigned to kill-on-close Job Objects before resume, emit heartbeats, and use finite timeout/cancel/termination verification; unexpected residual processes are not reported as known completion | `OFFLINE VERIFIED` with real Windows child processes; real AEDT `NEEDS VERIFICATION` |
+| Lock quarantine | Unverified HFSS descendant cleanup becomes physical `UNKNOWN`, quarantines the license lock, and prevents automatic lock reclaim/retry | `INTEGRATION TESTED` with an injected descendant |
+
+## Phase 4 result
+
+| Capability | Current implementation | Evidence |
+|---|---|---|
+| Closed-loop Policy | One `ClosedLoopPolicy` produces every controller action; the graph has one conditional router and every nonterminal action returns to it | `WIRED / UNIT TESTED / INTEGRATION TESTED` |
+| Queue consumption | Selected candidates are removed from the queue; screen failure and non-PASS HFSS evidence consume the current candidate and select the next | `END-TO-END VERIFIED` with fake providers |
+| Reoptimization | Exhausted queue can rebuild intent/objective from the latest candidate diagnosis and run a new optimizer iteration with new action/candidate identity | `END-TO-END VERIFIED` with fake providers |
+| Retry-safe/reconcile | Confirmed fake-provider failure may clone a new candidate/action identity within retry budget; UNKNOWN routes only to reconciliation and never automatic retry | `UNIT/INTEGRATION TESTED` |
+| Bounded control | Controller iterations, optimizer calls, candidate screenings, candidate HFSS calls, reoptimizations, safe retries, and stagnation are strict typed budgets | `UNIT TESTED / END-TO-END VERIFIED` |
+| Typed finalization | Baseline PASS, candidate PASS, invalid baseline, reconciliation wait, and exhausted search have distinct typed outcomes including `NO_SOLUTION` | `END-TO-END VERIFIED` |
+| Formal topology | Real, Offline, and supplied-Mock formal entries all compose `closed-loop-agent-v2`; older V2-named entries remain compatibility aliases | `WIRED / END-TO-END VERIFIED` offline |
+
+## Phase 5A result
+
+| Capability | Current implementation | Evidence |
+|---|---|---|
+| Readiness Manifest V1 | Strict canonical manifest binds fixed task/run, workflow, creation/expiry, exact Git HEAD, clean tree, Agent source, Goal, RunManifest identity, HFSS/Evaluation contract bytes, all formal provider/source identities, approval, and execution policy | `WIRED / UNIT TESTED / INTEGRATION TESTED` |
+| Pre-composition fail closed | Checked-in default has no manifest. `RUN_REAL_HFSS.py` accepts only an explicitly supplied `HFSS_REAL_READINESS_MANIFEST`; repository drift, expiry, unknown/noncanonical fields, or any causal binding mismatch fails before `compose_pyaedt_hfss`, workspace creation, lock, or worker | `OFFLINE VERIFIED` |
+| Physical solve envelope | `ExecutionPolicy(max_hfss_solve_launches=2, automatic_solve_retries=0)` is immutable RunStore identity. A short `BEGIN IMMEDIATE` admission transaction conservatively counts every new authorized real-HFSS action; the third is rejected while idempotent replay remains cached | `UNIT TESTED / INTEGRATION TESTED`, including concurrent distinct requests |
+| Formal real identity | An actionable real Run now requires exact code revision; Agent/optimizer/surrogate/Builder/PyAEDT/protocol fingerprints; readiness/approval identity; and HFSS/Evaluation contract IDs plus byte digests | `UNIT TESTED / INTEGRATION TESTED`; real execution `NOT RUN` |
+
+## Phase 5B result
+
+| Capability | Current implementation | Evidence |
+|---|---|---|
+| Operator reconciliation | Strict `operation-reconciliation/1.0` binds a short-lived pre-registered approval to exact Run/operation/attempt, conclusion, reason, and canonical evidence | `WIRED / UNIT TESTED / INTEGRATION TESTED` |
+| UNKNOWN resolution | Operator-confirmed success requires a strict recovered result receipt; confirmed failure cannot attach a result. Both are one-time/idempotent, preserve the UNKNOWN attempt evidence, consume no new attempt, refund no budget, and return the Run to ACTIVE only when no unresolved action remains | `INTEGRATION TESTED` |
+| Action/checkpoint chaos | Default-off crash hooks cover claim, provider return, immutable freeze, receipt commit, checkpoint pre-commit, and checkpoint post-commit; save and terminal completion are tested | `OFFLINE VERIFIED` |
+| Resume/corruption compatibility | Receipt-commit crash supports two concurrent cached resumes; terminal commit is idempotent; byte/digest/manifest and semantically invalid State V2 fail closed; incompatible workflow identity is rejected before Run/provider admission | `OFFLINE VERIFIED` |
+| Process/lock reconciliation | Timeout/cancel, injected kill-verification failure, and real Windows parent-death tests are bounded. A quarantined license marker can be archived only after accepted exact evidence attests an empty process tree and binds its bytes/token | `OFFLINE VERIFIED` with ordinary Windows processes; real AEDT `NOT RUN` |
+## Phase 5C result
+
+| Capability | Current implementation | Evidence |
+|---|---|---|
+| Calibration Evidence | `calibration-evidence/1.0` freezes paired cases, policy/report, comparison context, provider fingerprints, source evidence IDs, pass status, and canonical digest | `WIRED / UNIT TESTED` |
+| Real calibration gate | Readiness Manifest V1 must embed passing calibration evidence whose context and provider fingerprints match the requested real Run; RunStore repeats the digest/context/provider checks before registration | `WIRED / INTEGRATION TESTED`; no current real calibration dataset is accepted |
+| Provider-native immutability | Optimizer/HFSS request, response, report, `.aedt`, Touchstone, journal, and selected workspace files are copied after provider completion into content-addressed immutable attempt artifacts and registered in the same `SUCCEEDED` transaction | `OFFLINE VERIFIED` with fake `.aedt`/Touchstone and supplied worker artifacts; real AEDT `NOT RUN` |
+| Replay verification | Cached Tool results verify both the canonical result receipt and every registered supporting native artifact before reuse; freeze/publish uncertainty is `UNKNOWN` | `UNIT TESTED / INTEGRATION TESTED` |
+| Structured trace | Closed-loop Policy writes idempotent `policy_decision` events containing input checkpoint revision/hash, policy version, reason, evidence IDs, action, and next step | `INTEGRATION TESTED` |
+| Final Run Manifest | Every typed terminal path publishes `final-run-manifest/1.0` with terminal outcome, ledger cutoff, decisions, events, artifacts, policy versions, code/run identity, and calibration summary; State references its immutable receipt | `INTEGRATION TESTED / OFFLINE VERIFIED` |
+
+## Phase 5D result
+
+| Capability | Current implementation | Evidence |
+|---|---|---|
+| Production adoption | `RUN_REAL_HFSS.py` builds a Production-bound V2 controller and calls `compose_closed_loop_workflow(..., allow_real_execution=True)` only after readiness validation | `WIRED / OFFLINE VERIFIED`; real AEDT `NOT RUN` |
+| Policy/budget binding | Readiness fingerprints include canonical Production policy digest; RunManifest repeats policy ID/budget; policy budget permits one baseline and one candidate solve while RunStore independently enforces `2/0` | `UNIT TESTED / INTEGRATION TESTED` |
+| Old Graph cleanup | The 18-node one-pass builder and `compose_comparison_workflow` are deleted; shared transactional invoke logic is `workflow_runner.py`; the former test is retained as a disabled historical characterization file | `CODE PRESENT / OFFLINE VERIFIED` by reachability scan and full suite |
+| Checkpoint cleanup | Formal SQLite composition has no legacy path/read hook. V1/V2 file parsing remains explicit and evidence-only; no historical file can authorize continuation | `UNIT TESTED / OFFLINE VERIFIED` |
+| Final readiness review | All current offline tests pass, but current physical calibration is absent, AEDT lifecycle/endpoints are unverified, and the dirty tree cannot match an exact clean-HEAD readiness manifest | `NO-GO FOR PHASE 6` |
+
+## Current blockers and deferred architecture work
+
+| HFSS frequency-grid contract | Shared converter/worker validation requires count, finite monotonic values, and point-by-point linear/log agreement; unverifiable explicit grids fail closed | `UNIT TESTED / INTEGRATION TESTED / OFFLINE VERIFIED`; real AEDT `NOT RUN` |
+- **ISSUE-005 — RESOLVED OFFLINE:** `OptimizationObjective` now changes the canonical `OptimizerRequest` and the vendor runtime objective CSV; the supplied worker returns and verifies the effective-objective digest.
+- **ISSUE-009 — PARTIALLY RESOLVED:** calibration evidence and the real-run gate are wired, but no accepted current-revision paired dataset exists; the historical ranking reversal remains failing evidence.
+- **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
+- **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
+- **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
+- **ISSUE-028 — PARTIALLY RESOLVED:** formal real registration now rejects missing Agent/PyAEDT/provider/source/revision/contract identities. General non-real/programmatic manifests still permit intentionally sparse fingerprints, so the domain-wide issue is not closed.
+- **ISSUE-029 — RESOLVED OFFLINE:** the queue/diagnosis feedback loop is now the sole formal Production topology; real physical behavior remains `NOT RUN`.
+- Phase 5D migration cleanup and Production adoption are complete at `OFFLINE VERIFIED`; accepted current calibration evidence, blocker acceptance/closure, a clean committed revision, and Canary evidence remain later work.
 
 ## Current validation level
 
-- Environment preflight: `PASS` on 2026-08-20; this does not verify license availability.
-- Package import provenance: `PASS`; the project `.venv` editable install, ordinary import, and module CLI resolve to `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode\src` (ISSUE-023 resolved).
-- ISSUE-001 direct presenter regression: `PASS`; full terminal presenter file: 8 passed.
-- ISSUE-002 targeted regression: `PASS` — 40 passed across the new contract plus existing evaluator/diagnosis/intent/state coverage.
-- ISSUE-003 targeted Production-contract/Graph file: `PASS` — 12 passed; the direct new regression passes independently (1 passed).
-- Comparison evaluator/components: `PASS` — 15 passed; five deprecated Mock graph/checkpoint/resume tests remain `FAIL` under ISSUE-008.
-- Main test suite: `FAIL` — 107 collected, 101 passed, 6 failed. The same one WF-002 CLI and five stale Mock graph/checkpoint/resume failures remain; no new failure was introduced.
-- Supplied optimizer tests: `PASS` — 7 passed.
-- Standalone supplied Builder test under Agent Python: `FAIL` during collection because `ansys` is not installed in that interpreter.
-- WF-001 test-only Production-band Graph: completes through comparison, candidate diagnosis, Best update, decision, and `complete`; comparison is `FULLY_ACHIEVED`, while Best remains baseline and exposes ISSUE-004.
-- Current-source WF-002 Offline Agent: still uses its deprecated 1/2/3 GHz Mock/empty-rule configuration and completes INVALID; it was deliberately not adapted to the Production contract.
-- Package CLI environment: `WIRED / INTEGRATION TESTED`; direct `.venv` module invocation imports the current repository. Its exposed command remains the deprecated WF-002 empty-rule path and is not WF-001 evidence.
-- Supplied optimizer + MockHFSS workflow: `BROKEN` by the same current graph path; not rerun separately after deterministic test proof.
-- Current real Full Workflow: `NOT RUN` and must not be run.
-
-Capability-local integration, workflow reachability, full Offline results, and full E2E results are tracked independently in `docs/VALIDATION_MATRIX.md`. A downstream workflow failure does not erase successful upstream capability-local evidence.
+- Pre-cleanup characterization: `PASS` — 62 passed in 40.42 s.
+- **ISSUE-019 — RESOLVED OFFLINE:** all formal HFSS results must match the declared point count and complete linear/log grid before evaluation; actual AEDT output remains `NOT RUN`.
+- Production policy/readiness/formal V2 focused set: `PASS` — 29 passed.
+- CLI and supplied-Mock V2 focused set: `PASS` — 2 passed in 23.07 s.
+- Migrated Phase 5B chaos + Production contract + V2 loop: `PASS` — 40 tests collected; all passed after the version-fixture correction.
+- Final full main suite: `PASS` — 203 passed in 50.69 s, explicit exit code 0. The count decreased because 16 obsolete one-pass characterization tests are preserved but disabled, not because current V2 tests were skipped.
+- Final post-reliability/post-documentation full suite: `PASS` — 205 passed in 53.33 s, explicit exit code 0; the two added tests are V2 completed no-op and concurrent single-physical-workflow proof.
+- Python syntax compilation for changed modules: `PASS`.
+- Real HFSS/AEDT/ADS: `NOT RUN`.
+- Current-tree real HFSS E2E: `NOT RUN`.
+- ISSUE-019 focused contract/adapter suite: `PASS` — 33 passed in 0.67 s; final full offline suite: `PASS` — 213 passed in 45.71 s.
+- Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
 
-The run `runs/real-vscode-20260818-101711` contains successful baseline and candidate journals plus two `.s2p` exports. It proves that an earlier filesystem state completed both real solves and extraction.
+**NOT READY — REAL HFSS FULL WORKFLOW MUST NOT BE RUN.**
 
-That run is only `HISTORICALLY VERIFIED`:
+The checked-in code-level default remains fail-closed and contains no readiness manifest. A future Canary must be supplied through a short-lived external manifest and still requires every agreed offline gate, explicit acceptance or closure of remaining real-run blockers, and separate user authorization. The current dirty working tree itself fails the clean/exact-HEAD gate. No AEDT launch, project build, solve, extraction, ADS call, license acquisition, or real HFSS worker start occurred.
 
-- its task metadata contains no Git commit;
-- the new Git history begins at the later `52dc0de` reconstructed baseline and cannot retroactively identify the source state used by the historical run;
-- core graph, node, evaluator, diagnosis, intent, and terminal files were modified on 2026-08-19, after the successful run;
-- therefore current-working-tree equivalence cannot be proven.
+## Next phase boundary
 
-The current vendor optimizer source/config hashes do match the hashes stored in that historical optimizer result, but that does not establish equivalence of the Agent graph or Builder.
-
-## Current real-run readiness
-
-**NOT READY**
-
-Marker: **REAL HFSS FULL WORKFLOW SHOULD NOT BE RUN**.
-
-ISSUE-001, ISSUE-002, and ISSUE-003 are repaired. WF-001 has an explicit Production Evaluation Contract and the safe current-tree route completes comparison, but it now directly proves the ISSUE-004 Best-update causal disconnect. ISSUE-004 and additional semantic disconnects remain, so a real run is still prohibited.
-
-## Current development focus and next phase
-
-The active development area is the integration of rule evaluation → diagnosis → optimization intent/objective → candidate comparison into the existing baseline/candidate workflow. The next phase should begin from the open Blockers in `docs/ISSUE_REGISTER.md`, not from new HFSS runs or new features.
-
-## Documentation drift
-
-The previous README/architecture text describes a complete runnable demo and says full real solve validation was still pending. Current evidence is the opposite combination: one historical real E2E exists, while the later current working tree is broken. The memory documents created on 2026-08-20 supersede those status claims; they do not alter business code.
+Phase 5D is `IMPLEMENTED / OFFLINE VERIFIED`, not committed. WF-001 now uses Closed-loop V2 but is still `NOT READY / NOT RUN`. The next possible phase is Phase 6 only after a clean committed exact revision, accepted current-revision paired calibration evidence, explicit closure/acceptance of remaining real blockers, a short-lived exact readiness manifest, and separate user authorization. Real HFSS remains prohibited until then.

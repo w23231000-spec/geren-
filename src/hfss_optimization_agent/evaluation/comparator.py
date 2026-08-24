@@ -30,6 +30,14 @@ class EvaluationComparator:
         elif improved: classification="IMPROVED"
         elif degraded or new: classification="DEGRADED"
         else: classification="NO_MEANINGFUL_CHANGE"
+        promotion_eligible = classification in {"FULLY_ACHIEVED", "IMPROVED"}
+        promotion_reason = (
+            "Candidate satisfies all hard rules."
+            if classification == "FULLY_ACHIEVED"
+            else "Candidate improves rule margins without degradation."
+            if classification == "IMPROVED"
+            else "Candidate is not eligible for automatic Best promotion."
+        )
         lower_delta = candidate.frequency_margin.get("lower_frequency_margin", 0.0) - baseline.frequency_margin.get("lower_frequency_margin", 0.0)
         upper_delta = candidate.frequency_margin.get("upper_frequency_margin", 0.0) - baseline.frequency_margin.get("upper_frequency_margin", 0.0)
         return EvaluationComparison(
@@ -38,6 +46,7 @@ class EvaluationComparator:
             None, lower_delta, upper_delta, baseline.frequency_margin,
             candidate.frequency_margin,
             {"lower_frequency_margin_delta": lower_delta, "upper_frequency_margin_delta": upper_delta},
+            promotion_eligible, promotion_reason,
         )
 
     @staticmethod

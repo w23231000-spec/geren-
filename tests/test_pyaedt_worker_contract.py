@@ -4,13 +4,35 @@ from pathlib import Path
 
 import pytest
 
+from hfss_optimization_agent.agent.closed_loop_contracts import production_policy_sha256
 from hfss_optimization_agent.cli import _contract_frequency_grid, run_real_supplied_demo
-from hfss_optimization_agent.hfss.contracts import load_hfss_contract
+from hfss_optimization_agent.harness.errors import HFSSContractError
+from hfss_optimization_agent.hfss.contracts import (
+    SweepContract,
+    load_hfss_contract,
+    validate_sweep_frequency_grid,
+)
 from hfss_optimization_agent.hfss.pyaedt_composition import compose_pyaedt_hfss
 from hfss_optimization_agent.hfss.pyaedt_worker import (
     _candidate_values,
     _frequency_multiplier,
     _logical_expressions,
+)
+from hfss_optimization_agent.domain.contracts import (
+    CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+    CalibrationEvidence,
+    FrozenMap,
+)
+from hfss_optimization_agent.harness.execution_policy import ExecutionPolicy
+from hfss_optimization_agent.harness.real_hfss_safety import (
+    HFSS_WORKER_PROTOCOL,
+    READINESS_SCHEMA_VERSION,
+    REAL_HFSS_APPROVAL_SCOPE,
+    REAL_HFSS_WORKFLOW_ID,
+    RealHFSSAuthorization,
+    RealHFSSReadinessManifestV1,
+    RealHFSSSafetyError,
+    RepositoryEvidence,
 )
 
 
@@ -54,6 +76,35 @@ def test_surrogate_comparison_grid_exactly_matches_hfss_contract():
     assert grid[1] - grid[0] == pytest.approx(0.1e9)
 
 
+def test_hfss_frequency_grid_accepts_exact_declared_linear_grid():
+    contract = load_hfss_contract(CONTRACT_PATH)
+    grid = _contract_frequency_grid(contract)
+    assert validate_sweep_frequency_grid(grid, contract.sweep) == tuple(grid)
+
+
+@pytest.mark.parametrize(
+    ("grid", "message"),
+    [
+        ([1e9, 1.5e9], "frequency points"),
+        ([1e9 + 10.0, 1.5e9, 2e9], "index 0"),
+        ([1e9, 1.5e9 + 10.0, 2e9], "index 1"),
+        ([1e9, 1.5e9, 2e9 - 10.0], "index 2"),
+        ([1.0, 1.5, 2.0], "index 0"),
+    ],
+)
+def test_hfss_frequency_grid_rejects_count_endpoint_interior_and_unit_drift(grid, message):
+    with pytest.raises(HFSSContractError, match=message):
+        validate_sweep_frequency_grid(grid, SweepContract("Sweep", 1e9, 2e9, 3))
+
+
+def test_explicit_grid_fails_closed_until_contract_declares_intermediate_points():
+    with pytest.raises(HFSSContractError, match="Explicit sweep spacing cannot be verified"):
+        validate_sweep_frequency_grid(
+            [1e9, 1.5e9, 2e9],
+            SweepContract("Sweep", 1e9, 2e9, 3, spacing="explicit"),
+        )
+
+
 def test_candidate_requires_exact_nine_parameter_contract():
     contract = contract_dict()
     values = {name: 1e-4 for name in contract["parameter_mapping"]}
@@ -89,3 +140,93 @@ def test_real_workflow_requires_explicit_execution_acknowledgement(tmp_path):
             contract_path=CONTRACT_PATH,
             execute_real_hfss=False,
         )
+
+
+def test_real_workflow_requires_validated_readiness_authorization(tmp_path):
+    with pytest.raises(ValueError, match="readiness authorization"):
+        run_real_supplied_demo(
+            optimizer_source_root=tmp_path,
+            builder_source_root=tmp_path,
+            pyaedt_python=Path(__import__("sys").executable),
+            contract_path=CONTRACT_PATH,
+            execute_real_hfss=True,
+        )
+
+
+def test_readiness_drift_fails_before_real_worker_composition(monkeypatch, tmp_path):
+    composed = 0
+
+    def forbidden_composition(**_kwargs):
+        nonlocal composed
+        composed += 1
+        raise AssertionError("worker composition must remain unreachable")
+
+    monkeypatch.setattr(
+        "hfss_optimization_agent.cli.compose_pyaedt_hfss", forbidden_composition
+    )
+    source = "1" * 64
+    authorization = RealHFSSAuthorization(
+        RealHFSSReadinessManifestV1(
+            schema_version=READINESS_SCHEMA_VERSION,
+            readiness_id="drift-test",
+            task_id="drift-test",
+            run_id="run:drift-test",
+            workflow_id=REAL_HFSS_WORKFLOW_ID,
+            created_at="2026-08-21T00:00:00+00:00",
+            expires_at="2099-08-21T00:00:00+00:00",
+            git_head="0" * 40,
+            agent_source_sha256=source,
+            run_manifest_sha256="2" * 64,
+            design_goal_sha256="3" * 64,
+            hfss_contract_sha256="4" * 64,
+            evaluation_contract_sha256="5" * 64,
+            provider_fingerprints=FrozenMap.from_mapping(
+                {
+                    "agent_source_sha256": source,
+                    "supplied_optimizer_source_sha256": "6" * 64,
+                    "supplied_surrogate_source_sha256": "7" * 64,
+                    "hfss_builder_source_sha256": "8" * 64,
+                    "pyaedt_executable_sha256": "9" * 64,
+                    "hfss_worker_protocol": HFSS_WORKER_PROTOCOL,
+                    "closed_loop_policy_sha256": production_policy_sha256(),
+                }
+            ),
+            approval_id="drift-approval",
+            approval_scope=REAL_HFSS_APPROVAL_SCOPE,
+            execution_policy=ExecutionPolicy(2, 0),
+            calibration_evidence=CalibrationEvidence(
+                schema_version=CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+                evidence_id="calibration:drift-test",
+                created_at="2026-08-20T00:00:00+00:00",
+                policy_version="paired-surrogate-hfss/1.0",
+                comparison_context_id="pa-multi-2025.1:interposer_temple4:ports-4-3",
+                passed=True,
+                case_ids=("cal-a",),
+                provider_fingerprints=FrozenMap.from_mapping(
+                    {"supplied_surrogate_source_sha256": "7" * 64}
+                ),
+                policy=FrozenMap.from_mapping({"max_complex_rmse": 0.02}),
+                report=FrozenMap.from_mapping(
+                    {
+                        "passed": True,
+                        "comparison_context_id": "pa-multi-2025.1:interposer_temple4:ports-4-3",
+                        "cases": [{"case_id": "cal-a"}],
+                    }
+                ),
+            ),
+        ),
+        RepositoryEvidence("0" * 40, source, True),
+    )
+    with pytest.raises(RealHFSSSafetyError, match="run_manifest_sha256"):
+        run_real_supplied_demo(
+            optimizer_source_root=ROOT / "vendor" / "optimizer",
+            builder_source_root=ROOT / "vendor" / "hfss_builder",
+            pyaedt_python=Path(__import__("sys").executable),
+            contract_path=CONTRACT_PATH,
+            evaluation_contract_path=ROOT / "config" / "evaluation_contract.production_v1.json",
+            artifact_root=tmp_path,
+            execute_real_hfss=True,
+            readiness_authorization=authorization,
+        )
+    assert composed == 0
+    assert not (tmp_path / "drift-test").exists()

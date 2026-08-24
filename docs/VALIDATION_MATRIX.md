@@ -21,25 +21,55 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | S-parameter rule evaluation | PASS | PASS | PASS | PASS | WF-001 loads six Production v1 rules; independent hard failures, soft failures, worst evidence, and aggregate status pass targeted tests |
 | Baseline diagnosis | PASS | PASS | PASS | PASS | Production-direction S11/S21 hard failures retain neutral issue identities and signed evidence |
 | Optimization Intent | PASS | PASS | PASS | PASS | Both Production hard-rule failure types produce ACTIVE CORE_RECOVERY intent |
-| Optimization Objective | PASS | PASS | PASS | PASS | Safe WF-001 node/Graph routes produce ACTIVE objective; supplied optimizer behavioral control remains separate ISSUE-005 |
-| Supplied surrogate provider | PASS | PASS | NEEDS VERIFICATION | PASS | Formal supplied routes call it before optimizer blockers; current Agent-boundary execution was not isolated |
-| Supplied optimizer provider integration / adapter wiring | PASS | PASS | NEEDS VERIFICATION | PASS | Provider call is now upstream of the exposed ISSUE-003; vendor tests pass, but the supplied adapter was not executed in this repair |
-| Diagnosis/OptimizationObjective control of supplied optimizer behavior | FAIL | NOT AVAILABLE | FAIL | FAIL | ISSUE-005 causal disconnect: objective is metadata-only after vendor execution |
-| Candidate ranking | PASS | PASS | NEEDS VERIFICATION | PASS | Safe Production-band route executes deterministic ranking; supplied adapter still returns one candidate |
+| Optimization Objective | PASS | PASS | PASS | PASS | Goal/diagnosis/objective form a canonical OptimizerRequest and request-specific vendor runtime objective |
+| Supplied surrogate provider | PASS | PASS | PASS | PASS | Graph reranking persists canonical surrogate/evaluation/receipt/rank evidence for every candidate |
+| Supplied optimizer provider integration / adapter wiring | PASS | PASS | PASS | PASS | Actual vendor quick optimizer executes through the independent supervised JSON worker |
+| Diagnosis/OptimizationObjective control of supplied optimizer behavior | PASS | PASS | PASS | PASS | Goal and diagnosis perturbations change OptimizerRequest; worker/vendor summary echo the effective-objective digest |
+| Candidate ranking | PASS | PASS | PASS | PASS | Full Pareto set is returned with evidence; ranking evidence/digest is persisted and unchanged on completed replay |
+| Closed-loop sole Policy/router | PASS | PASS | PASS | PASS | WF-015/016 have one conditional router; every nonterminal action returns to typed Policy decision |
+| Candidate queue consumption | PASS | PASS | PASS | PASS | Screen-failed and valid non-PASS candidates are consumed; the next queued candidate is selected |
+| Candidate-diagnosis reoptimization | PASS | PASS | PASS | PASS | Queue exhaustion rebuilds intent/objective from candidate diagnosis and changes optimizer iteration/action identity |
+| Retry-safe/reconcile routes | PASS | PASS | PASS | PASS | Confirmed fake failure gets new candidate/action identity within budget; UNKNOWN selects reconcile only |
+| Controller/Tool/stagnation budgets | PASS | PASS | PASS | PASS | Controller, optimizer, screen, fake-HFSS, reoptimization, retry, and stagnation bounds are enforced |
+| Typed NO_SOLUTION finalization | PASS | PASS | PASS | PASS | Exhausted bounded search is distinct from rejected/failed/success and has exit code 6 |
+| Closed-loop Production admission | PASS | PASS | PASS | PASS | Flag defaults off; Offline rejects real manifests; only exact readiness-bound Production composition may enable real V2 before provider construction |
 | Candidate parameter validation | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches candidate validation |
 | Candidate surrogate gate | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches and passes the candidate gate |
 | Candidate HFSS orchestration | PASS | PASS | PASS | PASS | Safe Production-band Graph probe reaches candidate HFSS without AEDT |
 | Baseline/candidate comparison | PASS | PASS | PASS | PASS | Existing presenter contract is imported; dedicated regression and safe Graph complete `FULLY_ACHIEVED` comparison |
 | Candidate diagnosis | PASS | PASS | PASS | PASS | Safe rule-configured Graph reaches candidate diagnosis after comparison |
-| Best update | PASS | STALE | FAIL | PASS | Route reaches Best update, but ISSUE-004 retains baseline despite `FULLY_ACHIEVED` comparison |
+| Best update | PASS | PASS | PASS | PASS | `BestPolicy` seeds from baseline Evaluation evidence and promotes only through a matching eligible `ComparisonRecord` |
+| Authoritative terminal outcome/exit code | PASS | PASS | PASS | PASS | Baseline/candidate success, NO_SOLUTION, rejected, invalid, failed, cancelled, waiting, and historical completed mappings are explicitly tested |
+| Real-entry fail-closed interlock | PASS | PASS | PASS | PASS | Checked-in config has no manifest; boolean-only, missing/noncanonical/expired/drifted readiness fails before worker composition/workspace creation |
+| Readiness causal identity | PASS | PASS | PASS | PASS | Exact Git HEAD/clean tree, Agent/optimizer/surrogate/Builder/PyAEDT/protocol, Goal, RunManifest, contracts, passing Calibration Evidence, task/run, expiry, approval, and policy bindings pass strict regressions |
+| Real HFSS solve-launch ceiling | PASS | PASS | PASS | PASS | Concurrent distinct approved actions admit at most two; ordinal 3 is rejected transactionally, cached replay consumes no new launch, automatic retries are fixed at zero |
+| SQLite RunStore schema/lifecycle | PASS | PASS | PASS | PASS | Run/operation/attempt/reservation/artifact/event/checkpoint identities and lifecycle transitions pass file-backed SQLite tests |
+| Action receipt crash recovery | PASS | PASS | PASS | PASS | Provider success is durable before Graph checkpoint; injected checkpoint crash resumes without repeating baseline HFSS callback |
+| Action idempotency/concurrency | PASS | PASS | PASS | PASS | Same concurrent request and same semantic request with different caller keys create one operation/attempt/physical callback |
+| Atomic budget reservation | PASS | PASS | PASS | PASS | Simultaneous distinct cost-6 requests under budget 10 admit one; crash/UNKNOWN retains reservation and never exceeds limit |
+| Approval authority | PASS | PASS | PASS | PASS | Missing scope/grant, expired/revoked grant, real-manifest mismatch, unknown kind, and caller cost spoof are rejected before attempt/provider |
+| UNKNOWN/no-auto-retry policy | PASS | PASS | PASS | PASS | Callback ambiguity, stale lease, invalid fresh decode, and structured real HFSS failure persist UNKNOWN/waiting and never auto-retry |
+| Operator reconciliation | PASS | PASS | PASS | PASS | Short-lived pre-registered exact authority resolves one UNKNOWN as evidence-backed success/failure; no attempt/retry/refund; conflicts, expiry, revocation, wrong identity, and replay are tested |
+| Action/checkpoint chaos matrix | PASS | PASS | PASS | PASS | Claim/provider/freeze/receipt and checkpoint pre/post commit crashes, including terminal completion and two resumes, have deterministic conservative outcomes |
+| Checkpoint/Graph compatibility | PASS | PASS | PASS | PASS | Noncanonical bytes, digest/manifest drift, schema-invalid State V2, and wrong workflow identity fail before provider continuation |
+| Run invocation fencing | PASS | PASS | PASS | PASS | Concurrent full V2 invocations have one physical workflow; action admission/checkpoint uses fence and follower returns the same terminal State |
+| Event ledger / structured decision trace | PASS | PASS | PASS | PASS | Lifecycle events are sequenced and append-only; idempotent Policy events bind input revision/hash, evidence, policy, reason, action, and next step |
 | HFSS contract/port/complex conversion | PASS | PASS | PASS | PASS | Fake worker/backend integration passes and baseline HFSS route contains the boundary |
 | Target-only Builder | PASS | PASS | PASS | PASS | Stubbed Builder integration passes; real current-tree execution remains NOT RUN |
 | Standalone Builder test harness | PASS | FAIL | NOT RUN | NOT AVAILABLE | Collection fails in Agent Python because `ansys` is absent |
-| Worker process isolation/timeout | PASS | PASS | PASS | PASS | Child-process fake exercises the boundary; real current-tree execution remains NOT RUN |
-| Artifact store | PASS | PASS | PASS | PASS | Upstream artifacts are written before the downstream failure |
-| Checkpoint serialization | PASS | PASS | PASS | PASS | Serialization is locally proven and checkpoints are reached before the failure |
-| Resume/reuse | PASS | PASS | NEEDS VERIFICATION | PASS | Local serialization/reuse evidence passes; five stale Mock graph tests still do not isolate current WF-001 resume semantics |
-| Calibration API | PASS | PASS | NOT AVAILABLE | FAIL | API is not connected to any formal workflow |
+| Builder attestation/drift boundary | PASS | PASS | PASS | PASS | Builder drift and wrong snapshot digest fail before license-lock acquisition; worker imports only the attested snapshot |
+| HFSS composite request | PASS | PASS | PASS | PASS | One attested build→solve→extract request/response is digest-bound in fake-backend integration; real AEDT NOT RUN |
+| Windows worker process isolation/timeout/cancel/parent death | PASS | PASS | PASS | PASS | Real Windows parent+descendant tests prove bounded timeout/cancel/parent-death cleanup and zero residual test PIDs; real AEDT NEEDS VERIFICATION |
+| Residual-process UNKNOWN/lock quarantine | PASS | PASS | PASS | PASS | Injected kill-verification/unverified descendant becomes UNKNOWN; quarantine release requires accepted empty-process evidence bound to exact marker bytes/token and archives audit evidence |
+| Artifact store | PASS | PASS | PASS | PASS | Canonical JSON and provider-native file publish/replay pass containment, concurrency, mutable-source, tamper, and receipt verification; supporting artifacts commit with the Tool result |
+| Final Run Manifest | PASS | PASS | PASS | PASS | Typed terminal paths emit a strict immutable manifest with ledger cutoff, decisions/events/artifacts, policy versions, terminal outcome, Run identity, and calibration summary |
+| Domain/State V2 contract | PASS | PASS | PASS | PASS | Exact fields, run/context/candidate bindings, evidence references, alias rejection, and illicit Best update regressions pass |
+| Canonical JSON/checkpoint V2 | PASS | PASS | PASS | PASS | Semantic round-trip and Path/NaN/alias/unknown/duplicate-key rejection pass; nested evaluation tuple semantics are restored |
+| V1/V2 historical checkpoint boundary | PASS | PASS | PASS | PASS | Explicit reader classifies completed/interrupted V1 evidence and preserves source; formal SQLite composition has no legacy path/probe and cannot resume file checkpoints |
+| SQLite checkpoint CAS | PASS | PASS | PASS | PASS | Revision/fence/manifest CAS, historical-digest replay rejection, terminal no-op, and Windows connection-close regressions pass |
+| Resume/reuse | PASS | PASS | PASS | PASS | Receipt replay, evidence-bound UNKNOWN resolution, double resume, waiting recovery, and completed strict no-op pass; saved-node continuation remains absent under ISSUE-013 |
+| Calibration Evidence / real gate | PASS | PASS | PASS | PASS | Strict paired evidence is wired into readiness and RunStore admission; current real paired evidence remains absent and real execution is NOT RUN |
+| HFSS returned frequency-grid contract | PASS | PASS | PASS | PASS | Count, finite/monotonic values, endpoints, every linear/log point, unit drift, explicit fail-closed, and adapter pre-acceptance failure pass offline; real AEDT is NOT RUN |
 | Environment preflight | PASS | NOT AVAILABLE | PASS | PASS | Current preflight result is PASS; it does not launch AEDT or prove a license |
 | Package editable import provenance | PASS | PASS | PASS | PASS | Project `.venv`, ordinary import, and module CLI resolve to the current repository `src` |
 
@@ -47,18 +77,155 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-002/003 resolved; ISSUE-004 is current first blocker and is exposed by a safe test-only Graph probe |
-| WF-002 deterministic Offline | FAIL | NOT AVAILABLE | FAIL | Deprecated Mock path remains empty-rule/1–3 GHz and was deliberately not adapted to the Production contract |
-| WF-003 supplied optimizer + MockHFSS | NOT RUN | NOT AVAILABLE | NOT RUN | Deprecated Mock path was not adapted or rerun; Production Contract v1 is WF-001-only |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: entry is intentionally blocked and current tree is dirty; accepted current calibration evidence is absent; ISSUE-010/012/013 remain open and ISSUE-015/026 retain real-AEDT residuals; ISSUE-028 remains partial domain-wide; ISSUE-019 is resolved offline only |
+| WF-002 deterministic Offline | PASS | NOT AVAILABLE | PASS | Test-backed full route uses explicit Offline Contract v1, promotes candidate, and emits typed success |
+| WF-003 supplied optimizer + MockHFSS | PASS | NOT AVAILABLE | PASS | Formal entry delegates to supplied-Tools Closed-loop V2; actual supervised optimizer worker + MockHFSS reaches typed END |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
+| WF-015 deterministic Closed-loop Agent | PASS | NOT AVAILABLE | PASS | END-TO-END VERIFIED with fake surrogate/optimizer/HFSS; bounded typed success/NO_SOLUTION routes |
+| WF-016 supplied + MockHFSS Closed-loop Agent | PASS | NOT AVAILABLE | PASS | END-TO-END VERIFIED with actual supervised supplied optimizer worker and MockHFSS |
 
 Interpretation:
 
-- Upstream capability-local `PASS` rows remain `PASS` even though WF-002 terminates with `FAIL` downstream.
-- `Workflow reachability FAIL` on downstream rows records masking/blocking, not a failure of their unit tests.
+- Upstream capability-local `PASS` does not imply Production readiness or real-HFSS verification.
+- WF-002 `PASS` is deterministic Mock evidence only; it is not a physical-performance claim.
 - WF-001 has readiness `FAIL`, but its actual current real-HFSS and E2E results are `NOT RUN`; readiness is not substituted for an execution result.
 
 ## Executed validation commands
+### ISSUE-019 HFSS returned-grid contract
+
+- **Date:** 2026-08-24.
+- **Focused command:** `.venvScriptspython.exe -m pytest -q tests/test_hfss_guarded_adapter.py tests/test_pyaedt_worker_contract.py tests/test_hfss_worker_backend.py` — `PASS`, 33 passed in 0.67 s.
+- **Related safety/Closed-loop/chaos selection:** Production safety, process safety, Phase 4, and all Phase 5B suites passed.
+- **Final full main suite:** `.venvScriptspython.exe -m pytest -q` — `PASS`, 213 passed in 45.71 s, explicit exit code 0.
+- **Proven:** the shared rule rejects count, start, stop, intermediate, unit, and unverifiable explicit-grid drift; the Guarded Adapter returns structured failure before acceptance; exact Production linear grids pass.
+- **Evidence boundary:** fake/contract data only. No HFSS/AEDT/ADS process, solve, extraction, license action, or Canary ran.
+
+
+### Phase 5D Closed-loop V2 Production convergence and cleanup
+
+- **Date:** 2026-08-24.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; all Phase 0-5C work was unstaged/uncommitted and preserved; no staged files or commit were created.
+- **Pre-change characterization:** `tests/test_phase4_closed_loop.py tests/test_real_hfss_safety.py tests/test_production_evaluation_contract.py tests/test_run_store.py tests/test_cli.py` — `PASS`, 62 passed in 40.42 s.
+- **Production binding focus:** readiness/PyAEDT-contract/formal-V2/policy tests — `PASS`, 29 passed. CLI + supplied-Mock V2 focus — `PASS`, 2 passed in 23.07 s.
+- **Migration focus:** migrated Phase 5B chaos, Production evaluation contract, and Closed-loop V2 tests — all passed after correcting the future-workflow fixture to exclude a V2-only controller.
+- **V2 reliability replacement:** completed V2 reinvocation returns identical State with zero provider calls; two concurrent V2 compositions/invocations return the same terminal State and execute one physical workflow. The test exposed a concurrent SQLite WAL-initialization lock; bounded retry was added and the focused set passed, 3 passed in 1.65 s.
+- **Reachability cleanup:** source/formal-entry scan contains no `compose_comparison_workflow`, `build_comparison_graph`, `legacy_json_path`, or `read_legacy`. The only old-root text is the preserved `.disabled` historical characterization.
+- **Full main suite before the two added V2 reliability tests:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 203 passed in 50.69 s, explicit exit code 0.
+- **Final full main suite:** same command after V2 reliability and documentation synchronization — `PASS`, 205 passed in 53.33 s, explicit exit code 0.
+- **Final hygiene:** changed source/tests/all formal entries compile; `runtime_config.json` parses; all eight project-memory Markdown files decode as strict UTF-8; `git diff --check` exits 0 with expected LF/CRLF notices only; old-symbol reachability scan returns no current matches; staged diff is empty.
+- **Evidence boundary:** all tests use deterministic/supplied Mock/fake backends or ordinary Windows processes. No HFSS/AEDT/ADS process, project, solve, license action, or Canary ran. Current calibration/AEDT blockers and dirty-tree exact-HEAD failure make Phase 6 `NO-GO`.
+
+### Phase 5B reconciliation and chaos
+
+- **Date:** 2026-08-24.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; authorized Phase 0–5A/5C changes were unstaged/uncommitted and preserved. No staged files and no commit were created.
+- **Pre-change characterization:** `tests/test_run_store.py tests/test_checkpoint_v2.py tests/test_phase3_process_safety.py tests/test_phase4_closed_loop.py` — `PASS` before implementation.
+- **New Phase 5B suite:** `tests/test_phase5b_reconciliation.py tests/test_phase5b_chaos.py tests/test_phase5b_checkpoint_chaos.py tests/test_phase5b_process_lock_chaos.py` — `PASS`, 20 passed in 1.56 s.
+- **Related regression groups:** reconciliation + RunStore — `PASS`, 24 passed in 1.09 s; semantic/terminal checkpoint + Graph — `PASS`, 30 passed in 5.67 s; process/lock + Phase 3 safety + all initial chaos — `PASS`, 21 passed in 1.71 s.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 215 passed in 38.95 s, explicit exit code 0.
+- **Final post-documentation rerun:** same full command - `PASS`, 215 passed in 55.63 s, explicit exit code 0.
+- **Supplied optimizer vendor suite:** first run produced 6 PASS + one pytest system-temp setup `PermissionError` before the affected test. Rerun with exact project-local `--basetemp` — `PASS`, 7 passed in 5.40 s, explicit exit code 0; the temporary directory was verified under the workspace and removed.
+- **Compilation/diff hygiene:** Phase 5B source/test `compileall` passed. Black/Ruff are not installed and therefore were `NOT AVAILABLE`, not silently claimed. Final `git diff --check` is recorded after documentation synchronization.
+- **Final handoff hygiene:** source/test/all-entry `compileall` - `PASS`; runtime JSON parsed with `real_hfss_enabled=false` and no readiness manifest; `git diff --check` - `PASS` with expected Windows line-ending notices only; staged diff empty.
+- **Proven:** strict reconciliation round-trip and authority; success/failure/conflict/expiry/revocation/wrong identity/idempotency; no new attempt/budget refund/provider retry; all six action/checkpoint crash points including terminal completion; two resume; byte/digest/manifest/State-schema corruption; Graph identity pre-admission rejection; bounded kill-verification UNKNOWN; real Windows parent-death cleanup; exact evidence-bound quarantine archive/replay.
+- **Evidence boundary:** all actions are Mock/ordinary child processes. Real AEDT, real license behavior, and real HFSS remain `NOT RUN`; saved-node continuation remains absent. Phase 5D subsequently removed old Graph/manual-resume paths.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+### Phase 5C calibration, native artifacts, trace and final manifest
+
+- **Date:** 2026-08-22.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; authorized Phase 0–5A changes were unstaged/uncommitted and preserved. No staged files and no commit were created.
+- **Calibration/readiness target:** `.venv\Scripts\python.exe -m pytest -q tests/test_real_hfss_safety.py tests/test_pyaedt_worker_contract.py tests/test_production_evaluation_contract.py tests/test_calibration.py` — `PASS`, 42 passed in 1.10 s.
+- **RunStore/native target:** `.venv\Scripts\python.exe -m pytest -q tests/test_run_store.py` — `PASS`, 19 passed in 0.89 s.
+- **Graph/final-manifest targets:** `tests/test_phase4_closed_loop.py` — `PASS`, 19 passed in 25.83 s; focused final-manifest scenarios — `PASS`, 2 passed in 1.03 s; retained/closed-loop combined route passed in subsequent full-suite coverage.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — final rerun `PASS`, 195 passed in 40.89 s. The immediately preceding run reported 194 PASS and one `child.pid`-not-yet-created fixture failure in the early-cancel Windows test; its isolated rerun passed in 0.20 s before the clean full rerun.
+- **Supplied optimizer vendor suite:** `.venv\Scripts\python.exe -m pytest -q vendor\optimizer\tests` — `PASS`, 7 passed in 4.67 s.
+- **Compilation/config/diff hygiene:** `compileall -q src tests` plus formal entry scripts, runtime JSON parse, and `git diff --check` — `PASS`; only expected Windows LF→CRLF notices were emitted.
+- **Proven:** strict calibration evidence round-trip/drift rejection; failing/context/provider/digest-drifted evidence cannot authorize a real Run; provider-native files are content-addressed, atomically registered with action completion, verified on cached replay, and preserve old bytes after source mutation; concurrent identical Touchstone publication is safe; Policy decisions expose state revision/hash, evidence, policy, reason, and next step; terminal State references a strict final manifest with a declared pre-self ledger cutoff.
+- **Evidence boundary:** provider-native freezing is `OFFLINE VERIFIED` with fake `.aedt`/Touchstone and actual supplied optimizer worker files. Real `.aedt` readability, a passing current paired calibration dataset, real AEDT lifecycle, and Canary results are `NOT RUN`.
+- **Phase boundary at 5C completion:** Phase 5B was still pending at that checkpoint; Phases 5B and 5D were subsequently completed offline on 2026-08-24. Phase 6 was not authorized.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+
+### Phase 5A readiness and physical execution envelope
+
+- **Date:** 2026-08-21.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; authorized Phase 0–4 changes were unstaged/uncommitted and preserved. No staged files and no commit were created.
+- **Pre-change safety/RunStore/real-composition characterization:** `.venv\Scripts\python.exe -m pytest -q tests/test_real_hfss_safety.py tests/test_run_store.py tests/test_pyaedt_worker_contract.py` — `PASS`, 31 passed in 1.05 s.
+- **Final Phase 5A target:** `.venv\Scripts\python.exe -m pytest -q tests/test_real_hfss_safety.py tests/test_run_store.py tests/test_pyaedt_worker_contract.py tests/test_production_evaluation_contract.py` — `PASS`, 52 passed in 1.91 s.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 190 passed in 38.03 s.
+- **Supplied optimizer vendor suite:** `.venv\Scripts\python.exe -m pytest -q vendor\optimizer\tests` — `PASS`, 7 passed in 4.58 s.
+- **Compilation/config/diff hygiene:** `compileall -q src tests RUN_REAL_HFSS.py`, runtime JSON parse, and `git diff --check` — `PASS`; only expected Windows LF→CRLF notices were emitted.
+- **Proven:** strict canonical readiness schema; disabled/boolean-only fail closed; expiry/not-before; clean exact HEAD and Agent-source binding; complete provider/source/contract/Goal/RunManifest identity; drift fails before real adapter construction/workspace creation; formal real Run registration rejects missing evidence; server-side immutable `ExecutionPolicy(2,0)`; concurrent third real launch rejected with exactly two attempts/provider callbacks; idempotent replay does not consume another launch.
+- **Not proven:** real AEDT process/license behavior, a real Canary, operator reconciliation, every-boundary chaos injection, calibration gating, or native provider-artifact freezing.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+
+### Phase 4 Offline Closed-loop Agent
+
+- **Date:** 2026-08-21.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; authorized Phase 0–3 changes were unstaged/uncommitted and preserved. No staged files and no commit were created.
+- **Target command:** `.venv\Scripts\python.exe -m pytest -q tests/test_phase4_closed_loop.py`.
+- **Target result:** `PASS` — 19 passed in 22.97 s.
+- **Compatibility target:** `.venv\Scripts\python.exe -m pytest -q tests/test_phase4_closed_loop.py tests/test_state_v2.py tests/test_comparison_graph.py` — `PASS`, 36 passed in 28.62 s.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 181 passed in 35.55 s.
+- **Supplied optimizer vendor suite:** `.venv\Scripts\python.exe -m pytest -q vendor\optimizer\tests` — `PASS`, 7 passed in 4.47 s.
+- **Compilation/diff hygiene:** `compileall -q src tests RUN_CLOSED_LOOP_OFFLINE.py RUN_CLOSED_LOOP_SUPPLIED_MOCK.py` — `PASS`; `git diff --check` — `PASS` with expected Windows LF→CRLF notices only.
+- **Proven:** baseline PASS→`SUCCEEDED_BASELINE`; Candidate 1 screen fail→Candidate 2; improved non-PASS→next candidate and reoptimization; candidate PASS→Comparison-authorized Best promotion + `SUCCEEDED_CANDIDATE`; optimizer/screen/HFSS/stagnation/controller budget exhaustion→typed `NO_SOLUTION`; new-identity safe retry; UNKNOWN→reconcile only; arbitrary scripted result sequences stay within `max_controller_iterations`; deterministic fake and actual supplied-worker+MockHFSS paths reach typed END.
+- **Topology/safety evidence:** closed-loop composition requires an explicit flag and rejects real manifests before provider execution. `RUN_REAL_HFSS.py` still imports/composes only the retained comparison graph. No Production route was overwritten.
+- **Not proven:** real HFSS/AEDT closed-loop behavior, operator resolution of UNKNOWN, calibration-based iteration policy, native provider-artifact freezing, or Production promotion readiness.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+
+### Phase 3 Tool and Objective convergence
+
+- **Date:** 2026-08-21.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; authorized Phase 0/1/2 changes were unstaged/uncommitted and preserved. No staged files and no commit were created.
+- **Target command:** `.venv\Scripts\python.exe -m pytest -q tests/test_phase3_tool_objective.py tests/test_phase3_process_safety.py tests/test_comparison_graph.py tests/test_hfss_worker_backend.py tests/test_hfss_guarded_adapter.py tests/test_pyaedt_worker_contract.py`.
+- **Target result:** `PASS` — 46 passed in 14.80 s.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 162 passed in 15.97 s.
+- **Supplied optimizer vendor suite:** `.venv\Scripts\python.exe -m pytest -q vendor\optimizer\tests` — `PASS`, 7 passed in 5.50 s.
+- **Compilation/diff hygiene:** `compileall -q src tests` — `PASS`; `git diff --check` — `PASS` with expected Windows LF→CRLF notices only.
+- **Proven:** Goal and diagnosis perturbations change canonical OptimizerRequest identity; effective vendor objective is applied and digest-echoed; actual supplied optimizer runs out of process and returns the full auditable Pareto set; surrogate ranking evidence persists/reuses; Builder drift fails before lock; formal HFSS uses an attested composite request; Windows timeout/cancel has a finite upper bound and zero test descendants; unverified residual state becomes UNKNOWN and quarantines the lock.
+- **Evidence boundary:** process tests use real Windows subprocesses/Job Objects but not AEDT. Provider-native optimizer/HFSS files remain mutable work evidence. Formal WF-003 full CLI and current real WF-001 remain NOT RUN. The graph remains a one-pass DAG.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+
+### Phase 2 RunStore and Harness Core
+
+- **Date:** 2026-08-21.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; authorized Phase 0/1 changes were unstaged/uncommitted and preserved. No staged files and no commit were created.
+- **Target command:** `.venv\Scripts\python.exe -m pytest -q tests/test_run_store.py tests/test_comparison_graph.py`.
+- **Target result:** `PASS` — 29 passed.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 154 passed in 7.97 s.
+- **Compilation:** Phase 2 source/test syntax compilation `PASS`.
+- **Diff hygiene:** `git diff --check` — `PASS`; only expected Windows line-ending conversion notices.
+- **Source-side-effect scan:** formal node provider calls occur only inside `HarnessCore.execute` callbacks; formal artifact writes use `record_artifact`; formal checkpoints use `SQLiteComparisonCheckpointStore`.
+- **Proven:** one physical callback for identical concurrent/semantic requests; provider-success/Graph-commit crash replay; UNKNOWN no-auto-retry; atomic crash/concurrency budget bound; completed Run logical no-op; Run writer/operation heartbeats and fencing; server-side cost/approval policy; strict fresh/cached decoder symmetry; immutable contained publish; checkpoint CAS; durable V1/pre-ledger V2 blocking.
+- **Not proven:** current real HFSS behavior, strict worker/AEDT termination, native provider-file byte immutability, mandatory provider/code fingerprints, saved-node continuation, explicit reconciliation, bounded autonomous iteration, or supplied-objective causal control.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+
+### Phase 1 Domain Contract and State V2
+
+- **Date:** 2026-08-21.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`; Phase 0 changes were unstaged/uncommitted and preserved. No files were staged and no commit was created.
+- **Target command:** `.venv\Scripts\python.exe -m pytest -q tests/test_domain_contract_v2.py tests/test_state_v2.py tests/test_checkpoint_v2.py tests/test_comparison_graph.py`.
+- **Target result:** `PASS` — 20 passed in 0.72 s.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 130 passed in 1.79 s.
+- **Compilation:** `.venv\Scripts\python.exe -m compileall -q src tests` — `PASS`.
+- **Diff hygiene:** `git diff --check` — `PASS`; only Windows line-ending conversion notices.
+- **Proven:** strict State/Manifest round-trip; Path, NaN, mutable alias, duplicate key, unsupported and unknown-field rejection; tuple/list semantic restoration; wrong run/context/candidate/result/comparison rejection; evidence-only Best promotion; V2-only writes; V1 completed/interrupted classification and no-overwrite migration; canonical manifest/ArtifactRef integration; completed V2 Graph replay.
+- **Not proven:** saved-node continuation, crash-point action reconciliation, multi-process same-task safety, external process cancellation/timeout upper bound, supplied-objective behavioral control, closed-loop iteration, or current real HFSS behavior.
+- **HFSS/AEDT/ADS:** `NOT RUN`.
+
+### Phase 0 safety and authoritative result contract
+
+- **Date:** 2026-08-21.
+- **Starting Git evidence:** branch `master`, HEAD `08f001e84f463936b2bacc7ff90d77d18b7887a6`, clean working tree before implementation. No commit was created.
+- **Pre-change focused baseline:** 23 passed / 6 failed across comparison graph, CLI, Production evaluation contract, and worker-contract files. The failures were the known empty-rule/stale-trace ISSUE-008 boundary.
+- **Safety target:** real-entry configuration/acknowledgement tests `PASS` (7 passed) without provider composition or AEDT.
+- **Phase 0 target command:** `.venv\Scripts\python.exe -m pytest -q tests\test_comparison_graph.py tests\test_cli.py tests\test_terminal_outcomes.py tests\test_production_evaluation_contract.py tests\test_real_hfss_safety.py tests\test_pyaedt_worker_contract.py`.
+- **Target result:** `PASS` — 37 passed.
+- **Full main suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 115 passed in 1.70 s.
+- **Diff hygiene:** `git diff --check` — `PASS`; only Windows line-ending conversion notices.
+- **Proven:** fail-closed real entry, explicit authorization arguments, coherent Mock-only evaluation contract, rule-comparison-driven Best promotion, candidate identity checks, typed terminal outcomes, typed process exit codes, gate rejection, degraded candidate retention, candidate success, completed-checkpoint reuse, and Production-band no-AEDT comparison/promotion.
+- **Not proven:** real AEDT lifecycle, current real HFSS output, formal WF-003 E2E, mid-run checkpoint type fidelity, cancellation cleanup, strict timeout upper bound, calibration, supplied-objective behavioral control, or an Agent feedback loop.
+- **HFSS/AEDT/ADS:** NOT RUN.
 
 ### ISSUE-003 comparison status presenter import
 
@@ -86,12 +253,13 @@ Interpretation:
 
 ### Main suite
 
-- **Date:** 2026-08-20
+- **Current date:** 2026-08-21
 - **Command:** `.venv\Scripts\python.exe -m pytest -q`
-- **Post-ISSUE-003 result:** `FAIL` — 107 collected, 101 passed, 6 failed.
-- **Failures:** one CLI E2E and five comparison graph/checkpoint/resume tests.
-- **Current failure boundary:** the one WF-002 CLI and five Mock graph/checkpoint/resume tests retain empty-rule/1–3 GHz fixtures and stale expectations under ISSUE-008. Production ISSUE-002/003 are resolved; no failure is newly introduced by the ISSUE-003 regression.
-- **Secondary stale evidence:** graph trace expectations predate diagnosis/intent/objective nodes.
+- **Current Phase 2 result:** `PASS` — 154 passed.
+- **Previous Phase 1 result:** `PASS` — 130 passed.
+- **Previous Phase 0 result:** `PASS` — 115 passed.
+- **Historical result before Phase 0:** `FAIL` — 107 collected, 101 passed, 6 failed after ISSUE-003.
+- **Closure:** Phase 2 adds transactional action/event/checkpoint authority and resolves external-action duplicate replay plus formal artifact concurrency. It does not prove saved-node continuation, real worker lifecycle, or autonomous iteration.
 
 ### ISSUE-001 targeted regression
 
@@ -102,9 +270,9 @@ Interpretation:
 
 ### Current-source Offline route
 
-- **Command:** `.venv\Scripts\python.exe RUN_OFFLINE.py`.
-- **Result:** process exits normally; checkpoint trace reaches `build_optimization_objective` and then `complete` with `optimization_intent=INVALID`, `optimization_objective=INVALID`, and no candidate.
-- **Interpretation:** this is the deprecated WF-002 formal Offline result. It was deliberately not given the WF-001-only Production contract and remains `FAIL` under ISSUE-008 cleanup scope.
+- **Current Phase 0 command evidence:** `tests/test_cli.py` invokes the same `run_offline_demo` entry boundary with a temporary artifact root.
+- **Result:** `PASS`; status `succeeded_candidate`, terminal reason `candidate_target_met`, candidate artifact present, process exit mapping zero.
+- **Interpretation:** WF-002 uses a separate Mock-only `offline-evaluation-v1`; it does not claim Production physics or replace Production Contract v1.
 
 ### Package CLI import-origin check
 

@@ -4,36 +4,39 @@ Baseline: `FS-2026-08-20`. Classification follows reachable code, not historical
 
 ## Inventory summary
 
-Thirteen identifiable entries, harnesses, workers, or callable workflow paths are present. They are not thirteen peer workflows:
+Sixteen identifiable entries, harnesses, workers, or callable workflow paths are present. They are not sixteen peer workflows:
 
 - **Canonical Production Workflow = 1:** WF-001.
-- **Internal Production Worker = 1:** WF-011. It is an implementation detail invoked by WF-001 and is not counted as an independent Production Workflow.
+- **Internal Tool Workers = 2:** WF-011 and WF-014. They are implementation details and are not counted as independent Production Workflows.
 
 | ID | Workflow | Classification | Reachable |
 |---|---|---|---|
-| WF-001 | Real baseline–optimize–candidate HFSS Agent | PRODUCTION | Yes, but BROKEN |
-| WF-002 | Deterministic offline Agent | MOCK | Yes, but BROKEN |
-| WF-003 | Supplied surrogate/optimizer + MockHFSS Agent | MOCK | Yes, but BROKEN |
+| WF-001 | Real bounded Closed-loop V2 HFSS Agent | PRODUCTION | Code path reachable, execution fail-closed / NOT READY |
+| WF-002 | Deterministic Closed-loop V2 Agent | MOCK | Yes, END-TO-END VERIFIED |
+| WF-003 | Supplied surrogate/optimizer + MockHFSS V2 Agent | MOCK | Yes, END-TO-END VERIFIED |
 | WF-004 | Presentation environment preflight | REGRESSION | Yes, PASS |
-| WF-005 | Main pytest suite | TEST ONLY | Yes, FAIL |
+| WF-005 | Main pytest suite | TEST ONLY | Yes, PASS |
 | WF-006 | Supplied optimizer pytest suite | TEST ONLY | Yes, PASS |
 | WF-007 | Supplied Builder standalone unittest | TEST ONLY | Source present; Agent environment collection FAIL |
 | WF-008 | HFSS Builder probe | ACTIVE EXPERIMENT | Yes; not run in this reconstruction |
 | WF-009 | Standalone nine-parameter HFSS Builder | REFERENCE | Yes with PyAEDT environment |
 | WF-010 | Standalone supplied optimizer/check CLI | REFERENCE | Yes |
-| WF-011 | PyAEDT JSON stage Worker | INTERNAL PRODUCTION WORKER | Internal-only, reachable from WF-001; not an independent workflow |
+| WF-011 | PyAEDT JSON composite/stage Worker | INTERNAL PRODUCTION WORKER | Internal-only, reachable from WF-001; not an independent workflow |
 | WF-012 | Electrical-equivalent diagnostic mains | REFERENCE | Yes |
-| WF-013 | Paired surrogate/HFSS calibration API | DEAD / UNREACHABLE | Callable API, unreachable from formal entries |
+| WF-013 | Paired surrogate/HFSS calibration evidence API | LIBRARY / REAL-GATE INPUT | Callable evidence generator; no automatic physical collection entry |
+| WF-014 | Supplied optimizer JSON Worker | INTERNAL TOOL WORKER | Reachable from WF-001/WF-003; not an independent workflow |
+| WF-015 | Deterministic V2 Closed-loop Agent | MOCK AGENT | Yes, END-TO-END VERIFIED |
+| WF-016 | Supplied Tools + MockHFSS V2 Closed-loop Agent | MOCK AGENT | Yes, END-TO-END VERIFIED |
 
-No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was identified. Historical `runs/` are evidence/reference artifacts, not runnable workflows.
+No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists. The former one-pass characterization is preserved as `tests/legacy_comparison_graph_characterization.py.disabled`; historical checkpoints/runs are evidence/reference artifacts, not runnable workflows.
 
 ## Capability matrix by workflow
 
 | ID | Formal CLI/VS Code | Real HFSS | Modifies AEDT | Surrogate | Optimizer | Evaluator | Checkpoint/resume |
 |---|---|---:|---:|---:|---:|---:|---:|
-| WF-001 | `RUN_REAL_HFSS.py`, launch 3 | Yes | Yes | supplied | supplied | Production Evaluation Contract v1 | Yes |
-| WF-002 | `RUN_OFFLINE.py`, `offline-demo`, launch 1 | No | No | deterministic Mock | deterministic Mock | deterministic rules | Yes |
-| WF-003 | `RUN_SUPPLIED_WITH_MOCK_HFSS.py`, `supplied-mock-demo`, launch 2 | No | No | supplied | supplied | deterministic rules | Yes |
+| WF-001 | `RUN_REAL_HFSS.py`, blocked Canary launch 3 | Yes, only after separate authorization | Yes | supplied | supplied | Production Evaluation Contract v1 | V2 controller + SQLite RunStore/action receipts |
+| WF-002 | `RUN_OFFLINE.py`, `offline-demo`, launch 1 | No | No | deterministic Mock | deterministic Mock | Offline Evaluation Contract v1 | V2 controller + SQLite RunStore/action receipts |
+| WF-003 | `RUN_SUPPLIED_WITH_MOCK_HFSS.py`, `supplied-mock-demo`, launch 2 | No | No | supplied | supplied | Offline Evaluation Contract v1 | V2 controller + SQLite RunStore/action receipts |
 | WF-004 | `VERIFY_PRESENTATION.py`, launch 0 | No | No | No | No | No | Reads lock only |
 | WF-005 | `pytest`, launch 4 | No real HFSS | No AEDT | Mixed test doubles | Mixed | Yes | Tests stores |
 | WF-006 | explicit pytest path | No | No | supplied | supplied quick | vendor metrics | No Agent checkpoint |
@@ -44,38 +47,42 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 | WF-011 | module CLI invoked by backend | Yes | Yes | No | No | No | Worker request/response + journal |
 | WF-012 | module `__main__` entries | No | No | electrical model only | No | No | No |
 | WF-013 | Python API only | Reads paired results | No | paired result input | No | calibration evaluator | Optional writer exists but not called |
+| WF-014 | module CLI invoked by adapter | No | No | supplied vendor model | supplied | vendor objectives/constraints/metrics | canonical request/response + vendor result directory |
+| WF-015 | `RUN_CLOSED_LOOP_OFFLINE.py`, `closed-loop-offline-demo`, launch 2A | No | No | deterministic Mock | deterministic Mock | Offline Evaluation Contract v1 | RunStore + typed controller/checkpoints |
+| WF-016 | `RUN_CLOSED_LOOP_SUPPLIED_MOCK.py`, `closed-loop-supplied-mock-demo`, launch 2B | No | No | supplied | supervised supplied worker | Offline Evaluation Contract v1 | RunStore + typed controller/checkpoints |
 
 ## WF-001 — Real baseline–optimize–candidate HFSS Agent
 
-- **Entry:** `RUN_REAL_HFSS.py` → `run_real_supplied_demo`; VS Code launch 3. There is no equivalent package CLI subcommand.
-- **Call chain:** runtime config/HFSS contract/Production Evaluation Contract checks → state creation → real/supplied provider composition → shared LangGraph → real baseline HFSS → evaluation/diagnosis/intent/objective → supplied optimizer → candidate gate → real candidate HFSS → comparison/Best/artifacts.
-- **Inputs:** runtime JSON, Production Evaluation Contract v1, nine-parameter baseline/schema, HFSS contract, vendor optimizer/config, vendor Builder, PyAEDT interpreter.
-- **Outputs:** task/checkpoint/baseline/optimizer/candidate/Best JSON, independent AEDT projects, journals, structured complex S parameters, two Touchstone files when fully reached.
-- **Reachability:** formal and reachable. A safe 5–19 GHz test-only Graph probe completes comparison and the remaining graph nodes; it exposes ISSUE-004 because `FULLY_ACHIEVED` still retains baseline. Current real execution is NOT RUN.
-- **Verification:** `HISTORICALLY VERIFIED` for run `real-vscode-20260818-101711`; current tree `BROKEN / NOT RUN`.
-- **Known issues:** ISSUE-001/002/003 resolved; ISSUE-004 through ISSUE-006, ISSUE-009 through ISSUE-015, ISSUE-019 remain.
-- **Relation:** same graph as WF-002/WF-003; real HFSS is delegated to WF-011.
+- **Entry:** `RUN_REAL_HFSS.py` → `run_real_supplied_demo`; VS Code launch 3 is labelled blocked until separately authorized. There is no equivalent package CLI subcommand. The checked-in config has no manifest; a future explicit invocation must supply the external path in `HFSS_REAL_READINESS_MANIFEST`.
+- **Call chain:** disabled/manifest check → strict readiness + passing Calibration Evidence → exact repository/Goal/contracts/providers/Production-policy digest → Production V2 controller composition → fenced bootstrap baseline → sole Policy router → prepare/optimize/queue/screen → at most one candidate HFSS → compare/diagnose/Best → next/reoptimize/reconcile or typed finalization → structured final manifest → atomic completed checkpoint. RunStore independently limits physical HFSS launches to two with zero automatic retries.
+- **Inputs:** runtime JSON, short-lived Readiness Manifest V1 containing passing `calibration-evidence/1.0`, exact clean Git revision, Production Evaluation Contract v1, nine-parameter baseline/schema, HFSS contract, vendor optimizer/config, vendor Builder, and PyAEDT interpreter bytes.
+- **Outputs:** SQLite action/event/checkpoint ledger; immutable canonical Tool/evaluation/comparison/terminal/final-manifest artifacts; immutable registered copies of provider request/response/report, AEDT project, journal, and Touchstone files when reached. Mutable workspaces are convenience copies only.
+- **Recovery control plane:** checkpoint identity/integrity is checked before provider admission. UNKNOWN recovery uses an exact evidence-bound operator reconciliation API; it is not a runnable workflow entry and never calls the provider.
+- **Reachability:** the V2 call graph is reachable, but the checked-in formal entry stops before composition because current config is disabled and has no manifest. The dirty tree independently fails exact-HEAD readiness. Drift and policy-digest regressions prove invalid bindings cannot reach real worker composition/workspace creation. A safe no-AEDT Production-band V2 test promotes the `FULLY_ACHIEVED` candidate and emits `succeeded_candidate`. Current real execution is NOT RUN.
+- **Verification:** `HISTORICALLY VERIFIED` for run `real-vscode-20260818-101711`; current tree real route `NOT RUN / NOT READY`. Readiness, exact formal identity, two-launch/no-retry admission, approval, budget, UNKNOWN, receipt replay, evidence-bound reconciliation, checkpoint corruption handling, and Run fencing are `OFFLINE VERIFIED` with test doubles only.
+- **Known issues:** ISSUE-001/002/003/004/005/006/014/024/025/027/029 resolved offline; ISSUE-009 is partial because no accepted current paired evidence exists; ISSUE-010/011/012/013/019 remain open/partial; ISSUE-015/026 remain partial pending real AEDT, while ISSUE-028 is partial domain-wide. V1 checkpoints are explicit non-actionable evidence only.
+- **Relation:** same V2 Policy topology as WF-002/WF-003; real HFSS is delegated to WF-011 and supplied optimization to WF-014.
 
 ## WF-002 — Deterministic offline Agent
 
 - **Entry:** `RUN_OFFLINE.py`; package CLI `offline-demo`; VS Code launch 1.
-- **Call chain:** `run_offline_demo` → deterministic surrogate/optimizer/MockHFSS injection → shared graph/artifacts.
-- **Inputs:** optional task/artifact root; built-in baseline and 1/2/3 GHz Mock grids.
-- **Outputs:** Agent JSON artifacts/checkpoint and CLI summary; no AEDT.
-- **Reachability:** formal and reachable; currently completes INVALID before candidate stages because its deprecated empty-rule fixture has no Production contract.
-- **Verification:** current test-backed `FAIL`; older run directories are `HISTORICALLY VERIFIED` only.
-- **Known issues:** deprecated Mock path retains empty rules and 1/2/3 GHz data; ISSUE-004, ISSUE-007, ISSUE-008.
-- **Relation:** safest graph regression path and should pass before WF-001.
+- **Call chain:** `run_offline_demo` delegates to the deterministic Closed-loop V2 composition and bounded Policy.
+- **Inputs:** optional task/artifact root; built-in baseline, 1/2/3 GHz Mock grids, and versioned `offline-evaluation-v1`.
+- **Outputs:** SQLite Run/action/event/checkpoint ledger, immutable canonical JSON artifacts, and CLI summary; no AEDT.
+- **Reachability:** formal and reachable through bootstrap, sole controller router, bounded candidate loop, and typed END.
+- **Verification:** `END-TO-END VERIFIED` offline; CLI returns zero only for `succeeded_candidate`/`succeeded_baseline`.
+- **Known issues:** completed reinvocation is a strict no-op, crash replay does not duplicate provider calls, and UNKNOWN has evidence-bound reconciliation; resume still begins at graph START under ISSUE-013.
+- **Relation:** safest V2 Agent regression path and should pass before WF-001.
 
 ## WF-003 — Supplied surrogate/optimizer + MockHFSS Agent
 
 - **Entry:** `RUN_SUPPLIED_WITH_MOCK_HFSS.py`; package CLI `supplied-mock-demo`; VS Code launch 2.
-- **Call chain:** vendor surrogate frequency/config load → supplied adapters + MockHFSS → shared graph → vendor result directory.
-- **Inputs:** `vendor/optimizer` configuration and code, Agent baseline, MockHFSS 1/2/3 GHz.
-- **Outputs:** Agent artifacts plus vendor optimizer report/plots/CSV.
-- **Reachability:** formal and reachable; shares current graph blockers.
-- **Verification:** vendor optimizer components pass; current Agent E2E `BROKEN`; historical supplied-Mock runs exist.
-- **Known issues:** deprecated Mock route retains empty rules/1–3 GHz data; ISSUE-004/005 and ISSUE-007 through ISSUE-009.
+- **Call chain:** vendor surrogate/config → canonical OptimizerRequest → supervised WF-014 → full candidate set/ranking → bounded Policy queue consumption → MockHFSS/evaluation → typed END.
+- **Inputs:** `vendor/optimizer` configuration/code, Agent baseline, MockHFSS 1/2/3 GHz, and `offline-evaluation-v1`.
+- **Outputs:** RunStore receipts, immutable canonical Agent artifacts, immutable registered copies of supplied-worker/vendor files, structured final manifest, plus non-authoritative mutable workspace copies.
+- **Reachability:** formal and reachable through the canonical V2 composition.
+- **Verification:** actual supplied worker plus MockHFSS reaches typed END: `END-TO-END VERIFIED` offline.
+- **Known issues:** ISSUE-009 accepted physical calibration evidence and ISSUE-013 START-replay semantics. V1 checkpoints are not executable. Formal native output provenance is resolved offline.
 - **Relation:** validates real surrogate/optimizer without AEDT.
 
 ## WF-004 — Presentation environment preflight
@@ -90,17 +97,17 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 ## WF-005 — Main pytest suite
 
 - **Entry:** `python -m pytest`; VS Code launch 4; `pyproject.toml` restricts `testpaths` to `tests`.
-- **Scope:** Agent state/models, graph, evaluation, diagnosis, intent/objective, parameters, mocks, Builder units, HFSS guards/worker protocol, artifacts/checkpoint, terminal.
+- **Scope:** Domain Contract/State V2/canonical codec, sole Closed-loop V2 Policy/router, Production policy/budget binding, controller/Tool/stagnation budgets, queue/reoptimization/retry/reconcile/typed finalization, structured decision/final-manifest evidence, evaluation/diagnosis/intent/objective, Calibration Evidence/real gate, supervised Tools/process safety, exact readiness/two-solve admission, RunStore/Harness concurrency/chaos/reconciliation, immutable artifacts, explicit historical checkpoint classification, and terminal semantics.
 - **Outputs:** test report and temporary artifacts; no real AEDT.
-- **Verification:** 107 collected; 101 PASS, 6 FAIL on 2026-08-20 after ISSUE-003. The six failures are unchanged.
-- **Known issues:** one deprecated WF-002 CLI and five Mock graph/checkpoint/resume tests remain stale (ISSUE-008).
+- **Verification:** final 213 PASS in 45.71 s on 2026-08-24 after ISSUE-019 closure. Sixteen obsolete one-pass tests are preserved disabled; current V2 reliability and full frequency-grid contract coverage are collected.
+- **Known boundary:** this suite uses no real AEDT. Actual AEDT termination/readability, saved-node continuation, and current physical calibration evidence remain unverified/absent; the frequency-grid rule itself is offline verified.
 - **Relation:** does not automatically include WF-006 or WF-007.
 
 ## WF-006 — Supplied optimizer pytest suite
 
 - **Entry:** explicit `pytest vendor/optimizer/tests`.
 - **Call chain:** vendor configs/model/surrogate → geometry constraints or quick optimizer → vendor result artifacts.
-- **Verification:** 7 PASS on 2026-08-20.
+- **Verification:** 7 PASS on 2026-08-22 after Phase 5C (4.67 s).
 - **Relation:** proves vendor optimizer internals, not Agent adapter/graph integration.
 
 ## WF-007 — Supplied Builder standalone unittest
@@ -133,16 +140,16 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 - **Call chain:** config/catalog/parameter/objective/constraint load → surrogate/model suite → baseline check or NSGA-III/MOPSO/MOSA → Pareto/recommendation → JSON/CSV/plots.
 - **Inputs/outputs:** vendor TOML/CSV and result directory; no HFSS despite README language about later HFSS review.
 - **Verification:** 7 current tests pass; current hashes match the historical real-E2E optimizer hashes.
-- **Relation:** Agent supplied optimizer adapter calls `execute`; Agent optimization intent does not alter its inputs.
+- **Relation:** standalone reference only. Formal Agent calls use WF-014, which creates a request-derived objective CSV before calling vendor `execute` and verifies the vendor summary.
 
-## WF-011 — PyAEDT JSON stage Worker
+## WF-011 — PyAEDT JSON composite/stage Worker
 
-- **Entry:** `python -m hfss_optimization_agent.hfss.pyaedt_worker --stage build|solve|extract`; invoked only by `JsonSubprocessHFSSBackend` in Production.
+- **Entry:** `python -m hfss_optimization_agent.hfss.pyaedt_worker --stage composite|build|solve|extract`; invoked only by `JsonSubprocessHFSSBackend` in Production. Formal attested execution uses `composite`; individual stages remain compatibility/test paths.
 - **Classification:** `INTERNAL PRODUCTION WORKER`. It is a subprocess boundary inside WF-001, not a second canonical Production Workflow and not an independently counted Production entry.
-- **Call chain:** request JSON → one isolated stage → response JSON; build imports WF-009, solve calls `analyze_setup`, extract exports complex data and Touchstone.
+- **Call chain:** Builder attestation and snapshot before license → composite request JSON → Job-assigned heartbeated worker → snapshot Builder import → build → solve → extract complex data → validate the full returned grid against the sweep contract → Touchstone/structured export → digest-bound response JSON.
 - **Side effects:** launches/controls AEDT and writes projects/exports.
-- **Verification:** protocol/timeout unit integration passes; all three stages are historically real verified for baseline and candidate.
-- **Known issues:** historical build crashes/solve failure, current version traceability gap, frequency endpoint validation gap.
+- **Verification:** composite protocol, attestation drift, full returned-grid validation, timeout/cancel upper bound, descendant termination, parent-death cleanup, residual-process UNKNOWN, and evidence-bound lock-quarantine archival pass offline. All three stages are historically real verified for an older tree; current composite worker/AEDT is `NOT RUN`.
+- **Known issues:** actual AEDT lifecycle and physical output remain unverified. Unverified cleanup is fail-closed as `UNKNOWN` with a quarantined lock; release is explicit, evidence-bound, and archives rather than deletes the marker.
 
 ## WF-012 — Electrical-equivalent diagnostic mains
 
@@ -153,9 +160,35 @@ No current `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract was ident
 
 ## WF-013 — Paired surrogate/HFSS calibration API
 
-- **Entry:** no CLI/graph node; callable `assess_calibration(cases, policy)` only.
-- **Call chain:** paired candidate/surrogate/HFSS data → compatibility checks → complex and dB errors → pairwise rank agreement → `CalibrationReport`.
-- **Inputs/outputs:** in-memory paired results/report; `ArtifactStore.write_calibration_report` exists but no caller connects them.
-- **Reachability:** unreachable from every formal entry: `NOT WIRED INTO PRODUCTION`.
-- **Verification:** unit tests pass. A reconstruction-only read of the historical real run found ranking agreement 0.0; no production report exists.
-- **Known issues:** ISSUE-009.
+- **Entry:** no CLI/graph node; callable `assess_calibration(cases, policy)` plus `create_calibration_evidence(...)`. Physical collection is never started automatically.
+- **Call chain:** paired candidate/surrogate/HFSS data → compatibility/error/rank checks → report → strict context/provider/policy/source-bound evidence.
+- **Inputs/outputs:** paired results and policy produce `calibration-evidence/1.0` with a canonical digest.
+- **Reachability:** generation is an explicit library workflow; its output is a mandatory semantic input to WF-001 readiness and RunStore real registration.
+- **Verification:** unit tests pass for compatible/reversed/context/grid cases, canonical round-trip and identity drift; readiness/RunStore gate integration passes offline. Historical ranking agreement remains 0.0.
+- **Known issues:** ISSUE-009 remains partial because no passing current physical dataset exists.
+
+## WF-014 — Supplied optimizer JSON Worker
+
+- **Entry:** `python -m hfss_optimization_agent.optimization.supplied_worker`; invoked only by `SuppliedBatchOptimizerAdapter`.
+- **Classification:** `INTERNAL TOOL WORKER`; it is a supervised Tool subprocess inside WF-001/WF-003, not an independent Agent workflow.
+- **Call chain:** canonical OptimizerRequest JSON → heartbeat → request-derived effective-objective CSV → vendor `execute` → vendor-summary objective verification → parse every Pareto row/evidence → digest-bound canonical response.
+- **Outputs:** full auditable candidate set/digests plus immutable registered copies of worker request/response/vendor artifacts.
+- **Verification:** actual quick vendor execution through the independent worker passes offline. Timeout/cancel supervision shares the Windows Job boundary; formal WF-003 E2E remains `NEEDS VERIFICATION`.
+
+## WF-015 — Deterministic V2 Closed-loop Agent
+
+- **Entry:** compatibility alias `RUN_CLOSED_LOOP_OFFLINE.py`; package alias `closed-loop-offline-demo`; canonical formal aliases are WF-002 entries.
+- **Classification:** `MOCK AGENT` using the sole formal V2 topology. Real manifests are rejected before provider execution.
+- **Call chain:** baseline observe/evaluate/diagnose → sole Policy router → prepare/optimize → queue select/screen → fake HFSS evaluate/diagnose/Best → next candidate, reoptimize, or typed finalization.
+- **Control contract:** strict controller decision history plus controller/optimizer/screen/HFSS/reoptimization/retry/stagnation budgets; one conditional router; every nonterminal action returns to Policy.
+- **Verification:** `END-TO-END VERIFIED` offline for baseline PASS, screen fail→next, improved non-PASS→next/reoptimize, PASS→Best/success, safe retry, budget/stagnation exhaustion→NO_SOLUTION, reconciliation route, and arbitrary-sequence iteration bound.
+- **Relation:** compatibility naming for the same implementation used by WF-002 and WF-001.
+
+## WF-016 — Supplied Tools + MockHFSS V2 Closed-loop Agent
+
+- **Entry:** compatibility alias `RUN_CLOSED_LOOP_SUPPLIED_MOCK.py`; package alias `closed-loop-supplied-mock-demo`; canonical formal aliases are WF-003 entries.
+- **Classification:** `MOCK AGENT` using the sole formal V2 topology; real HFSS/AEDT is structurally rejected.
+- **Call chain:** supplied surrogate → canonical request → WF-014 supervised quick optimizer/full candidate set → persisted ranking → bounded Policy queue consumption → MockHFSS → typed terminal.
+- **Outputs:** RunStore action/event/checkpoint evidence, structured decisions/budgets, immutable canonical/native artifacts, and `final-run-manifest/1.0`.
+- **Verification:** actual supplied worker plus MockHFSS reaches a typed END in the Phase 4 test suite: `END-TO-END VERIFIED` offline. No AEDT/HFSS license/process is involved.
+- **Known boundary:** Production adoption is complete offline; current physical calibration evidence and Phase 6 Canary authorization remain absent.

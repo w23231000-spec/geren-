@@ -2,9 +2,19 @@
 
 import math
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from typing import Mapping
 
 from ..core.models import CandidateParameters, HFSSResult, SParameterResult
 from ..harness.errors import CalibrationError
+from ..domain.contracts import (
+    CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+    CalibrationEvidence,
+    FrozenMap,
+)
+
+
+CALIBRATION_POLICY_VERSION = "paired-surrogate-hfss/1.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,4 +186,32 @@ def assess_calibration(
         pairwise_ranking_agreement=ranking,
         comparison_context_id=next(iter(context_ids), None),
         reasons=reasons,
+    )
+
+
+def create_calibration_evidence(
+    report: CalibrationReport,
+    policy: CalibrationPolicy,
+    *,
+    evidence_id: str,
+    provider_fingerprints: Mapping[str, str],
+    created_at: str | None = None,
+    source_artifact_ids: tuple[str, ...] = (),
+) -> CalibrationEvidence:
+    """Freeze one assessed report with the exact providers and policy that produced it."""
+
+    if report.comparison_context_id is None:
+        raise CalibrationError("Calibration evidence requires a comparison context ID")
+    return CalibrationEvidence(
+        schema_version=CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+        evidence_id=evidence_id,
+        created_at=created_at or datetime.now(timezone.utc).isoformat(),
+        policy_version=CALIBRATION_POLICY_VERSION,
+        comparison_context_id=report.comparison_context_id,
+        passed=report.passed,
+        case_ids=tuple(item.case_id for item in report.cases),
+        provider_fingerprints=FrozenMap.from_mapping(provider_fingerprints),
+        policy=FrozenMap.from_mapping(asdict(policy)),
+        report=FrozenMap.from_mapping(report.to_dict()),
+        source_artifact_ids=source_artifact_ids,
     )

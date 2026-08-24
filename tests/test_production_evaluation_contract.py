@@ -8,11 +8,24 @@ from types import SimpleNamespace
 
 import pytest
 
+from hfss_optimization_agent.domain.canonical_json import canonical_dumps, canonical_loads
+
 from hfss_optimization_agent.agent.comparison_state import (
+    baseline_diagnosis,
+    baseline_evaluation,
+    best_candidate,
+    candidate_evaluation,
+    current_comparison,
     create_comparison_state,
 )
+from hfss_optimization_agent.agent.closed_loop_contracts import (
+    CLOSED_LOOP_WORKFLOW_ID,
+    ClosedLoopBudget,
+    ClosedLoopControllerState,
+    production_policy_sha256,
+)
 from hfss_optimization_agent.cli import run_real_supplied_demo
-from hfss_optimization_agent.composition import compose_comparison_workflow
+from hfss_optimization_agent.composition import compose_closed_loop_workflow, compose_comparison_nodes
 from hfss_optimization_agent.core.config import AppConfig
 from hfss_optimization_agent.core.models import (
     CandidateParameters,
@@ -31,8 +44,28 @@ from hfss_optimization_agent.evaluation.contract import (
     PRODUCTION_CONTRACT_ID,
     load_production_evaluation_config,
 )
+from hfss_optimization_agent.domain.contracts import (
+    CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+    CalibrationEvidence,
+    FrozenMap,
+    canonical_digest,
+)
+from hfss_optimization_agent.harness.execution_policy import ExecutionPolicy
+from hfss_optimization_agent.harness.provenance import source_tree_digest
+from hfss_optimization_agent.harness.real_hfss_safety import (
+    HFSS_WORKER_PROTOCOL,
+    READINESS_SCHEMA_VERSION,
+    REAL_HFSS_APPROVAL_SCOPE,
+    RealHFSSAuthorization,
+    RealHFSSReadinessManifestV1,
+    RepositoryEvidence,
+    file_sha256,
+)
+from hfss_optimization_agent.harness.run_store import manifest_identity_sha256
+from hfss_optimization_agent.hfss.contracts import attest_builder, load_hfss_contract
 from hfss_optimization_agent.evaluation.evaluator import DeterministicEvaluator
 from hfss_optimization_agent.harness.checkpoint import JsonComparisonCheckpointStore
+from hfss_optimization_agent.domain.contracts import EvaluationRecord
 from hfss_optimization_agent.optimization.intent import (
     ACTIVE,
     CORE_RECOVERY,
@@ -61,7 +94,7 @@ def production_evaluator() -> DeterministicEvaluator:
     )
 
 
-def evaluate(*, s11: list[float], s21: list[float]):
+def evaluate(*, s11: list[float], s21: list[float], candidate_id: str = "candidate"):
     return production_evaluator().evaluate_sparameters(
         {
             "frequency": FREQUENCIES,
@@ -70,7 +103,7 @@ def evaluate(*, s11: list[float], s21: list[float]):
             "frequency_unit": "GHz",
             "source": "production-contract-test",
         },
-        candidate_id="candidate",
+        candidate_id=candidate_id,
     )
 
 
@@ -224,21 +257,25 @@ def test_hard_failure_survives_evaluation_diagnosis_and_active_intent(
 def test_checkpoint_round_trip_preserves_existing_rule_level_evidence(tmp_path):
     s21 = passing_s21()
     s21[FREQUENCIES.index(12.0)] = -28.0
-    evaluation = evaluate(s11=passing_s11(), s21=s21)
+    evaluation = evaluate(s11=passing_s11(), s21=s21, candidate_id="baseline")
+    evaluation.evaluated_stage = "initial"
     state = create_comparison_state(
         task_id="production-evidence-round-trip",
         baseline_parameters=supplied_baseline_candidate(),
     )
-    state["baseline_evaluation"] = evaluation
-    state["evaluation_result"] = evaluation
-    state["evaluation_history"] = [evaluation]
+    record = EvaluationRecord.from_result(
+        evaluation,
+        run_id=state["manifest"].run_id,
+        context_id=state["manifest"].design_goal.comparison_context_id,
+    )
+    state["evaluations"] = (record,)
     store = JsonComparisonCheckpointStore(tmp_path / "checkpoint.json")
     store.save(state)
     restored = store.load()
-    expected = json.loads(json.dumps(evaluation.rule_results))
-    assert restored["baseline_evaluation"].rule_results == expected
-    assert restored["evaluation_result"].rule_results == expected
-    assert restored["evaluation_history"][0].rule_results == expected
+    restored_evaluation = baseline_evaluation(restored)
+    assert restored_evaluation.rule_results == evaluation.rule_results
+    assert restored_evaluation.rules[0]["frequency_band"] == (6.0, 18.0)
+    assert restored_evaluation.frequency_plan["core_band"] == (6.0, 18.0)
 
 
 class ProductionBandSurrogate:
@@ -285,8 +322,8 @@ def test_wf001_nodes_reach_active_objective_with_production_band_test_fixture(tm
         task_id="wf001-production-evaluation",
         baseline_parameters=baseline,
     )
-    runner = compose_comparison_workflow(
-        task_id=state["task_id"],
+    nodes = compose_comparison_nodes(
+        task_id=state["manifest"].task_id,
         baseline_parameters=baseline,
         schema=supplied_nine_parameter_schema(),
         config=AppConfig(artifact_root=tmp_path, evaluation=evaluation),
@@ -295,21 +332,24 @@ def test_wf001_nodes_reach_active_objective_with_production_band_test_fixture(tm
         hfss=ProductionBandHFSS(),
     )
     for node in (
-        runner.nodes.initialize_task,
-        runner.nodes.calculate_baseline_sparameters,
-        runner.nodes.run_baseline_hfss,
-        runner.nodes.diagnose_baseline,
-        runner.nodes.freeze_baseline,
-        runner.nodes.build_optimization_intent,
-        runner.nodes.build_optimization_objective,
+        nodes.initialize_task,
+        nodes.calculate_baseline_sparameters,
+        nodes.run_baseline_hfss,
+        nodes.diagnose_baseline,
+        nodes.freeze_baseline,
+        nodes.build_optimization_intent,
+        nodes.build_optimization_objective,
     ):
         state.update(node(state))
-    assert state["baseline_evaluation"].status == "FAIL"
-    assert state["baseline_diagnosis"].primary_issue.issue_type == CORE_S21_RULE_NOT_MET
+    assert baseline_evaluation(state).status == "FAIL"
+    assert baseline_diagnosis(state).primary_issue.issue_type == CORE_S21_RULE_NOT_MET
     assert state["optimization_intent"].status == ACTIVE
     assert state["optimization_objective"].status == ACTIVE
     assert state["execution_trace"][-1] == "build_optimization_objective"
-    evidence = tmp_path / state["task_id"] / "baseline" / "evaluation_result.json"
+    evidence_ref = next(
+        item for item in state["artifact_refs"] if item.role == "baseline_evaluation"
+    )
+    evidence = tmp_path / state["manifest"].task_id / evidence_ref.uri
     assert evidence.exists()
 
 
@@ -318,30 +358,38 @@ def test_rule_configured_wf001_graph_completes_comparison_after_presenter_import
 ):
     evaluation = load_production_evaluation_config(CONTRACT_PATH)
     baseline = supplied_baseline_candidate()
+    controller = ClosedLoopControllerState.initial(ClosedLoopBudget())
     state = create_comparison_state(
         task_id="issue003-comparison-regression",
         baseline_parameters=baseline,
+        workflow_id=CLOSED_LOOP_WORKFLOW_ID,
+        controller=controller,
     )
-    runner = compose_comparison_workflow(
-        task_id=state["task_id"],
+    runner = compose_closed_loop_workflow(
+        task_id=state["manifest"].task_id,
         baseline_parameters=baseline,
         schema=supplied_nine_parameter_schema(),
-        config=AppConfig(artifact_root=tmp_path, evaluation=evaluation),
+        config=AppConfig(
+            artifact_root=tmp_path,
+            evaluation=evaluation,
+            closed_loop_enabled=True,
+        ),
         sparameters=ProductionBandSurrogate(),
         optimizer=DeterministicBatchOptimizer((1.05,)),
         hfss=ProductionBandHFSS(),
+        recursion_limit=2 * controller.budget.max_controller_iterations + 16,
     )
     final = runner.invoke(state)
-    assert final["status"] == "completed"
+    assert final["status"] == "succeeded_candidate"
     assert "compare_hfss_results" in final["execution_trace"]
-    assert final["evaluation_comparison"].classification == "FULLY_ACHIEVED"
-    assert final["evaluation_result"].status == "PASS"
-    comparison_artifact = (
-        tmp_path
-        / state["task_id"]
-        / "candidate"
-        / "evaluation_comparison.json"
+    assert current_comparison(final).classification == "FULLY_ACHIEVED"
+    assert current_comparison(final).promotion_eligible is True
+    assert best_candidate(final).candidate_id == "optimized-001"
+    assert candidate_evaluation(final).status == "PASS"
+    comparison_ref = next(
+        item for item in final["artifact_refs"] if item.role == "evaluation_comparison"
     )
+    comparison_artifact = tmp_path / state["manifest"].task_id / comparison_ref.uri
     assert comparison_artifact.exists()
 
 
@@ -352,20 +400,19 @@ def test_wf001_real_composition_loads_production_rules_without_running_hfss(
 
     class FakeRunner:
         def invoke(self, state):
-            baseline = state["baseline_parameters"]
-            return {
-                **state,
-                "status": "completed",
-                "baseline_sparameter_result": SimpleNamespace(provider="fake"),
-                "optimization_batch": None,
-                "evaluation_result": None,
-                "current_candidate": None,
-                "best_candidate": baseline,
-                "best_score": 0.0,
-                "execution_trace": ["test-only"],
-                "baseline_hfss_result": SimpleNamespace(project_path="baseline.aedt"),
-                "candidate_hfss_result": None,
-            }
+            state["status"] = "completed"
+            state["sparameter_results"] = (
+                SimpleNamespace(candidate_id="baseline", provider="fake"),
+            )
+            state["hfss_results"] = (
+                SimpleNamespace(
+                    candidate_id="baseline",
+                    project_path="baseline.aedt",
+                    metrics={"score": 0.0},
+                ),
+            )
+            state["execution_trace"] = ("test-only",)
+            return state
 
     monkeypatch.setattr(
         "hfss_optimization_agent.cli.compose_pyaedt_hfss", lambda **kwargs: object()
@@ -373,18 +420,130 @@ def test_wf001_real_composition_loads_production_rules_without_running_hfss(
 
     def fake_compose(**kwargs):
         captured["config"] = kwargs["config"]
+        captured["allow_real_execution"] = kwargs["allow_real_execution"]
+        captured["recursion_limit"] = kwargs["recursion_limit"]
         return FakeRunner()
 
-    monkeypatch.setattr("hfss_optimization_agent.cli.compose_comparison_workflow", fake_compose)
+    monkeypatch.setattr("hfss_optimization_agent.cli.compose_closed_loop_workflow", fake_compose)
+    task_id = "test-only-real-composition"
+    run_id = f"run:{task_id}"
+    created_at = "2026-08-21T10:00:00+00:00"
+    git_head = "0" * 40
+    readiness_id = "test-readiness"
+    approval_id = "test-only-no-aedt"
+    pyaedt_python = Path(__import__("sys").executable)
+    optimizer_digest = source_tree_digest(
+        ROOT / "vendor" / "optimizer", suffixes=(".py", ".csv", ".toml")
+    )
+    agent_digest = source_tree_digest(ROOT / "src", suffixes=(".py",))
+    builder_digest = attest_builder(
+        ROOT / "vendor" / "hfss_builder",
+        load_hfss_contract(HFSS_CONTRACT_PATH).builder_id,
+    ).source_digest
+    provider_fingerprints = {
+        "agent_source_sha256": agent_digest,
+        "supplied_optimizer_source_sha256": optimizer_digest,
+        "supplied_surrogate_source_sha256": optimizer_digest,
+        "hfss_builder_source_sha256": builder_digest,
+        "pyaedt_executable_sha256": file_sha256(pyaedt_python),
+        "hfss_worker_protocol": HFSS_WORKER_PROTOCOL,
+        "closed_loop_policy_sha256": production_policy_sha256(),
+    }
+    contract = load_hfss_contract(HFSS_CONTRACT_PATH)
+    calibration = CalibrationEvidence(
+        schema_version=CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+        evidence_id="calibration:test-only",
+        created_at="2026-08-20T00:00:00+00:00",
+        policy_version="paired-surrogate-hfss/1.0",
+        comparison_context_id=contract.metadata["comparison_context_id"],
+        passed=True,
+        case_ids=("cal-a",),
+        provider_fingerprints=FrozenMap.from_mapping(
+            {
+                "supplied_surrogate_source_sha256": optimizer_digest,
+                "hfss_builder_source_sha256": builder_digest,
+                "pyaedt_executable_sha256": file_sha256(pyaedt_python),
+                "hfss_worker_protocol": HFSS_WORKER_PROTOCOL,
+            }
+        ),
+        policy=FrozenMap.from_mapping({"max_complex_rmse": 0.02}),
+        report=FrozenMap.from_mapping(
+            {
+                "passed": True,
+                "comparison_context_id": contract.metadata["comparison_context_id"],
+                "cases": [{"case_id": "cal-a"}],
+            }
+        ),
+    )
+    controller = ClosedLoopControllerState.production_canary()
+    expected_state = create_comparison_state(
+        task_id=task_id,
+        run_id=run_id,
+        created_at=created_at,
+        code_revision=git_head,
+        baseline_parameters=supplied_baseline_candidate(),
+        target_specification={"minimum_score": -1.0},
+        evaluation_contract_id=PRODUCTION_CONTRACT_ID,
+        comparison_context_id=contract.metadata["comparison_context_id"],
+        real_execution=True,
+        provider_fingerprints=provider_fingerprints,
+        config_fingerprints={
+            "hfss_contract_id": contract.contract_id,
+            "hfss_contract_sha256": file_sha256(HFSS_CONTRACT_PATH),
+            "evaluation_contract_id": PRODUCTION_CONTRACT_ID,
+            "evaluation_contract_sha256": file_sha256(CONTRACT_PATH),
+            "real_hfss_authorization_id": approval_id,
+            "readiness_id": readiness_id,
+            "calibration_evidence_sha256": calibration.digest,
+            "calibration_evidence": canonical_loads(canonical_dumps(calibration)),
+            "closed_loop_policy_id": controller.policy_id,
+            "closed_loop_budget": canonical_loads(
+                canonical_dumps(controller.budget)
+            ),
+        },
+        controller=controller,
+        workflow_id=CLOSED_LOOP_WORKFLOW_ID,
+    )
+    readiness = RealHFSSReadinessManifestV1(
+        schema_version=READINESS_SCHEMA_VERSION,
+        readiness_id=readiness_id,
+        task_id=task_id,
+        run_id=run_id,
+        workflow_id=CLOSED_LOOP_WORKFLOW_ID,
+        created_at=created_at,
+        expires_at="2099-08-21T11:00:00+00:00",
+        git_head=git_head,
+        agent_source_sha256=agent_digest,
+        run_manifest_sha256=manifest_identity_sha256(expected_state["manifest"]),
+        design_goal_sha256=canonical_digest(expected_state["manifest"].design_goal),
+        hfss_contract_sha256=file_sha256(HFSS_CONTRACT_PATH),
+        evaluation_contract_sha256=file_sha256(CONTRACT_PATH),
+        provider_fingerprints=FrozenMap.from_mapping(provider_fingerprints),
+        approval_id=approval_id,
+        approval_scope=REAL_HFSS_APPROVAL_SCOPE,
+        execution_policy=ExecutionPolicy(2, 0),
+        calibration_evidence=calibration,
+    )
+    authorization = RealHFSSAuthorization(
+        manifest=readiness,
+        repository=RepositoryEvidence(git_head, agent_digest, True),
+    )
     summary = run_real_supplied_demo(
         optimizer_source_root=ROOT / "vendor" / "optimizer",
         builder_source_root=ROOT / "vendor" / "hfss_builder",
-        pyaedt_python=Path(__import__("sys").executable),
+        pyaedt_python=pyaedt_python,
         contract_path=HFSS_CONTRACT_PATH,
         evaluation_contract_path=CONTRACT_PATH,
         artifact_root=tmp_path,
         execute_real_hfss=True,
+        readiness_authorization=authorization,
     )
     assert summary["real_hfss"] is True
     assert len(captured["config"].evaluation.rules) == 6
     assert captured["config"].evaluation.rules[0]["rule_id"] == "production_v1_core_s21"
+    assert captured["config"].closed_loop_enabled is True
+    assert captured["allow_real_execution"] is True
+    assert captured["recursion_limit"] == (
+        2 * controller.budget.max_controller_iterations + 16
+    )
+    assert controller.budget.max_candidate_hfss_calls == 1

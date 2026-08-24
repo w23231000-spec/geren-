@@ -47,10 +47,18 @@ class FakeBackend(HFSSBackendInterface):
     backend_name = "fake-process-backend"
     process_isolated = True
 
-    def __init__(self, *, fail_stage=None, representation="real_imag", port_order=("input", "output")):
+    def __init__(
+        self,
+        *,
+        fail_stage=None,
+        representation="real_imag",
+        port_order=("input", "output"),
+        frequency_hz=(1e9, 2e9),
+    ):
         self.fail_stage = fail_stage
         self.representation = representation
         self.port_order = port_order
+        self.frequency_hz = frequency_hz
         self.calls = []
         self.close_count = 0
         self.timeout = None
@@ -82,7 +90,7 @@ class FakeBackend(HFSSBackendInterface):
             first = [[[-20.0, -1.0], [-1.0, -20.0]], [[-14.0, -3.0], [-3.0, -14.0]]]
             second = [[[0.0, -10.0], [-10.0, 0.0]], [[20.0, -20.0], [-20.0, 20.0]]]
         return RawSParameterData(
-            [1e9, 2e9],
+            self.frequency_hz,
             first,
             second,
             self.representation,
@@ -140,6 +148,14 @@ def test_port_order_mismatch_fails_before_result_is_accepted(tmp_path):
     result = adapter(tmp_path, backend).run(CandidateParameters("candidate", 1, {"p1": 1.0}))
     assert result.success is False
     assert "port order" in result.error
+    assert backend.close_count == 1
+
+
+def test_frequency_grid_mismatch_fails_before_result_is_accepted(tmp_path):
+    backend = FakeBackend(frequency_hz=(1e9 + 10.0, 2e9))
+    result = adapter(tmp_path, backend).run(CandidateParameters("candidate", 1, {"p1": 1.0}))
+    assert result.success is False
+    assert "frequency grid mismatch at index 0" in result.error
     assert backend.close_count == 1
 
 

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ..core.models import CandidateParameters, HFSSResult
-from ..harness.errors import HFSSExecutionError, HFSSStageError
+from ..harness.errors import HFSSExecutionError, HFSSProcessOutcomeUnknown, HFSSStageError
 from ..harness.license_lock import FileLicenseLock, LicenseLockConfig
 from ..harness.terminal import emit_stage, emit_status
 from ..interfaces.hfss import HFSSInterface
@@ -112,6 +112,8 @@ class GuardedHFSSAdapter(HFSSInterface):
             },
         )
         project_path: str | None = None
+        composite_request_digest: str | None = None
+        builder_attestation_digest: str | None = None
         started = time.monotonic()
         lock = FileLicenseLock(
             LicenseLockConfig(
@@ -124,39 +126,80 @@ class GuardedHFSSAdapter(HFSSInterface):
                 raise HFSSStageError(
                     "Configured HFSS backend does not guarantee worker-process isolation"
                 )
+            journal.update(stage="builder_attestation")
+            self.backend.preflight(candidate, self.contract, workspace)
             journal.update(stage="waiting_for_license", status="running")
             emit_stage(run_name, 2, 5, "等待 HFSS 许可")
             with lock:
                 try:
-                    journal.update(stage="build")
-                    emit_stage(run_name, 3, 5, "创建 HFSS 工程")
-                    built = self.backend.build(candidate, workspace, self.contract)
-                    project_path = built.project_path
-                    journal.update(stage="solve", project=asdict(built))
-                    emit_stage(
-                        run_name,
-                        4,
-                        5,
-                        "求解目标设计",
-                        detail=f"仅求解 {self.contract.design_name}",
-                    )
-                    solve_started = time.monotonic()
-                    solved = self.backend.solve(
-                        built,
-                        self.contract,
-                        timeout_seconds=self.config.solve_timeout_seconds,
-                    )
-                    solve_elapsed = time.monotonic() - solve_started
-                    if solve_elapsed > self.config.solve_timeout_seconds:
-                        raise HFSSStageError(
-                            f"HFSS backend exceeded solve timeout: {solve_elapsed:.3f}s"
+                    if self.backend.supports_composite:
+                        journal.update(stage="composite_worker")
+                        emit_stage(run_name, 3, 5, "启动受监管复合 Worker")
+                        composite_started = time.monotonic()
+                        composite = self.backend.run_composite(
+                            candidate,
+                            workspace,
+                            self.contract,
+                            solve_timeout_seconds=self.config.solve_timeout_seconds,
                         )
-                    journal.update(stage="extract", solve=asdict(solved), solve_seconds=solve_elapsed)
-                    emit_stage(run_name, 5, 5, "导出复数 S 参数")
-                    raw = self.backend.extract(solved, self.contract)
+                        built = composite.built
+                        solved = composite.solved
+                        raw = composite.raw
+                        composite_request_digest = composite.request_digest
+                        builder_attestation_digest = composite.builder_attestation_digest
+                        solve_elapsed = time.monotonic() - composite_started
+                        project_path = built.project_path
+                        journal.update(
+                            stage="extract",
+                            project=asdict(built),
+                            solve=asdict(solved),
+                            composite_seconds=solve_elapsed,
+                            composite_request_digest=composite.request_digest,
+                            builder_attestation_digest=composite.builder_attestation_digest,
+                        )
+                        emit_stage(run_name, 5, 5, "复合 Worker 已导出复数 S 参数")
+                    else:
+                        journal.update(stage="build")
+                        emit_stage(run_name, 3, 5, "创建 HFSS 工程")
+                        built = self.backend.build(candidate, workspace, self.contract)
+                        project_path = built.project_path
+                        journal.update(stage="solve", project=asdict(built))
+                        emit_stage(
+                            run_name,
+                            4,
+                            5,
+                            "求解目标设计",
+                            detail=f"仅求解 {self.contract.design_name}",
+                        )
+                        solve_started = time.monotonic()
+                        solved = self.backend.solve(
+                            built,
+                            self.contract,
+                            timeout_seconds=self.config.solve_timeout_seconds,
+                        )
+                        solve_elapsed = time.monotonic() - solve_started
+                        if solve_elapsed > self.config.solve_timeout_seconds:
+                            raise HFSSStageError(
+                                f"HFSS backend exceeded solve timeout: {solve_elapsed:.3f}s"
+                            )
+                        journal.update(
+                            stage="extract", solve=asdict(solved), solve_seconds=solve_elapsed
+                        )
+                        emit_stage(run_name, 5, 5, "导出复数 S 参数")
+                        raw = self.backend.extract(solved, self.contract)
                     complex_response = convert_raw_sparameters(raw, self.contract)
+                except HFSSProcessOutcomeUnknown as exc:
+                    lock.quarantine(str(exc), evidence=exc.evidence)
+                    journal.update(
+                        stage="quarantined",
+                        status="unknown",
+                        quarantine_reason=str(exc),
+                        quarantine_evidence=exc.evidence,
+                    )
+                    raise
                 finally:
-                    journal.update(stage="release_backend")
+                    if not lock.quarantined:
+                        journal.update(stage="release_backend")
                     self.backend.close()
 
             matrices = [
@@ -204,6 +247,8 @@ class GuardedHFSSAdapter(HFSSInterface):
                     "process_isolated": self.backend.process_isolated,
                     "validation_status": "hfss_backend_result",
                     "backend_metadata": dict(raw.metadata),
+                    "composite_request_digest": composite_request_digest,
+                    "builder_attestation_digest": builder_attestation_digest,
                     "comparison_context_id": self.contract.metadata.get("comparison_context_id"),
                 },
             )
@@ -211,9 +256,10 @@ class GuardedHFSSAdapter(HFSSInterface):
             emit_status(run_name, "失败", detail=f"{type(exc).__name__}: {exc}")
             journal_error: str | None = None
             try:
+                outcome_unknown = isinstance(exc, HFSSProcessOutcomeUnknown)
                 journal.update(
-                    stage="failed",
-                    status="failed",
+                    stage="quarantined" if outcome_unknown else "failed",
+                    status="unknown" if outcome_unknown else "failed",
                     failed_at=datetime.now(timezone.utc).isoformat(),
                     elapsed_seconds=time.monotonic() - started,
                     error=f"{type(exc).__name__}: {exc}",
@@ -233,7 +279,14 @@ class GuardedHFSSAdapter(HFSSInterface):
                     "workspace": str(workspace),
                     "process_isolated": self.backend.process_isolated,
                     "validation_status": "failed",
+                    "physical_outcome": (
+                        "UNKNOWN"
+                        if isinstance(exc, HFSSProcessOutcomeUnknown)
+                        else "FAILED"
+                    ),
                     "journal_error": journal_error,
+                    "composite_request_digest": composite_request_digest,
+                    "builder_attestation_digest": builder_attestation_digest,
                     "comparison_context_id": self.contract.metadata.get("comparison_context_id"),
                 },
             )

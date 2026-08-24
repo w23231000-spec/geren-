@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .models import FrequencyPlan
+from ..harness.core import HarnessSettings
 
 
 @dataclass(slots=True)
@@ -25,3 +26,5 @@ class AppConfig:
     artifact_root: Path = Path("runs")
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
     routing: RoutingConfig = field(default_factory=RoutingConfig)
+    harness: HarnessSettings = field(default_factory=HarnessSettings)
+    closed_loop_enabled: bool = False

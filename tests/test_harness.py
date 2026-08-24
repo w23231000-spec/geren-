@@ -1,7 +1,18 @@
 """Artifact isolation and comparison-state checkpoint tests."""
 
-from hfss_optimization_agent.agent.comparison_state import create_comparison_state
-from hfss_optimization_agent.core.models import CandidateParameters, HFSSResult
+from hfss_optimization_agent.agent.comparison_state import (
+    append_candidate_snapshots,
+    baseline_hfss_result,
+    best_candidate,
+    create_comparison_state,
+    current_candidate,
+)
+from hfss_optimization_agent.core.models import (
+    CandidateParameters,
+    EvaluationResult,
+    HFSSResult,
+)
+from hfss_optimization_agent.domain.contracts import BestPolicy, EvaluationRecord
 from hfss_optimization_agent.harness.artifacts import ArtifactStore
 from hfss_optimization_agent.harness.checkpoint import JsonComparisonCheckpointStore
 from hfss_optimization_agent.parameters.nine_parameter_schema import supplied_baseline_candidate
@@ -28,17 +39,30 @@ def test_comparison_checkpoint_preserves_baseline_best_and_candidate(tmp_path):
     candidate = CandidateParameters("candidate", 1, dict(baseline.values))
     baseline_hfss = HFSSResult("baseline", True, metrics={"score": -0.5})
     state = create_comparison_state(task_id="task", baseline_parameters=baseline)
-    state.update(
-        current_candidate=candidate,
-        baseline_hfss_result=baseline_hfss,
-        best_candidate=baseline,
-        best_hfss_result=baseline_hfss,
-        best_score=-0.5,
+    state["candidates"] = append_candidate_snapshots(
+        state,
+        [candidate],
+        source="optimizer",
+        parent_candidate_id="baseline",
+    )
+    state["current_candidate_id"] = candidate.candidate_id
+    state["hfss_results"] = (baseline_hfss,)
+    evaluation = EvaluationRecord.from_result(
+        EvaluationResult("baseline", False, False, {}, {}, {}, 0.0, "baseline", evaluated_stage="initial", status="FAIL"),
+        run_id=state["manifest"].run_id,
+        context_id=state["manifest"].design_goal.comparison_context_id,
+    )
+    state["evaluations"] = (evaluation,)
+    state["best_policy"] = BestPolicy.seed(
+        run_id=state["manifest"].run_id,
+        context_id=state["manifest"].design_goal.comparison_context_id,
+        baseline_candidate_id="baseline",
+        baseline_evaluation_id=evaluation.record_id,
     )
     store = JsonComparisonCheckpointStore(tmp_path / "checkpoint.json")
     store.save(state)
     restored = store.load()
-    assert restored["current_candidate"] == candidate
-    assert restored["baseline_hfss_result"] == baseline_hfss
-    assert restored["best_candidate"] == baseline
-    assert restored["best_score"] == -0.5
+    assert current_candidate(restored) == candidate
+    assert baseline_hfss_result(restored) == baseline_hfss
+    assert best_candidate(restored) == baseline
+    assert restored["best_policy"].selection_comparison_id is None

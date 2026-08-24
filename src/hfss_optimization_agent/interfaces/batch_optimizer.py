@@ -2,13 +2,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
-
-from ..core.models import CandidateParameters, OptimizationBatch, SParameterResult
 from typing import TYPE_CHECKING
 
+from ..core.models import OptimizationBatch
+
 if TYPE_CHECKING:
-    from ..optimization.intent import OptimizationObjective
+    from ..optimization.contracts import OptimizerRequest
 
 
 class BatchOptimizerInterface(ABC):
@@ -16,9 +15,6 @@ class BatchOptimizerInterface(ABC):
     def optimize(
         self,
         *,
-        baseline: CandidateParameters,
-        baseline_sparameters: SParameterResult,
-        target_specification: Mapping[str, float],
-        optimization_objective: OptimizationObjective | None = None,
+        request: "OptimizerRequest",
     ) -> OptimizationBatch:
-        """Run one optimization batch; routing and HFSS remain outside the service."""
+        """Run one canonical request; routing and HFSS remain outside the service."""

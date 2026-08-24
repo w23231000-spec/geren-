@@ -5,9 +5,10 @@ import json
 import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 from ..harness.errors import HFSSContractError
+from ..harness.provenance import source_manifest_digest, source_tree_manifest
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +28,61 @@ class SweepContract:
             raise HFSSContractError("Sweep requires 0 < start < stop and at least two points")
         if self.spacing not in {"linear", "log", "explicit"}:
             raise HFSSContractError(f"Unsupported sweep spacing {self.spacing!r}")
+
+
+FREQUENCY_GRID_ABS_TOLERANCE_HZ = 1.0
+FREQUENCY_GRID_REL_TOLERANCE = 1e-12
+
+
+def expected_sweep_frequency_hz(sweep: SweepContract) -> tuple[float, ...]:
+    """Return the grid fully declared by a linear or logarithmic sweep contract."""
+
+    if sweep.spacing == "linear":
+        step_hz = (sweep.stop_hz - sweep.start_hz) / (sweep.points - 1)
+        values = [sweep.start_hz + index * step_hz for index in range(sweep.points)]
+    elif sweep.spacing == "log":
+        ratio = (sweep.stop_hz / sweep.start_hz) ** (1.0 / (sweep.points - 1))
+        values = [sweep.start_hz * ratio**index for index in range(sweep.points)]
+    else:
+        raise HFSSContractError(
+            "Explicit sweep spacing cannot be verified because SweepContract does not "
+            "declare the intermediate frequencies"
+        )
+    values[0] = sweep.start_hz
+    values[-1] = sweep.stop_hz
+    return tuple(values)
+
+
+def validate_sweep_frequency_grid(
+    frequency_hz: Sequence[float],
+    sweep: SweepContract,
+) -> tuple[float, ...]:
+    """Fail closed unless the returned HFSS grid matches the declared sweep point by point."""
+
+    actual = tuple(float(value) for value in frequency_hz)
+    if len(actual) != sweep.points:
+        raise HFSSContractError(
+            f"HFSS returned {len(actual)} frequency points; contract requires {sweep.points}"
+        )
+    if not all(math.isfinite(value) for value in actual):
+        raise HFSSContractError("HFSS returned a non-finite frequency")
+    if any(current <= previous for previous, current in zip(actual, actual[1:])):
+        raise HFSSContractError("HFSS returned a frequency grid that is not strictly increasing")
+
+    expected = expected_sweep_frequency_hz(sweep)
+    for index, (observed_hz, expected_hz) in enumerate(zip(actual, expected)):
+        if not math.isclose(
+            observed_hz,
+            expected_hz,
+            rel_tol=FREQUENCY_GRID_REL_TOLERANCE,
+            abs_tol=FREQUENCY_GRID_ABS_TOLERANCE_HZ,
+        ):
+            raise HFSSContractError(
+                "HFSS frequency grid mismatch at index "
+                f"{index}: returned {observed_hz:.17g} Hz; "
+                f"contract requires {expected_hz:.17g} Hz"
+            )
+    return actual
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +193,91 @@ class HFSSRunContract:
     def contract_id(self) -> str:
         encoded = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":")).encode("utf-8")
         return hashlib.sha256(encoded).hexdigest().upper()
+
+
+@dataclass(frozen=True, slots=True)
+class BuilderAttestation:
+    schema_version: str
+    builder_id: str
+    source_digest: str
+    files: tuple[tuple[str, str], ...]
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "builder-attestation/1.0":
+            raise HFSSContractError("unsupported Builder attestation schema")
+        if not self.builder_id or len(self.source_digest) != 64 or not self.files:
+            raise HFSSContractError("invalid Builder attestation identity")
+        if source_manifest_digest(self.files) != self.source_digest:
+            raise HFSSContractError("Builder attestation manifest digest mismatch")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "builder_id": self.builder_id,
+            "source_digest": self.source_digest,
+            "files": [list(item) for item in self.files],
+        }
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> "BuilderAttestation":
+        return cls(
+            schema_version=str(value["schema_version"]),
+            builder_id=str(value["builder_id"]),
+            source_digest=str(value["source_digest"]),
+            files=tuple((str(item[0]), str(item[1])) for item in value["files"]),
+        )
+
+
+def attest_builder(root: Path, builder_id: str) -> BuilderAttestation:
+    files = source_tree_manifest(root, suffixes=(".py",))
+    return BuilderAttestation(
+        schema_version="builder-attestation/1.0",
+        builder_id=builder_id,
+        source_digest=source_manifest_digest(files),
+        files=files,
+    )
+
+
+def verify_builder_attestation(root: Path, attestation: BuilderAttestation) -> None:
+    actual = attest_builder(root, attestation.builder_id)
+    if actual != attestation:
+        raise HFSSContractError(
+            "Builder source drift detected before license acquisition: "
+            f"expected {attestation.source_digest}, observed {actual.source_digest}"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class HFSSCompositeRequest:
+    schema_version: str
+    candidate: dict[str, Any]
+    contract: dict[str, Any]
+    workspace: str
+    builder_attestation: BuilderAttestation
+    worker_options: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "hfss-composite-request/1.0":
+            raise HFSSContractError("unsupported HFSS composite request schema")
+        if not self.workspace:
+            raise HFSSContractError("HFSS composite workspace is required")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "candidate": self.candidate,
+            "contract": self.contract,
+            "workspace": self.workspace,
+            "builder_attestation": self.builder_attestation.to_dict(),
+            "worker_options": self.worker_options,
+        }
+
+    @property
+    def digest(self) -> str:
+        encoded = json.dumps(
+            self.to_dict(), sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
 
 
 def load_hfss_contract(path: str | Path) -> HFSSRunContract:

@@ -1,10 +1,8 @@
 """Deterministic batch optimizer used to exercise the confirmed business workflow offline."""
 
-from collections.abc import Mapping
-
-from ..core.models import CandidateParameters, OptimizationBatch, SParameterResult
-from .intent import OptimizationObjective
+from ..core.models import CandidateParameters, OptimizationBatch
 from ..interfaces.batch_optimizer import BatchOptimizerInterface
+from .contracts import OptimizerRequest
 
 
 class DeterministicBatchOptimizer(BatchOptimizerInterface):
@@ -17,16 +15,15 @@ class DeterministicBatchOptimizer(BatchOptimizerInterface):
     def optimize(
         self,
         *,
-        baseline: CandidateParameters,
-        baseline_sparameters: SParameterResult,
-        target_specification: Mapping[str, float],
-        optimization_objective: OptimizationObjective | None = None,
+        request: OptimizerRequest,
     ) -> OptimizationBatch:
         self.call_count += 1
+        baseline = request.baseline
+        prefix = "optimized" if request.iteration == 0 else f"optimized-r{request.iteration}"
         candidates = [
             CandidateParameters(
-                candidate_id=f"optimized-{index:03d}",
-                iteration=1,
+                candidate_id=f"{prefix}-{index:03d}",
+                iteration=request.iteration + 1,
                 values={name: value * factor for name, value in baseline.values.items()},
                 metadata={
                     "source": "deterministic-batch-optimizer",
@@ -43,9 +40,12 @@ class DeterministicBatchOptimizer(BatchOptimizerInterface):
             recommended_candidate_id=candidates[-1].candidate_id,
             evaluations=len(candidates),
             metadata={
-                "baseline_sparameter_provider": baseline_sparameters.provider,
-                "target_specification": dict(target_specification),
-                "optimization_objective": optimization_objective.to_dict() if optimization_objective else None,
+                "baseline_sparameter_provider": request.baseline_sparameters.provider,
+                "target_specification": request.target_specification,
+                "optimization_objective": request.optimization_objective.to_dict(),
+                "optimizer_request_digest": request.digest,
+                "effective_objective_digest": request.effective_objective.digest,
+                "effective_objective": request.effective_objective.to_dict(),
                 "calibration_status": "mock",
             },
         )

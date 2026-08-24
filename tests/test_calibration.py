@@ -12,7 +12,10 @@ from hfss_optimization_agent.evaluation.calibration import (
     CalibrationCase,
     CalibrationPolicy,
     assess_calibration,
+    create_calibration_evidence,
 )
+from hfss_optimization_agent.domain.canonical_json import canonical_dumps, canonical_loads
+from hfss_optimization_agent.domain.contracts import CalibrationEvidence
 from hfss_optimization_agent.harness.errors import CalibrationError
 
 
@@ -76,3 +79,42 @@ def test_calibration_refuses_frequency_grid_mismatch():
     mismatched.hfss.complex_response.frequency_hz[1] = 2.1e9
     with pytest.raises(CalibrationError, match="frequency grids differ"):
         assess_calibration([mismatched], CalibrationPolicy(1.0, 20.0))
+
+
+def test_calibration_evidence_is_strict_canonical_and_digest_stable():
+    policy = CalibrationPolicy(0.02, 1.0, minimum_pairwise_ranking_agreement=1.0)
+    report = assess_calibration(
+        [case("a", 0.10, 0.11), case("b", 0.20, 0.21)], policy
+    )
+    evidence = create_calibration_evidence(
+        report,
+        policy,
+        evidence_id="calibration:aligned-v1",
+        provider_fingerprints={"surrogate": "a" * 64, "hfss": "b" * 64},
+        created_at="2026-08-21T00:00:00+00:00",
+    )
+
+    restored = CalibrationEvidence.from_dict(canonical_loads(canonical_dumps(evidence)))
+    assert restored == evidence
+    assert restored.digest == evidence.digest
+    assert restored.case_ids == ("a", "b")
+
+    unknown = canonical_loads(canonical_dumps(evidence))
+    unknown["unexpected"] = True
+    with pytest.raises(ValueError, match="unexpected"):
+        CalibrationEvidence.from_dict(unknown)
+
+
+def test_calibration_evidence_refuses_report_identity_drift():
+    policy = CalibrationPolicy(1.0, 20.0)
+    report = assess_calibration([case("a", 0.1, 0.1)], policy)
+    evidence = create_calibration_evidence(
+        report,
+        policy,
+        evidence_id="calibration:one",
+        provider_fingerprints={"surrogate": "a" * 64, "hfss": "b" * 64},
+    )
+    payload = canonical_loads(canonical_dumps(evidence))
+    payload["comparison_context_id"] = "drifted"
+    with pytest.raises(ValueError, match="report/context"):
+        CalibrationEvidence.from_dict(payload)

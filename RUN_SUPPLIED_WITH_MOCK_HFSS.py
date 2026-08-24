@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from hfss_optimization_agent.cli import run_supplied_mock_demo  # noqa: E402
+from hfss_optimization_agent.core.enums import workflow_exit_code  # noqa: E402
 from hfss_optimization_agent.harness.terminal import (  # noqa: E402
     configure_utf8_output,
     emit_status,
@@ -26,3 +27,4 @@ if __name__ == "__main__":
         quick=True,
     )
     print_run_summary(summary)
+    raise SystemExit(workflow_exit_code(summary["status"]))

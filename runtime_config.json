@@ -4,7 +4,8 @@
   "artifact_root": "D:\\Agent_Workspace\\HFSS_Optimization_Agent_VSCode\\runs",
   "solve_timeout_seconds": 7200.0,
   "quick_optimizer": true,
-  "real_hfss_enabled": true,
+  "real_hfss_enabled": false,
+  "real_hfss_readiness_manifest": null,
   "hfss_ui_visible": true,
   "presentation_mode": true
 }

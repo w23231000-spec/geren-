@@ -29,6 +29,7 @@ class FileLicenseLock:
         self.config = config
         self.token = uuid.uuid4().hex
         self.acquired = False
+        self.quarantined = False
 
     @staticmethod
     def pid_is_alive(pid: int) -> bool:
@@ -37,13 +38,23 @@ class FileLicenseLock:
             return False
         if os.name == "nt":
             import ctypes
+            from ctypes import wintypes
 
             process_query_limited_information = 0x1000
+            still_active = 259
             kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+            kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            kernel32.CloseHandle.restype = wintypes.BOOL
             handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
             if handle:
+                exit_code = wintypes.DWORD()
+                queried = kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
                 kernel32.CloseHandle(handle)
-                return True
+                return bool(queried and exit_code.value == still_active)
             # Access denied still proves that the process exists.
             return ctypes.get_last_error() == 5
         try:
@@ -65,7 +76,7 @@ class FileLicenseLock:
             pid = int(owner["pid"])
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
             return False
-        if self.pid_is_alive(pid):
+        if owner.get("status") == "QUARANTINED" or self.pid_is_alive(pid):
             return False
         try:
             if path.read_text(encoding="utf-8") != original:
@@ -83,6 +94,7 @@ class FileLicenseLock:
             {
                 "token": self.token,
                 "pid": os.getpid(),
+                "status": "ACTIVE",
                 "acquired_at": datetime.now(timezone.utc).isoformat(),
             },
             ensure_ascii=False,
@@ -97,6 +109,14 @@ class FileLicenseLock:
                 self.acquired = True
                 return
             except FileExistsError:
+                try:
+                    existing = json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    existing = {}
+                if existing.get("status") == "QUARANTINED":
+                    raise HFSSLicenseLockError(
+                        f"HFSS license lock is quarantined pending operator reconciliation: {path}"
+                    )
                 if self._reclaim_stale_lock(path):
                     continue
                 if time.monotonic() >= deadline:
@@ -105,6 +125,9 @@ class FileLicenseLock:
 
     def release(self) -> None:
         if not self.acquired:
+            return
+        if self.quarantined:
+            self.acquired = False
             return
         path = self.config.path.resolve()
         try:
@@ -117,6 +140,37 @@ class FileLicenseLock:
             raise HFSSLicenseLockError(f"HFSS license lock ownership changed unexpectedly: {path}")
         path.unlink()
         self.acquired = False
+
+    def quarantine(self, reason: str, *, evidence: dict | None = None) -> None:
+        """Keep the lock as a durable fail-closed marker after uncertain cleanup."""
+
+        if not self.acquired:
+            raise HFSSLicenseLockError("cannot quarantine a license lock that is not held")
+        path = self.config.path.resolve()
+        try:
+            owner = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise HFSSLicenseLockError(
+                f"HFSS license lock cannot be quarantined safely: {path}"
+            ) from exc
+        if owner.get("token") != self.token:
+            raise HFSSLicenseLockError(
+                f"HFSS license lock ownership changed before quarantine: {path}"
+            )
+        owner.update(
+            {
+                "status": "QUARANTINED",
+                "quarantined_at": datetime.now(timezone.utc).isoformat(),
+                "reason": str(reason),
+                "evidence": dict(evidence or {}),
+            }
+        )
+        temporary = path.with_name(f".{path.name}.{self.token}.tmp")
+        temporary.write_text(
+            json.dumps(owner, sort_keys=True, separators=(",", ":")), encoding="utf-8"
+        )
+        os.replace(temporary, path)
+        self.quarantined = True
 
     def __enter__(self) -> "FileLicenseLock":
         self.acquire()

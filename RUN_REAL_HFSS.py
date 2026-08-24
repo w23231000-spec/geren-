@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 
@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from hfss_optimization_agent.cli import run_real_supplied_demo  # noqa: E402
+from hfss_optimization_agent.core.enums import workflow_exit_code  # noqa: E402
+from hfss_optimization_agent.harness.real_hfss_safety import (  # noqa: E402
+    validate_real_hfss_launch_configuration,
+)
 from hfss_optimization_agent.harness.terminal import (  # noqa: E402
     configure_utf8_output,
     emit_status,
@@ -21,8 +25,13 @@ from hfss_optimization_agent.harness.terminal import (  # noqa: E402
 
 def _configuration() -> dict:
     value = json.loads((ROOT / "runtime_config.json").read_text(encoding="utf-8"))
-    if not value.get("real_hfss_enabled", False):
-        raise RuntimeError("真实 HFSS 未启用：请先在 runtime_config.json 中设置 real_hfss_enabled=true")
+    manifest_path = os.environ.get("HFSS_REAL_READINESS_MANIFEST")
+    if manifest_path:
+        value["real_hfss_enabled"] = True
+        value["real_hfss_readiness_manifest"] = manifest_path
+    value["_readiness_authorization"] = validate_real_hfss_launch_configuration(
+        value, repository_root=ROOT
+    )
     interpreter = Path(value["pyaedt_python"])
     if not interpreter.is_file():
         raise FileNotFoundError(f"找不到 PyAEDT Python：{interpreter}")
@@ -32,7 +41,8 @@ def _configuration() -> dict:
 if __name__ == "__main__":
     configure_utf8_output()
     configuration = _configuration()
-    task_id = f"real-vscode-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    authorization = configuration["_readiness_authorization"]
+    task_id = authorization.manifest.task_id
     emit_status("任务", "启动真实 HFSS 自动优化流程", detail=task_id)
     emit_status("求解范围", "只创建并求解 interposer_temple4")
     emit_status(
@@ -51,6 +61,8 @@ if __name__ == "__main__":
         quick=bool(configuration.get("quick_optimizer", True)),
         solve_timeout_seconds=float(configuration.get("solve_timeout_seconds", 7200.0)),
         execute_real_hfss=True,
+        readiness_authorization=authorization,
         non_graphical=not bool(configuration.get("hfss_ui_visible", True)),
     )
     print_run_summary(summary)
+    raise SystemExit(workflow_exit_code(summary["status"]))

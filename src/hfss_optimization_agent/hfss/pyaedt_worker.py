@@ -11,7 +11,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ..harness.process_supervisor import worker_heartbeat_from_environment
 from ..harness.terminal import configure_utf8_output, emit_stage, emit_status
+from .contracts import (
+    BuilderAttestation,
+    HFSSCompositeRequest,
+    SweepContract,
+    validate_sweep_frequency_grid,
+    verify_builder_attestation,
+)
 
 
 _BUILD_STAGE_TOTAL = 13
@@ -158,6 +166,11 @@ def _build(request: dict[str, Any]) -> dict[str, Any]:
     builder_root = Path(str(options["builder_source_root"])).resolve()
     if not (builder_root / "nine_parameter_builder.py").is_file():
         raise FileNotFoundError(f"Supplied nine-parameter builder is missing: {builder_root}")
+    attestation_raw = request.get("builder_attestation")
+    if attestation_raw is not None:
+        verify_builder_attestation(
+            builder_root, BuilderAttestation.from_dict(attestation_raw)
+        )
     workspace = Path(str(request["workspace"])).resolve()
     workspace.mkdir(parents=True, exist_ok=True)
     progress_path = workspace / "build_progress.json"
@@ -210,6 +223,11 @@ def _build(request: dict[str, Any]) -> dict[str, Any]:
             "builder_source_root": str(builder_root),
             "builder_result": result,
             "build_strategy": "target_design_only",
+            "builder_attestation_digest": (
+                attestation_raw.get("source_digest")
+                if isinstance(attestation_raw, dict)
+                else None
+            ),
         },
     }
 
@@ -286,11 +304,7 @@ def _extract(request: dict[str, Any]) -> dict[str, Any]:
         frequency_unit = data.units_sweeps.get("Freq", "Hz")
         multiplier = _frequency_multiplier(frequency_unit)
         frequency_hz = [float(value) * multiplier for value in data.primary_sweep_values]
-        expected_points = int(contract["sweep"]["points"])
-        if len(frequency_hz) != expected_points:
-            raise RuntimeError(
-                f"HFSS returned {len(frequency_hz)} points; contract requires {expected_points}"
-            )
+        validate_sweep_frequency_grid(frequency_hz, SweepContract(**contract["sweep"]))
         real_by_expression = {
             expression: [float(value) for value in data.data_real(expression)]
             for expression in expressions
@@ -359,6 +373,42 @@ def _extract(request: dict[str, Any]) -> dict[str, Any]:
 
 
 def _execute(stage: str, request: dict[str, Any]) -> dict[str, Any]:
+    if stage == "composite":
+        attestation = BuilderAttestation.from_dict(request["builder_attestation"])
+        composite = HFSSCompositeRequest(
+            schema_version=str(request["schema_version"]),
+            candidate=dict(request["candidate"]),
+            contract=dict(request["contract"]),
+            workspace=str(request["workspace"]),
+            builder_attestation=attestation,
+            worker_options=dict(request["worker_options"]),
+        )
+        builder_root = Path(str(composite.worker_options["builder_source_root"])).resolve()
+        verify_builder_attestation(builder_root, attestation)
+        build_request = composite.to_dict()
+        built = _build(build_request)
+        solved = _solve(
+            {
+                "contract": composite.contract,
+                "worker_options": composite.worker_options,
+                "project": built,
+            }
+        )
+        raw = _extract(
+            {
+                "contract": composite.contract,
+                "worker_options": composite.worker_options,
+                "solved": solved,
+            }
+        )
+        return {
+            "status": "success",
+            "request_digest": composite.digest,
+            "builder_attestation_digest": attestation.source_digest,
+            "built": built,
+            "solved": solved,
+            "raw": raw,
+        }
     if stage == "build":
         return _build(request)
     if stage == "solve":
@@ -371,24 +421,27 @@ def _execute(stage: str, request: dict[str, Any]) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     configure_utf8_output()
     parser = argparse.ArgumentParser(prog="pyaedt-hfss-worker")
-    parser.add_argument("--stage", choices=("build", "solve", "extract"), required=True)
+    parser.add_argument(
+        "--stage", choices=("composite", "build", "solve", "extract"), required=True
+    )
     parser.add_argument("--request", type=Path, required=True)
     parser.add_argument("--response", type=Path, required=True)
     args = parser.parse_args(argv)
-    try:
-        response = _execute(args.stage, _read_json(args.request))
-    except Exception as exc:
-        response = {
-            "status": "error",
-            "stage": args.stage,
-            "error": f"{type(exc).__name__}: {exc}",
-            "traceback": traceback.format_exc(),
-        }
+    with worker_heartbeat_from_environment():
+        try:
+            response = _execute(args.stage, _read_json(args.request))
+        except Exception as exc:
+            response = {
+                "status": "error",
+                "stage": args.stage,
+                "error": f"{type(exc).__name__}: {exc}",
+                "traceback": traceback.format_exc(),
+            }
+            _write_json(args.response, response)
+            print(response["traceback"], file=sys.stderr)
+            return 1
         _write_json(args.response, response)
-        print(response["traceback"], file=sys.stderr)
-        return 1
-    _write_json(args.response, response)
-    return 0
+        return 0
 
 
 if __name__ == "__main__":

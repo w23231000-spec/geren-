@@ -55,11 +55,42 @@ class RawSParameterData:
                     raise ValueError("Raw S-parameter matrix values must be finite")
 
 
+@dataclass(slots=True)
+class CompositeHFSSResult:
+    built: BuiltProject
+    solved: SolvedProject
+    raw: RawSParameterData
+    request_digest: str
+    builder_attestation_digest: str
+
+
 class HFSSBackendInterface(ABC):
     """Implementation boundary that a future PyAEDT/COM/gRPC worker must satisfy."""
 
     backend_name: str = "unknown"
     process_isolated: bool = False
+    supports_composite: bool = False
+
+    def preflight(
+        self,
+        candidate: CandidateParameters,
+        contract: HFSSRunContract,
+        workspace: Path | None = None,
+    ) -> None:
+        """Validate immutable inputs before the caller acquires an AEDT license."""
+
+        del candidate, contract, workspace
+
+    def run_composite(
+        self,
+        candidate: CandidateParameters,
+        workspace: Path,
+        contract: HFSSRunContract,
+        *,
+        solve_timeout_seconds: float,
+    ) -> CompositeHFSSResult:
+        del candidate, workspace, contract, solve_timeout_seconds
+        raise NotImplementedError("backend does not implement composite HFSS execution")
 
     @abstractmethod
     def build(
