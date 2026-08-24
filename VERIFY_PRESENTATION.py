@@ -53,7 +53,11 @@ def main() -> int:
         _check("HFSS 建模模块", (ROOT / "vendor" / "hfss_builder" / "nine_parameter_builder.py").is_file(), "已内置"),
         _check("优化模块", (ROOT / "vendor" / "optimizer" / "app" / "run.py").is_file(), "已内置"),
         _check("HFSS 运行合同", (ROOT / "config" / "hfss_contract.pa_multi_2025_1.json").is_file(), "interposer_temple4"),
-        _check("AEDT 界面可见", bool(configuration.get("hfss_ui_visible")), str(configuration.get("hfss_ui_visible"))),
+        _check(
+            "AEDT 界面模式",
+            isinstance(configuration.get("hfss_ui_visible"), bool),
+            "图形界面" if configuration.get("hfss_ui_visible") else "后台运行",
+        ),
         _check("产物目录", artifact_root.parent.is_dir(), str(artifact_root)),
         _check_license_lock(artifact_root / ".locks" / "aedt-2025_1.lock"),
     ]

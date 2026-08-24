@@ -44,11 +44,11 @@
     {
       "material_name": "PI",
       "relative_permittivity": 3.5,
-      "loss_tangent": null,
+      "loss_tangent": 0.02,
       "conductivity_s_per_m": null,
-      "evidence_status": "unconfirmed",
+      "evidence_status": "approved_model_contract",
       "metadata": {
-        "note": "Builder value; surrogate currently uses a different value and remains uncalibrated."
+        "note": "Existing HFSS Builder is the user-approved physical model authority; physical correlation remains gated by paired Calibration Evidence."
       }
     }
   ],

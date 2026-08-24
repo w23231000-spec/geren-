@@ -19,7 +19,39 @@ from .canonical_json import CanonicalJsonError, canonical_dumps, require_exact_f
 
 
 STATE_SCHEMA_VERSION = "2.0"
-CALIBRATION_EVIDENCE_SCHEMA_VERSION = "calibration-evidence/1.0"
+CALIBRATION_EVIDENCE_SCHEMA_VERSION = "calibration-evidence/1.1"
+CALIBRATION_POLICY_VERSION = "paired-surrogate-hfss/1.0"
+MINIMUM_CALIBRATION_CASES = 3
+MINIMUM_CALIBRATION_COMPARABLE_PAIRS = 2
+CALIBRATION_PROVIDER_FINGERPRINTS = frozenset(
+    {
+        "supplied_surrogate_source_sha256",
+        "hfss_builder_source_sha256",
+        "pyaedt_executable_sha256",
+        "hfss_worker_protocol",
+    }
+)
+CALIBRATION_ARTIFACT_ROLES = frozenset(
+    {
+        "candidate_parameters",
+        "surrogate_result",
+        "hfss_result",
+        "hfss_touchstone",
+        "hfss_project",
+    }
+)
+CALIBRATION_POLICY_FIELDS = frozenset(
+    {
+        "max_complex_rmse",
+        "max_magnitude_db_rmse",
+        "minimum_pairwise_ranking_agreement",
+        "frequency_tolerance_hz",
+        "impedance_tolerance_ohm",
+        "require_comparison_context_id",
+        "minimum_case_count",
+        "minimum_comparable_pairs",
+    }
+)
 
 
 def _non_empty(value: str, field_name: str) -> str:
@@ -68,6 +100,21 @@ class FrozenMap:
 
     def __canonical_json__(self) -> dict[str, Any]:
         return self.to_dict()
+
+
+def _sha256(value: str, field_name: str) -> str:
+    normalized = _non_empty(value, field_name).lower()
+    if len(normalized) != 64 or any(char not in "0123456789abcdef" for char in normalized):
+        raise ValueError(f"{field_name} must be a 64-character hexadecimal digest")
+    return normalized
+
+
+def calibration_policy_sha256(policy: Any) -> str:
+    return hashlib.sha256(canonical_dumps(policy).encode("utf-8")).hexdigest()
+
+
+def calibration_artifact_manifest_sha256(artifacts: Any) -> str:
+    return hashlib.sha256(canonical_dumps(artifacts).encode("utf-8")).hexdigest()
 
 
 def _freeze_json(value: Any) -> Any:
@@ -133,6 +180,52 @@ class DesignGoal:
 
 
 @dataclass(frozen=True, slots=True)
+class CalibrationArtifactReceipt:
+    artifact_id: str
+    case_id: str
+    candidate_id: str
+    role: str
+    uri: str
+    sha256: str
+    size_bytes: int
+
+    def __post_init__(self) -> None:
+        for name in ("artifact_id", "case_id", "candidate_id", "role", "uri"):
+            object.__setattr__(self, name, _non_empty(getattr(self, name), name))
+        if self.role not in CALIBRATION_ARTIFACT_ROLES:
+            raise ValueError(f"unsupported Calibration artifact role {self.role!r}")
+        uri_path = PurePosixPath(self.uri)
+        if (
+            "\\" in self.uri
+            or uri_path.is_absolute()
+            or any(part in {".", ".."} for part in uri_path.parts)
+        ):
+            raise ValueError("CalibrationArtifactReceipt.uri must be a relative POSIX URI")
+        object.__setattr__(self, "sha256", _sha256(self.sha256, "sha256"))
+        if isinstance(self.size_bytes, bool) or not isinstance(self.size_bytes, int):
+            raise ValueError("CalibrationArtifactReceipt.size_bytes must be an integer")
+        if self.size_bytes <= 0:
+            raise ValueError("CalibrationArtifactReceipt.size_bytes must be positive")
+
+    @classmethod
+    def from_dict(cls, value: Any) -> "CalibrationArtifactReceipt":
+        data = require_exact_fields(
+            value,
+            {
+                "artifact_id",
+                "case_id",
+                "candidate_id",
+                "role",
+                "uri",
+                "sha256",
+                "size_bytes",
+            },
+            context="CalibrationArtifactReceipt",
+        )
+        return cls(**data)
+
+
+@dataclass(frozen=True, slots=True)
 class CalibrationEvidence:
     """Immutable paired surrogate/HFSS evidence used by the real-run gate."""
 
@@ -145,8 +238,10 @@ class CalibrationEvidence:
     case_ids: tuple[str, ...]
     provider_fingerprints: FrozenMap
     policy: FrozenMap
+    policy_sha256: str
+    hfss_contract_sha256: str
     report: FrozenMap
-    source_artifact_ids: tuple[str, ...] = ()
+    source_artifacts: tuple[CalibrationArtifactReceipt, ...]
 
     def __post_init__(self) -> None:
         if self.schema_version != CALIBRATION_EVIDENCE_SCHEMA_VERSION:
@@ -157,36 +252,189 @@ class CalibrationEvidence:
         for name in (
             "evidence_id",
             "created_at",
-            "policy_version",
             "comparison_context_id",
         ):
             object.__setattr__(self, name, _non_empty(getattr(self, name), name))
+        if self.policy_version != CALIBRATION_POLICY_VERSION:
+            raise ValueError(
+                f"CalibrationEvidence policy_version must be {CALIBRATION_POLICY_VERSION}"
+            )
         if not isinstance(self.passed, bool):
             raise ValueError("CalibrationEvidence.passed must be boolean")
-        if not self.case_ids or len(self.case_ids) != len(set(self.case_ids)):
-            raise ValueError("CalibrationEvidence.case_ids must be non-empty and unique")
-        for case_id in self.case_ids:
-            _non_empty(case_id, "CalibrationEvidence.case_id")
-        for artifact_id in self.source_artifact_ids:
-            _non_empty(artifact_id, "CalibrationEvidence.source_artifact_id")
-        providers = self.provider_fingerprints.to_dict()
-        if not providers or any(
-            not isinstance(value, str) or not value.strip()
-            for value in providers.values()
+        if (
+            len(self.case_ids) < MINIMUM_CALIBRATION_CASES
+            or len(self.case_ids) != len(set(self.case_ids))
         ):
             raise ValueError(
-                "CalibrationEvidence.provider_fingerprints must contain non-empty strings"
+                f"CalibrationEvidence requires at least {MINIMUM_CALIBRATION_CASES} unique cases"
             )
+        for case_id in self.case_ids:
+            _non_empty(case_id, "CalibrationEvidence.case_id")
+
+        policy = self.policy.to_dict()
+        if set(policy) != CALIBRATION_POLICY_FIELDS:
+            raise ValueError("CalibrationEvidence policy fields are incomplete or unknown")
+        for name in (
+            "max_complex_rmse",
+            "max_magnitude_db_rmse",
+            "frequency_tolerance_hz",
+            "impedance_tolerance_ohm",
+        ):
+            if _finite(policy[name], f"policy.{name}") < 0.0:
+                raise ValueError(f"policy.{name} cannot be negative")
+        ranking = _finite(
+            policy["minimum_pairwise_ranking_agreement"],
+            "policy.minimum_pairwise_ranking_agreement",
+        )
+        if not 0.0 <= ranking <= 1.0:
+            raise ValueError("policy.minimum_pairwise_ranking_agreement must be in [0, 1]")
+        if policy["require_comparison_context_id"] is not True:
+            raise ValueError("real Calibration policy must require comparison context identity")
+        if (
+            isinstance(policy["minimum_case_count"], bool)
+            or not isinstance(policy["minimum_case_count"], int)
+            or policy["minimum_case_count"] < MINIMUM_CALIBRATION_CASES
+            or len(self.case_ids) < policy["minimum_case_count"]
+        ):
+            raise ValueError("Calibration policy/cases do not meet minimum case cardinality")
+        if (
+            isinstance(policy["minimum_comparable_pairs"], bool)
+            or not isinstance(policy["minimum_comparable_pairs"], int)
+            or policy["minimum_comparable_pairs"] < MINIMUM_CALIBRATION_COMPARABLE_PAIRS
+        ):
+            raise ValueError("Calibration policy requires too few comparable ranking pairs")
+        actual_policy_sha256 = calibration_policy_sha256(policy)
+        object.__setattr__(self, "policy_sha256", _sha256(self.policy_sha256, "policy_sha256"))
+        if self.policy_sha256 != actual_policy_sha256:
+            raise ValueError("CalibrationEvidence policy SHA-256 differs from policy content")
+        object.__setattr__(
+            self,
+            "hfss_contract_sha256",
+            _sha256(self.hfss_contract_sha256, "hfss_contract_sha256"),
+        )
+
+        providers = self.provider_fingerprints.to_dict()
+        if set(providers) != CALIBRATION_PROVIDER_FINGERPRINTS:
+            raise ValueError(
+                "CalibrationEvidence must bind the complete causal Calibration provider set"
+            )
+        for name in CALIBRATION_PROVIDER_FINGERPRINTS - {"hfss_worker_protocol"}:
+            providers[name] = _sha256(providers[name], f"provider_fingerprints.{name}")
+        if providers["hfss_worker_protocol"] != "hfss-composite-request/1.0":
+            raise ValueError("CalibrationEvidence uses an unsupported HFSS worker protocol")
+        object.__setattr__(self, "provider_fingerprints", FrozenMap.from_mapping(providers))
+
         report = self.report.to_dict()
-        if report.get("passed") is not self.passed:
-            raise ValueError("CalibrationEvidence report/pass status differs")
-        if report.get("comparison_context_id") != self.comparison_context_id:
-            raise ValueError("CalibrationEvidence report/context differs")
-        report_cases = report.get("cases")
+        expected_report_fields = {
+            "passed",
+            "cases",
+            "mean_complex_rmse",
+            "mean_magnitude_db_rmse",
+            "pairwise_ranking_agreement",
+            "comparable_pairs",
+            "comparison_context_id",
+            "reasons",
+        }
+        if set(report) != expected_report_fields:
+            raise ValueError("CalibrationEvidence report fields are incomplete or unknown")
+        report_cases = report["cases"]
         if not isinstance(report_cases, list) or tuple(
             item.get("case_id") if isinstance(item, dict) else None for item in report_cases
         ) != self.case_ids:
             raise ValueError("CalibrationEvidence report/case identities differ")
+        candidate_by_case: dict[str, str] = {}
+        expected_case_fields = {
+            "case_id",
+            "candidate_id",
+            "complex_rmse",
+            "magnitude_db_rmse",
+            "max_complex_error",
+            "surrogate_worst_s11",
+            "hfss_worst_s11",
+        }
+        for item in report_cases:
+            if set(item) != expected_case_fields:
+                raise ValueError("CalibrationEvidence report case fields differ")
+            candidate_by_case[item["case_id"]] = _non_empty(
+                item["candidate_id"], "CalibrationEvidence.report.candidate_id"
+            )
+            for name in expected_case_fields - {"case_id", "candidate_id"}:
+                _finite(item[name], f"CalibrationEvidence.report.{name}")
+        if len(set(candidate_by_case.values())) != len(candidate_by_case):
+            raise ValueError("CalibrationEvidence candidates must be unique")
+
+        computed_mean_complex = sum(item["complex_rmse"] for item in report_cases) / len(
+            report_cases
+        )
+        computed_mean_db = sum(item["magnitude_db_rmse"] for item in report_cases) / len(
+            report_cases
+        )
+        comparable = 0
+        agreements = 0
+        for left_index, left in enumerate(report_cases):
+            for right in report_cases[left_index + 1 :]:
+                surrogate_delta = (
+                    left["surrogate_worst_s11"] - right["surrogate_worst_s11"]
+                )
+                hfss_delta = left["hfss_worst_s11"] - right["hfss_worst_s11"]
+                if math.isclose(surrogate_delta, 0.0, abs_tol=1e-15) or math.isclose(
+                    hfss_delta, 0.0, abs_tol=1e-15
+                ):
+                    continue
+                comparable += 1
+                agreements += int((surrogate_delta < 0.0) == (hfss_delta < 0.0))
+        computed_agreement = 0.0 if comparable == 0 else agreements / comparable
+
+        comparable_pairs = report["comparable_pairs"]
+        if (
+            isinstance(comparable_pairs, bool)
+            or not isinstance(comparable_pairs, int)
+            or comparable_pairs < policy["minimum_comparable_pairs"]
+            or comparable_pairs != comparable
+        ):
+            raise ValueError("CalibrationEvidence has insufficient comparable ranking pairs")
+        mean_complex = _finite(report["mean_complex_rmse"], "report.mean_complex_rmse")
+        mean_db = _finite(report["mean_magnitude_db_rmse"], "report.mean_magnitude_db_rmse")
+        agreement = _finite(
+            report["pairwise_ranking_agreement"], "report.pairwise_ranking_agreement"
+        )
+        if not math.isclose(mean_complex, computed_mean_complex, rel_tol=0.0, abs_tol=1e-15):
+            raise ValueError("CalibrationEvidence mean complex RMSE is not recomputed from cases")
+        if not math.isclose(mean_db, computed_mean_db, rel_tol=0.0, abs_tol=1e-15):
+            raise ValueError("CalibrationEvidence mean dB RMSE is not recomputed from cases")
+        if not math.isclose(agreement, computed_agreement, rel_tol=0.0, abs_tol=1e-15):
+            raise ValueError("CalibrationEvidence ranking is not recomputed from cases")
+        expected_reasons: list[str] = []
+        if mean_complex > policy["max_complex_rmse"]:
+            expected_reasons.append("mean_complex_rmse_exceeded")
+        if mean_db > policy["max_magnitude_db_rmse"]:
+            expected_reasons.append("mean_magnitude_db_rmse_exceeded")
+        if agreement < policy["minimum_pairwise_ranking_agreement"]:
+            expected_reasons.append("pairwise_ranking_agreement_below_threshold")
+        if report["reasons"] != expected_reasons:
+            raise ValueError("CalibrationEvidence report reasons do not match policy")
+        if report["passed"] is not (not expected_reasons) or self.passed is not report["passed"]:
+            raise ValueError("CalibrationEvidence report/pass status differs")
+        if report["comparison_context_id"] != self.comparison_context_id:
+            raise ValueError("CalibrationEvidence report/context differs")
+
+        artifact_ids: set[str] = set()
+        artifact_uris: set[str] = set()
+        roles_by_case = {case_id: set() for case_id in self.case_ids}
+        for artifact in self.source_artifacts:
+            if artifact.case_id not in roles_by_case:
+                raise ValueError("Calibration artifact uses an unknown case")
+            if artifact.candidate_id != candidate_by_case[artifact.case_id]:
+                raise ValueError("Calibration artifact candidate identity differs")
+            if artifact.artifact_id in artifact_ids or artifact.uri in artifact_uris:
+                raise ValueError("Calibration artifact identity/URI must be unique")
+            artifact_ids.add(artifact.artifact_id)
+            artifact_uris.add(artifact.uri)
+            if artifact.role in roles_by_case[artifact.case_id]:
+                raise ValueError("Calibration artifact role is duplicated for a case")
+            roles_by_case[artifact.case_id].add(artifact.role)
+        if any(roles != CALIBRATION_ARTIFACT_ROLES for roles in roles_by_case.values()):
+            raise ValueError("Calibration evidence lacks required source artifact roles")
 
     @classmethod
     def from_dict(cls, value: Any) -> "CalibrationEvidence":
@@ -202,14 +450,14 @@ class CalibrationEvidence:
                 "case_ids",
                 "provider_fingerprints",
                 "policy",
+                "policy_sha256",
+                "hfss_contract_sha256",
                 "report",
-                "source_artifact_ids",
+                "source_artifacts",
             },
             context="CalibrationEvidence",
         )
-        if not isinstance(data["case_ids"], list) or not isinstance(
-            data["source_artifact_ids"], list
-        ):
+        if not isinstance(data["case_ids"], list) or not isinstance(data["source_artifacts"], list):
             raise CanonicalJsonError("CalibrationEvidence identity fields must be arrays")
         return cls(
             schema_version=data["schema_version"],
@@ -221,13 +469,25 @@ class CalibrationEvidence:
             case_ids=tuple(data["case_ids"]),
             provider_fingerprints=FrozenMap.from_dict(data["provider_fingerprints"]),
             policy=FrozenMap.from_dict(data["policy"]),
+            policy_sha256=data["policy_sha256"],
+            hfss_contract_sha256=data["hfss_contract_sha256"],
             report=FrozenMap.from_dict(data["report"]),
-            source_artifact_ids=tuple(data["source_artifact_ids"]),
+            source_artifacts=tuple(
+                CalibrationArtifactReceipt.from_dict(item) for item in data["source_artifacts"]
+            ),
         )
 
     @property
     def digest(self) -> str:
         return hashlib.sha256(canonical_dumps(self).encode("utf-8")).hexdigest()
+
+    @property
+    def source_artifact_ids(self) -> tuple[str, ...]:
+        return tuple(artifact.artifact_id for artifact in self.source_artifacts)
+
+    @property
+    def source_artifact_manifest_sha256(self) -> str:
+        return calibration_artifact_manifest_sha256(self.source_artifacts)
 
 
 @dataclass(frozen=True, slots=True)

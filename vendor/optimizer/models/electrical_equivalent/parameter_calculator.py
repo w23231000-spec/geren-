@@ -33,7 +33,7 @@ class ModelConstants:
     mu0: float = 4.0 * math.pi * 1e-7  # 真空磁导率，H/m。
     eps0: float = 8.854e-12  # 真空介电常数，F/m。
     epsr_SI: float = 11.9  # 硅相对介电常数，无量纲。
-    epsr_PI: float = 3.9  # PI 相对介电常数，无量纲。
+    epsr_PI: float = 3.5  # 与权威 HFSS Builder 的 PI 定义一致。
     epsr_SiO2: float = 4.0  # SiO2 相对介电常数，无量纲。
     sigma_Cu: float = 5.8e7  # 铜电导率，S/m。
     sigma_SI: float = 0.001  # 硅电导率，S/m。

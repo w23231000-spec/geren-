@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -45,11 +46,16 @@ from hfss_optimization_agent.evaluation.contract import (
     load_production_evaluation_config,
 )
 from hfss_optimization_agent.domain.contracts import (
+    CALIBRATION_ARTIFACT_ROLES,
     CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+    CALIBRATION_POLICY_VERSION,
+    CalibrationArtifactReceipt,
     CalibrationEvidence,
     FrozenMap,
+    calibration_policy_sha256,
     canonical_digest,
 )
+from hfss_optimization_agent.evaluation.calibration import CalibrationPolicy
 from hfss_optimization_agent.harness.execution_policy import ExecutionPolicy
 from hfss_optimization_agent.harness.provenance import source_tree_digest
 from hfss_optimization_agent.harness.real_hfss_safety import (
@@ -450,14 +456,17 @@ def test_wf001_real_composition_loads_production_rules_without_running_hfss(
         "closed_loop_policy_sha256": production_policy_sha256(),
     }
     contract = load_hfss_contract(HFSS_CONTRACT_PATH)
+    calibration_case_ids = ("cal-a", "cal-b", "cal-c")
+    calibration_policy = CalibrationPolicy(0.02, 1.0)
+    calibration_policy_dict = calibration_policy.to_dict()
     calibration = CalibrationEvidence(
         schema_version=CALIBRATION_EVIDENCE_SCHEMA_VERSION,
         evidence_id="calibration:test-only",
         created_at="2026-08-20T00:00:00+00:00",
-        policy_version="paired-surrogate-hfss/1.0",
+        policy_version=CALIBRATION_POLICY_VERSION,
         comparison_context_id=contract.metadata["comparison_context_id"],
         passed=True,
-        case_ids=("cal-a",),
+        case_ids=calibration_case_ids,
         provider_fingerprints=FrozenMap.from_mapping(
             {
                 "supplied_surrogate_source_sha256": optimizer_digest,
@@ -466,13 +475,44 @@ def test_wf001_real_composition_loads_production_rules_without_running_hfss(
                 "hfss_worker_protocol": HFSS_WORKER_PROTOCOL,
             }
         ),
-        policy=FrozenMap.from_mapping({"max_complex_rmse": 0.02}),
+        policy=FrozenMap.from_mapping(calibration_policy_dict),
+        policy_sha256=calibration_policy_sha256(calibration_policy_dict),
+        hfss_contract_sha256=file_sha256(HFSS_CONTRACT_PATH),
         report=FrozenMap.from_mapping(
             {
                 "passed": True,
                 "comparison_context_id": contract.metadata["comparison_context_id"],
-                "cases": [{"case_id": "cal-a"}],
+                "cases": [
+                    {
+                        "case_id": case_id,
+                        "candidate_id": case_id,
+                        "complex_rmse": 0.01,
+                        "magnitude_db_rmse": 0.5,
+                        "max_complex_error": 0.02,
+                        "surrogate_worst_s11": 0.1 * index,
+                        "hfss_worst_s11": 0.1 * index + 0.01,
+                    }
+                    for index, case_id in enumerate(calibration_case_ids, start=1)
+                ],
+                "mean_complex_rmse": 0.01,
+                "mean_magnitude_db_rmse": 0.5,
+                "pairwise_ranking_agreement": 1.0,
+                "comparable_pairs": 3,
+                "reasons": [],
             }
+        ),
+        source_artifacts=tuple(
+            CalibrationArtifactReceipt(
+                artifact_id=f"{case_id}:{role}",
+                case_id=case_id,
+                candidate_id=case_id,
+                role=role,
+                uri=f"calibration/{case_id}/{role}.bin",
+                sha256=hashlib.sha256(f"{case_id}:{role}".encode()).hexdigest(),
+                size_bytes=len(f"{case_id}:{role}".encode()),
+            )
+            for case_id in calibration_case_ids
+            for role in sorted(CALIBRATION_ARTIFACT_ROLES)
         ),
     )
     controller = ClosedLoopControllerState.production_canary()
@@ -495,6 +535,9 @@ def test_wf001_real_composition_loads_production_rules_without_running_hfss(
             "real_hfss_authorization_id": approval_id,
             "readiness_id": readiness_id,
             "calibration_evidence_sha256": calibration.digest,
+            "model_alignment_sha256": "b" * 64,
+            "calibration_policy_sha256": calibration.policy_sha256,
+            "calibration_artifact_manifest_sha256": calibration.source_artifact_manifest_sha256,
             "calibration_evidence": canonical_loads(canonical_dumps(calibration)),
             "closed_loop_policy_id": controller.policy_id,
             "closed_loop_budget": canonical_loads(
@@ -518,6 +561,9 @@ def test_wf001_real_composition_loads_production_rules_without_running_hfss(
         design_goal_sha256=canonical_digest(expected_state["manifest"].design_goal),
         hfss_contract_sha256=file_sha256(HFSS_CONTRACT_PATH),
         evaluation_contract_sha256=file_sha256(CONTRACT_PATH),
+        model_alignment_sha256="b" * 64,
+        calibration_policy_sha256=calibration.policy_sha256,
+        calibration_artifact_manifest_sha256=calibration.source_artifact_manifest_sha256,
         provider_fingerprints=FrozenMap.from_mapping(provider_fingerprints),
         approval_id=approval_id,
         approval_scope=REAL_HFSS_APPROVAL_SCOPE,

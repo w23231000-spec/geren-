@@ -382,6 +382,11 @@ def run_real_supplied_demo(
             "real_hfss_authorization_id": readiness.approval_id,
             "readiness_id": readiness.readiness_id,
             "calibration_evidence_sha256": readiness.calibration_evidence.digest,
+            "model_alignment_sha256": readiness.model_alignment_sha256,
+            "calibration_policy_sha256": readiness.calibration_policy_sha256,
+            "calibration_artifact_manifest_sha256": (
+                readiness.calibration_artifact_manifest_sha256
+            ),
             "calibration_evidence": canonical_loads(
                 canonical_dumps(readiness.calibration_evidence)
             ),
@@ -403,6 +408,11 @@ def run_real_supplied_demo(
         workflow_id=state["manifest"].workflow_id,
         comparison_context_id=state["manifest"].design_goal.comparison_context_id,
         calibration_evidence_sha256=readiness.calibration_evidence.digest,
+        model_alignment_sha256=readiness.model_alignment_sha256,
+        calibration_policy_sha256=readiness.calibration_policy_sha256,
+        calibration_artifact_manifest_sha256=(
+            readiness.calibration_artifact_manifest_sha256
+        ),
     )
 
     hfss = compose_pyaedt_hfss(

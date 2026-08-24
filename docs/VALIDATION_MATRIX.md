@@ -318,6 +318,19 @@ Interpretation:
 - **Result:** `PASS`.
 - **Scope limitation:** compile success cannot find runtime undefined-name paths. It may refresh generated `__pycache__` bytecode; no source was changed.
 
+## Calibration-authority and real-readiness hardening — 2026-08-24
+
+- **Final full main offline suite:** `.venv\Scripts\python.exe -m pytest -q` — `PASS`, 225 passed in 46.79 s.
+- **Focused Calibration/real-safety/Production set:** 73 passed in 1.70 s after contract/model changes.
+- **Three-case fake campaign:** 4 passed; proves deterministic distinct cases, default-disabled admission, exact `3/0` policy, Harness execution, passing recomputation, and 15 immutable typed receipts without AEDT.
+- **ISSUE-031 regressions:** reject one-case/vacuous ranking, policy threshold/digest drift, incomplete providers, empty/missing/duplicate-role/tampered artifacts, wrong-candidate semantic forgery, and aggregate/report drift before readiness acceptance.
+- **ISSUE-018 standalone Builder mapping:** `PASS`, 3 passed under Agent Python with no `ansys` import/project construction.
+- **Supplied optimizer vendor suite:** `PASS`, 7 passed in 5.19 s. With the Builder-aligned PI constant, the audited quick Pareto frontier may legitimately contain one non-dominated point; the Agent preserves the complete returned frontier rather than fabricating backup points.
+- **Compilation/config hygiene:** changed source/tests/tools/entries compile; runtime JSON parses; checked-in Calibration and Canary gates are both false/null; `git diff --check` exits 0 with Windows line-ending notices only.
+- **Environment preflight:** `PASS` for Agent Python, LangGraph, PyAEDT Python/package 0.18.1, AEDT 2025.1 executable, Builder/optimizer/contracts, headless mode, artifact root, and idle Agent license lock. This does not consume or prove a license.
+- **Default entry fail-closed probe:** both `RUN_HFSS_CALIBRATION.py` and `RUN_REAL_HFSS.py` reject disabled configuration before provider composition. No AEDT/HFSS/ADS process started.
+- **Evidence level:** implementation `OFFLINE VERIFIED`; physical Calibration/Canary `NOT RUN` at this snapshot.
+
 ## Historical real HFSS evidence
 
 Historical status is not current-working-tree validation.

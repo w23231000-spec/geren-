@@ -6,6 +6,11 @@
   "quick_optimizer": true,
   "real_hfss_enabled": false,
   "real_hfss_readiness_manifest": null,
-  "hfss_ui_visible": true,
+  "calibration_policy_path": "config/calibration_policy.paired_surrogate_hfss_v1.json",
+  "model_alignment_path": "config/model_alignment.hfss_builder_v1.json",
+  "hfss_contract_path": "config/hfss_contract.pa_multi_2025_1.json",
+  "real_hfss_calibration_enabled": false,
+  "real_hfss_calibration_manifest": null,
+  "hfss_ui_visible": false,
   "presentation_mode": true
 }

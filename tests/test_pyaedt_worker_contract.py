@@ -1,5 +1,6 @@
 """Offline tests for the real-worker contract; these never import or launch PyAEDT."""
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -19,9 +20,14 @@ from hfss_optimization_agent.hfss.pyaedt_worker import (
     _logical_expressions,
 )
 from hfss_optimization_agent.domain.contracts import (
+    CALIBRATION_ARTIFACT_ROLES,
     CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+    CALIBRATION_POLICY_VERSION,
+    CalibrationArtifactReceipt,
     CalibrationEvidence,
     FrozenMap,
+    calibration_policy_sha256,
+    calibration_artifact_manifest_sha256,
 )
 from hfss_optimization_agent.harness.execution_policy import ExecutionPolicy
 from hfss_optimization_agent.harness.real_hfss_safety import (
@@ -165,6 +171,30 @@ def test_readiness_drift_fails_before_real_worker_composition(monkeypatch, tmp_p
         "hfss_optimization_agent.cli.compose_pyaedt_hfss", forbidden_composition
     )
     source = "1" * 64
+    calibration_case_ids = ("cal-a", "cal-b", "cal-c")
+    calibration_policy = {
+        "max_complex_rmse": 0.02,
+        "max_magnitude_db_rmse": 1.0,
+        "minimum_pairwise_ranking_agreement": 0.8,
+        "frequency_tolerance_hz": 1.0,
+        "impedance_tolerance_ohm": 1e-9,
+        "require_comparison_context_id": True,
+        "minimum_case_count": 3,
+        "minimum_comparable_pairs": 2,
+    }
+    calibration_artifacts = tuple(
+        CalibrationArtifactReceipt(
+            artifact_id=f"{case_id}:{role}",
+            case_id=case_id,
+            candidate_id=case_id,
+            role=role,
+            uri=f"calibration/{case_id}/{role}.bin",
+            sha256=hashlib.sha256(f"{case_id}:{role}".encode()).hexdigest(),
+            size_bytes=len(f"{case_id}:{role}".encode()),
+        )
+        for case_id in calibration_case_ids
+        for role in sorted(CALIBRATION_ARTIFACT_ROLES)
+    )
     authorization = RealHFSSAuthorization(
         RealHFSSReadinessManifestV1(
             schema_version=READINESS_SCHEMA_VERSION,
@@ -180,6 +210,9 @@ def test_readiness_drift_fails_before_real_worker_composition(monkeypatch, tmp_p
             design_goal_sha256="3" * 64,
             hfss_contract_sha256="4" * 64,
             evaluation_contract_sha256="5" * 64,
+            model_alignment_sha256="a" * 64,
+            calibration_policy_sha256=calibration_policy_sha256(calibration_policy),
+            calibration_artifact_manifest_sha256=calibration_artifact_manifest_sha256(calibration_artifacts),
             provider_fingerprints=FrozenMap.from_mapping(
                 {
                     "agent_source_sha256": source,
@@ -198,21 +231,45 @@ def test_readiness_drift_fails_before_real_worker_composition(monkeypatch, tmp_p
                 schema_version=CALIBRATION_EVIDENCE_SCHEMA_VERSION,
                 evidence_id="calibration:drift-test",
                 created_at="2026-08-20T00:00:00+00:00",
-                policy_version="paired-surrogate-hfss/1.0",
+                policy_version=CALIBRATION_POLICY_VERSION,
                 comparison_context_id="pa-multi-2025.1:interposer_temple4:ports-4-3",
                 passed=True,
-                case_ids=("cal-a",),
+                case_ids=calibration_case_ids,
                 provider_fingerprints=FrozenMap.from_mapping(
-                    {"supplied_surrogate_source_sha256": "7" * 64}
+                    {
+                        "supplied_surrogate_source_sha256": "7" * 64,
+                        "hfss_builder_source_sha256": "8" * 64,
+                        "pyaedt_executable_sha256": "9" * 64,
+                        "hfss_worker_protocol": HFSS_WORKER_PROTOCOL,
+                    }
                 ),
-                policy=FrozenMap.from_mapping({"max_complex_rmse": 0.02}),
+                policy=FrozenMap.from_mapping(calibration_policy),
+                policy_sha256=calibration_policy_sha256(calibration_policy),
+                hfss_contract_sha256="4" * 64,
                 report=FrozenMap.from_mapping(
                     {
                         "passed": True,
                         "comparison_context_id": "pa-multi-2025.1:interposer_temple4:ports-4-3",
-                        "cases": [{"case_id": "cal-a"}],
+                        "cases": [
+                            {
+                                "case_id": case_id,
+                                "candidate_id": case_id,
+                                "complex_rmse": 0.01,
+                                "magnitude_db_rmse": 0.5,
+                                "max_complex_error": 0.02,
+                                "surrogate_worst_s11": 0.1 * index,
+                                "hfss_worst_s11": 0.1 * index + 0.01,
+                            }
+                            for index, case_id in enumerate(calibration_case_ids, start=1)
+                        ],
+                        "mean_complex_rmse": 0.01,
+                        "mean_magnitude_db_rmse": 0.5,
+                        "pairwise_ranking_agreement": 1.0,
+                        "comparable_pairs": 3,
+                        "reasons": [],
                     }
                 ),
+                source_artifacts=calibration_artifacts,
             ),
         ),
         RepositoryEvidence("0" * 40, source, True),

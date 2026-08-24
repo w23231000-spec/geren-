@@ -124,7 +124,13 @@ class MaterialContract:
         ):
             if value is not None and (not math.isfinite(value) or value < 0.0):
                 raise HFSSContractError(f"Material {name} must be non-negative and finite")
-        if self.evidence_status not in {"unconfirmed", "datasheet", "measured", "calibrated"}:
+        if self.evidence_status not in {
+            "unconfirmed",
+            "approved_model_contract",
+            "datasheet",
+            "measured",
+            "calibrated",
+        }:
             raise HFSSContractError(f"Unknown material evidence status {self.evidence_status!r}")
 
 

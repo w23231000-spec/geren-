@@ -9,12 +9,16 @@ from ..core.models import CandidateParameters, HFSSResult, SParameterResult
 from ..harness.errors import CalibrationError
 from ..domain.contracts import (
     CALIBRATION_EVIDENCE_SCHEMA_VERSION,
+    CALIBRATION_POLICY_FIELDS,
+    CALIBRATION_POLICY_VERSION,
+    MINIMUM_CALIBRATION_CASES,
+    MINIMUM_CALIBRATION_COMPARABLE_PAIRS,
+    CalibrationArtifactReceipt,
     CalibrationEvidence,
     FrozenMap,
+    calibration_policy_sha256,
 )
-
-
-CALIBRATION_POLICY_VERSION = "paired-surrogate-hfss/1.0"
+from ..domain.canonical_json import require_exact_fields
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,12 +29,49 @@ class CalibrationPolicy:
     frequency_tolerance_hz: float = 1.0
     impedance_tolerance_ohm: float = 1e-9
     require_comparison_context_id: bool = True
+    minimum_case_count: int = MINIMUM_CALIBRATION_CASES
+    minimum_comparable_pairs: int = MINIMUM_CALIBRATION_COMPARABLE_PAIRS
 
     def __post_init__(self) -> None:
-        if self.max_complex_rmse < 0.0 or self.max_magnitude_db_rmse < 0.0:
-            raise ValueError("Calibration error limits cannot be negative")
+        for name in (
+            "max_complex_rmse",
+            "max_magnitude_db_rmse",
+            "minimum_pairwise_ranking_agreement",
+            "frequency_tolerance_hz",
+            "impedance_tolerance_ohm",
+        ):
+            value = float(getattr(self, name))
+            if not math.isfinite(value):
+                raise ValueError(f"CalibrationPolicy.{name} must be finite")
+            object.__setattr__(self, name, value)
+        if (
+            self.max_complex_rmse < 0.0
+            or self.max_magnitude_db_rmse < 0.0
+            or self.frequency_tolerance_hz < 0.0
+            or self.impedance_tolerance_ohm < 0.0
+        ):
+            raise ValueError("Calibration error/tolerance limits cannot be negative")
         if not 0.0 <= self.minimum_pairwise_ranking_agreement <= 1.0:
             raise ValueError("Ranking agreement threshold must be in [0, 1]")
+        if self.require_comparison_context_id is not True:
+            raise ValueError("Production Calibration must require comparison context identity")
+        if self.minimum_case_count < MINIMUM_CALIBRATION_CASES:
+            raise ValueError("CalibrationPolicy requires at least three cases")
+        if self.minimum_comparable_pairs < MINIMUM_CALIBRATION_COMPARABLE_PAIRS:
+            raise ValueError("CalibrationPolicy requires at least two comparable pairs")
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, object]) -> "CalibrationPolicy":
+        return cls(
+            **require_exact_fields(
+                value,
+                set(CALIBRATION_POLICY_FIELDS),
+                context="CalibrationPolicy",
+            )
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +85,7 @@ class CalibrationCase:
 @dataclass(slots=True)
 class CalibrationCaseResult:
     case_id: str
+    candidate_id: str
     complex_rmse: float
     magnitude_db_rmse: float
     max_complex_error: float
@@ -58,6 +100,7 @@ class CalibrationReport:
     mean_complex_rmse: float
     mean_magnitude_db_rmse: float
     pairwise_ranking_agreement: float
+    comparable_pairs: int
     comparison_context_id: str | None
     reasons: list[str] = field(default_factory=list)
 
@@ -131,6 +174,7 @@ def _case_result(case: CalibrationCase, policy: CalibrationPolicy) -> tuple[Cali
     return (
         CalibrationCaseResult(
             case_id=case.case_id,
+            candidate_id=case.candidate.candidate_id,
             complex_rmse=math.sqrt(sum(squared_complex) / len(squared_complex)),
             magnitude_db_rmse=math.sqrt(sum(squared_db) / len(squared_db)),
             max_complex_error=max(absolute_errors),
@@ -141,7 +185,7 @@ def _case_result(case: CalibrationCase, policy: CalibrationPolicy) -> tuple[Cali
     )
 
 
-def _ranking_agreement(results: list[CalibrationCaseResult]) -> float:
+def _ranking_agreement(results: list[CalibrationCaseResult]) -> tuple[float, int]:
     agreements = 0
     comparable = 0
     for left_index, left in enumerate(results):
@@ -154,15 +198,17 @@ def _ranking_agreement(results: list[CalibrationCaseResult]) -> float:
                 continue
             comparable += 1
             agreements += int((surrogate_delta < 0.0) == (hfss_delta < 0.0))
-    return 1.0 if comparable == 0 else agreements / comparable
+    return (0.0 if comparable == 0 else agreements / comparable, comparable)
 
 
 def assess_calibration(
     cases: list[CalibrationCase],
     policy: CalibrationPolicy,
 ) -> CalibrationReport:
-    if not cases:
-        raise CalibrationError("At least one paired calibration case is required")
+    if len(cases) < policy.minimum_case_count:
+        raise CalibrationError(
+            f"At least {policy.minimum_case_count} paired calibration cases are required"
+        )
     paired = [_case_result(case, policy) for case in cases]
     results = [item[0] for item in paired]
     context_ids = {item[1] for item in paired if item[1] is not None}
@@ -170,7 +216,7 @@ def assess_calibration(
         raise CalibrationError("Calibration cases use different comparison context IDs")
     mean_complex = sum(item.complex_rmse for item in results) / len(results)
     mean_db = sum(item.magnitude_db_rmse for item in results) / len(results)
-    ranking = _ranking_agreement(results)
+    ranking, comparable_pairs = _ranking_agreement(results)
     reasons: list[str] = []
     if mean_complex > policy.max_complex_rmse:
         reasons.append("mean_complex_rmse_exceeded")
@@ -178,12 +224,15 @@ def assess_calibration(
         reasons.append("mean_magnitude_db_rmse_exceeded")
     if ranking < policy.minimum_pairwise_ranking_agreement:
         reasons.append("pairwise_ranking_agreement_below_threshold")
+    if comparable_pairs < policy.minimum_comparable_pairs:
+        reasons.append("insufficient_comparable_ranking_pairs")
     return CalibrationReport(
         passed=not reasons,
         cases=results,
         mean_complex_rmse=mean_complex,
         mean_magnitude_db_rmse=mean_db,
         pairwise_ranking_agreement=ranking,
+        comparable_pairs=comparable_pairs,
         comparison_context_id=next(iter(context_ids), None),
         reasons=reasons,
     )
@@ -195,8 +244,9 @@ def create_calibration_evidence(
     *,
     evidence_id: str,
     provider_fingerprints: Mapping[str, str],
+    hfss_contract_sha256: str,
+    source_artifacts: tuple[CalibrationArtifactReceipt, ...],
     created_at: str | None = None,
-    source_artifact_ids: tuple[str, ...] = (),
 ) -> CalibrationEvidence:
     """Freeze one assessed report with the exact providers and policy that produced it."""
 
@@ -211,7 +261,9 @@ def create_calibration_evidence(
         passed=report.passed,
         case_ids=tuple(item.case_id for item in report.cases),
         provider_fingerprints=FrozenMap.from_mapping(provider_fingerprints),
-        policy=FrozenMap.from_mapping(asdict(policy)),
+        policy=FrozenMap.from_mapping(policy.to_dict()),
+        policy_sha256=calibration_policy_sha256(policy.to_dict()),
+        hfss_contract_sha256=hfss_contract_sha256,
         report=FrozenMap.from_mapping(report.to_dict()),
-        source_artifact_ids=source_artifact_ids,
+        source_artifacts=source_artifacts,
     )

@@ -301,7 +301,7 @@ These decisions are reconstructed from current source/configuration and availabl
 ## ADR-038 — Passing paired Calibration Evidence is mandatory real-run identity
 
 - **Status:** ACTIVE; WIRED / OFFLINE VERIFIED; CURRENT PHYSICAL EVIDENCE ABSENT
-- **Decision:** `calibration-evidence/1.0` binds the exact paired cases, calibration policy/report, comparison context, provider fingerprints, source evidence IDs, pass status, and canonical digest. Readiness Manifest V1 must embed passing evidence. Workflow binding and RunStore real registration independently verify its digest, context, and provider identity before worker/action admission.
+- **Decision:** the original Phase-5C gate is superseded by `calibration-evidence/1.1`: exact structured paired cases, approved policy/report, comparison context, complete provider fingerprints, mandatory immutable source receipts, recomputed pass status, and canonical digest. Readiness Manifest V1.1 embeds passing evidence; workflow binding and RunStore independently verify its digest, context, provider, model/policy/artifact identity before worker/action admission.
 - **Reason:** a surrogate ranking is not physical evidence, and a free-form report or stale calibration cannot authorize expensive real optimization.
 - **Evidence:** strict round-trip/identity-drift tests; failing/provider-drifted readiness rejection; formal real-composition binding; RunStore rejection; full offline suite.
 - **Consequence:** no current-revision passing paired evidence means no Canary authority can be issued. Calibration data collection is not automatic and requires separately reviewed physical solve authority. Historical ranking reversal remains failing evidence under ISSUE-009.
@@ -361,3 +361,27 @@ These decisions are reconstructed from current source/configuration and availabl
 - **Reason:** implicit discovery of `checkpoint.json` mixed evidence migration with execution authority and allowed directory contents to influence a new formal invocation.
 - **Evidence:** strict V1 completed/interrupted/source-preservation tests; reachability scan proving absence of `legacy_json_path` and `read_legacy`; current SQLite checkpoint/CAS/chaos tests.
 - **Consequence:** any future bulk importer must be a separate reviewed tool with explicit source, target Run identity, evidence disposition, and authority. Historical evidence cannot resume physical actions or bypass reconciliation/readiness.
+
+## ADR-046 - Calibration authority is recomputed from immutable physical source receipts
+
+- **Status:** ACTIVE; WIRED / OFFLINE VERIFIED; REAL CALIBRATION NOT YET RUN
+- **Decision:** a passing flag or aggregate report is never sufficient for real admission. Calibration Evidence 1.1 must bind at least three cases/two comparable pairs, the approved policy and full causal providers, and exactly candidate/surrogate/HFSS/`.aedt`/`.s2p` receipts per case. Readiness re-hashes and strictly decodes those bytes and reruns the assessment.
+- **Reason:** canonical but fabricated or vacuous formal data must not authorize physical work.
+- **Evidence:** ISSUE-031 regression matrix rejects policy/provider/cardinality/receipt/semantic/aggregate drift offline.
+- **Consequence:** evidence publication is larger and source artifacts must remain available under the immutable artifact root; any missing, tampered, or semantically inconsistent receipt blocks Canary issuance.
+
+## ADR-047 - Existing HFSS Builder is the versioned physical-model authority
+
+- **Status:** ACTIVE; APPROVED FOR COLLECTION; PHYSICAL CORRELATION PENDING
+- **Decision:** the user-approved existing Builder defines the physical reference for `interposer_temple4`. The exact contract/context/grid/ports/impedance/materials are captured in `model_alignment.hfss_builder_v1.json`; surrogate PI is aligned to 3.5. Empirical equivalent-model terms are accepted only through passing paired Calibration.
+- **Reason:** collection thresholds and model assumptions must be fixed before observing physical results.
+- **Evidence:** strict alignment/contract binding tests and source/config fingerprints.
+- **Consequence:** this resolves the alignment decision needed to collect evidence but does not itself prove physical correlation; ISSUE-009 remains until Calibration passes.
+
+## ADR-048 - Calibration and Canary use separate short-lived solve envelopes
+
+- **Status:** ACTIVE; OFFLINE VERIFIED; REAL EXECUTION AUTHORIZED BUT NOT YET STARTED
+- **Decision:** physical Calibration is a default-disabled Harness workflow with deterministic baseline plus two candidates and exactly `ExecutionPolicy(3,0)`. Production Canary is separately issued only from passing evidence and remains `ExecutionPolicy(2,0)`. Neither workflow changes checked-in enable flags or can invoke the other automatically.
+- **Reason:** evidence acquisition and product verification have different purposes and budgets; separating authority prevents Calibration solves from silently expanding Canary scope.
+- **Evidence:** offline manifest/budget/default-disable/fake-campaign/readiness binding tests.
+- **Consequence:** a clean exact commit is mandatory before issuance. Calibration failure, UNKNOWN, timeout, or residual process terminates the sequence; there is no solve retry.

@@ -119,7 +119,9 @@ def test_supplied_optimizer_runs_in_worker_and_returns_full_auditable_candidate_
     assert batch.metadata["optimizer_request_digest"] == request.digest
     assert batch.metadata["effective_objective_digest"] == request.effective_objective.digest
     assert batch.metadata["pareto_points"] == len(batch.candidates)
-    assert len(batch.candidates) >= 2
+    # A complete Pareto frontier may legitimately contain one non-dominated point;
+    # the Agent must preserve that physical result instead of fabricating backups.
+    assert len(batch.candidates) >= 1
     assert batch.recommended_candidate_id in {
         candidate.candidate_id for candidate in batch.candidates
     }

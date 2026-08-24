@@ -20,12 +20,16 @@ from ..domain.canonical_json import (
     canonical_loads,
     require_exact_fields,
 )
-from ..domain.contracts import CalibrationEvidence, FrozenMap
+from ..domain.contracts import (
+    CalibrationEvidence,
+    FrozenMap,
+    calibration_policy_sha256,
+)
 from .execution_policy import ExecutionPolicy
 from .provenance import source_tree_digest
 
 
-READINESS_SCHEMA_VERSION = "real-hfss-readiness/1.0"
+READINESS_SCHEMA_VERSION = "real-hfss-readiness/1.1"
 REAL_HFSS_WORKFLOW_ID = CLOSED_LOOP_WORKFLOW_ID
 REAL_HFSS_APPROVAL_SCOPE = "real_hfss"
 HFSS_WORKER_PROTOCOL = "hfss-composite-request/1.0"
@@ -101,6 +105,9 @@ class RealHFSSReadinessManifestV1:
     design_goal_sha256: str
     hfss_contract_sha256: str
     evaluation_contract_sha256: str
+    model_alignment_sha256: str
+    calibration_policy_sha256: str
+    calibration_artifact_manifest_sha256: str
     provider_fingerprints: FrozenMap
     approval_id: str
     approval_scope: str
@@ -123,6 +130,9 @@ class RealHFSSReadinessManifestV1:
             "design_goal_sha256",
             "hfss_contract_sha256",
             "evaluation_contract_sha256",
+            "model_alignment_sha256",
+            "calibration_policy_sha256",
+            "calibration_artifact_manifest_sha256",
         ):
             object.__setattr__(self, name, _sha256(getattr(self, name), name))
         if self.workflow_id != REAL_HFSS_WORKFLOW_ID:
@@ -149,6 +159,15 @@ class RealHFSSReadinessManifestV1:
             raise ValueError("readiness calibration_evidence must be typed evidence")
         if not calibration.passed:
             raise ValueError("real readiness requires passing calibration evidence")
+        if calibration.hfss_contract_sha256 != self.hfss_contract_sha256:
+            raise ValueError("calibration evidence HFSS contract differs from readiness")
+        if calibration.policy_sha256 != self.calibration_policy_sha256:
+            raise ValueError("calibration evidence policy differs from readiness")
+        if (
+            calibration.source_artifact_manifest_sha256
+            != self.calibration_artifact_manifest_sha256
+        ):
+            raise ValueError("calibration evidence artifact manifest differs from readiness")
         calibration_providers = calibration.provider_fingerprints.to_dict()
         if not calibration_providers or any(
             fingerprints.get(name) != digest
@@ -174,6 +193,9 @@ class RealHFSSReadinessManifestV1:
             "design_goal_sha256",
             "hfss_contract_sha256",
             "evaluation_contract_sha256",
+            "model_alignment_sha256",
+            "calibration_policy_sha256",
+            "calibration_artifact_manifest_sha256",
             "provider_fingerprints",
             "approval_id",
             "approval_scope",
@@ -272,6 +294,140 @@ def _validate_repository_binding(
         raise RealHFSSSafetyError("real HFSS requires max_hfss_solve_launches=2 and zero retries")
 
 
+def _contained_file(root: Path, relative_uri: str, *, label: str) -> Path:
+    base = root.resolve()
+    path = (base / relative_uri).resolve()
+    try:
+        path.relative_to(base)
+    except ValueError as exc:
+        raise RealHFSSSafetyError(f"{label} escapes its approved root") from exc
+    if not path.is_file():
+        raise RealHFSSSafetyError(f"{label} is missing: {relative_uri}")
+    return path
+
+
+def _validate_calibration_authority(
+    config: Mapping[str, Any],
+    manifest: RealHFSSReadinessManifestV1,
+    *,
+    repository_root: Path,
+) -> None:
+    raw_alignment_path = config.get("model_alignment_path")
+    if not isinstance(raw_alignment_path, str) or not raw_alignment_path.strip():
+        raise RealHFSSSafetyError("Real HFSS requires a versioned model alignment path")
+    alignment_path = Path(raw_alignment_path)
+    if alignment_path.is_absolute():
+        try:
+            alignment_path = alignment_path.resolve().relative_to(
+                Path(repository_root).resolve()
+            )
+        except ValueError as exc:
+            raise RealHFSSSafetyError(
+                "Model alignment must be a versioned file inside the repository"
+            ) from exc
+    alignment_file = _contained_file(
+        Path(repository_root),
+        alignment_path.as_posix(),
+        label="Model alignment",
+    )
+    try:
+        from ..evaluation.model_alignment import load_model_alignment_contract
+
+        alignment = load_model_alignment_contract(alignment_file)
+    except (OSError, CanonicalJsonError, ValueError) as exc:
+        raise RealHFSSSafetyError(f"invalid approved model alignment: {exc}") from exc
+    if alignment.digest != manifest.model_alignment_sha256:
+        raise RealHFSSSafetyError("approved model alignment differs from readiness evidence")
+    if (
+        alignment.comparison_context_id
+        != manifest.calibration_evidence.comparison_context_id
+    ):
+        raise RealHFSSSafetyError(
+            "approved model alignment context differs from Calibration evidence"
+        )
+
+    raw_policy_path = config.get("calibration_policy_path")
+    if not isinstance(raw_policy_path, str) or not raw_policy_path.strip():
+        raise RealHFSSSafetyError("Real HFSS requires a versioned Calibration policy path")
+    policy_path = Path(raw_policy_path)
+    if policy_path.is_absolute():
+        try:
+            policy_path = policy_path.resolve().relative_to(Path(repository_root).resolve())
+        except ValueError as exc:
+            raise RealHFSSSafetyError(
+                "Calibration policy must be a versioned file inside the repository"
+            ) from exc
+    policy_file = _contained_file(
+        Path(repository_root),
+        policy_path.as_posix(),
+        label="Calibration policy",
+    )
+    try:
+        from ..evaluation.calibration import CalibrationPolicy
+
+        policy_payload = canonical_loads(policy_file.read_text(encoding="utf-8"))
+        policy = CalibrationPolicy.from_dict(policy_payload)
+    except (OSError, CanonicalJsonError, ValueError) as exc:
+        raise RealHFSSSafetyError(f"invalid approved Calibration policy: {exc}") from exc
+    policy_sha256 = calibration_policy_sha256(policy.to_dict())
+    if policy_sha256 != manifest.calibration_policy_sha256:
+        raise RealHFSSSafetyError("approved Calibration policy differs from readiness evidence")
+    if policy.to_dict() != manifest.calibration_evidence.policy.to_dict():
+        raise RealHFSSSafetyError("approved Calibration policy content differs from evidence")
+
+    raw_artifact_root = config.get("artifact_root")
+    if not isinstance(raw_artifact_root, str) or not raw_artifact_root.strip():
+        raise RealHFSSSafetyError("Real HFSS requires a Calibration artifact root")
+    artifact_root = Path(raw_artifact_root).resolve()
+    artifacts_by_case: dict[str, dict[str, Path]] = {
+        case_id: {} for case_id in manifest.calibration_evidence.case_ids
+    }
+    for receipt in manifest.calibration_evidence.source_artifacts:
+        path = _contained_file(artifact_root, receipt.uri, label="Calibration source artifact")
+        if path.stat().st_size != receipt.size_bytes or file_sha256(path) != receipt.sha256:
+            raise RealHFSSSafetyError(
+                f"Calibration source artifact bytes differ: {receipt.artifact_id}"
+            )
+        artifacts_by_case[receipt.case_id][receipt.role] = path
+
+    try:
+        from ..evaluation.calibration import (
+            CalibrationCase,
+            assess_calibration,
+        )
+        from .result_codecs import (
+            candidate_from_dict,
+            hfss_result_from_dict,
+            sparameter_result_from_dict,
+        )
+        from .errors import CalibrationError
+
+        cases = []
+        for case_id in manifest.calibration_evidence.case_ids:
+            paths = artifacts_by_case[case_id]
+            candidate = candidate_from_dict(
+                canonical_loads(paths["candidate_parameters"].read_text(encoding="utf-8"))
+            )
+            surrogate = sparameter_result_from_dict(
+                canonical_loads(paths["surrogate_result"].read_text(encoding="utf-8"))
+            )
+            hfss = hfss_result_from_dict(
+                canonical_loads(paths["hfss_result"].read_text(encoding="utf-8"))
+            )
+            cases.append(CalibrationCase(case_id, candidate, surrogate, hfss))
+        recomputed = assess_calibration(cases, policy)
+    except (OSError, KeyError, CanonicalJsonError, ValueError, CalibrationError) as exc:
+        raise RealHFSSSafetyError(
+            f"Calibration source artifacts cannot reproduce the assessment: {exc}"
+        ) from exc
+    if canonical_dumps(recomputed.to_dict()) != canonical_dumps(
+        manifest.calibration_evidence.report.to_dict()
+    ):
+        raise RealHFSSSafetyError(
+            "Calibration report differs from recomputation of immutable source artifacts"
+        )
+
+
 def validate_real_hfss_launch_configuration(
     config: Mapping[str, Any],
     *,
@@ -294,6 +450,11 @@ def validate_real_hfss_launch_configuration(
     manifest = load_readiness_manifest(path)
     repository = repository_evidence or collect_repository_evidence(repository_root)
     _validate_repository_binding(manifest, repository, now=now)
+    _validate_calibration_authority(
+        config,
+        manifest,
+        repository_root=repository_root,
+    )
     return RealHFSSAuthorization(manifest, repository)
 
 
@@ -310,6 +471,9 @@ def validate_real_hfss_workflow_binding(
     workflow_id: str,
     comparison_context_id: str,
     calibration_evidence_sha256: str,
+    model_alignment_sha256: str,
+    calibration_policy_sha256: str,
+    calibration_artifact_manifest_sha256: str,
     now: datetime | None = None,
 ) -> None:
     """Validate all causal inputs before constructing a worker or workspace."""
@@ -325,6 +489,9 @@ def validate_real_hfss_workflow_binding(
         "run_id": run_id,
         "workflow_id": workflow_id,
         "comparison_context_id": comparison_context_id,
+        "model_alignment_sha256": model_alignment_sha256,
+        "calibration_policy_sha256": calibration_policy_sha256,
+        "calibration_artifact_manifest_sha256": calibration_artifact_manifest_sha256,
     }
     for name, actual in expected.items():
         expected_value = (

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from nine_parameter_builder import map_nine_parameters
+from parameter_mapping import map_nine_parameters
 
 
 class NineParameterBuilderTests(unittest.TestCase):

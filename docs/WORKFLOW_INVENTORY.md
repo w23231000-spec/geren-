@@ -55,7 +55,7 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 
 - **Entry:** `RUN_REAL_HFSS.py` → `run_real_supplied_demo`; VS Code launch 3 is labelled blocked until separately authorized. There is no equivalent package CLI subcommand. The checked-in config has no manifest; a future explicit invocation must supply the external path in `HFSS_REAL_READINESS_MANIFEST`.
 - **Call chain:** disabled/manifest check → strict readiness + passing Calibration Evidence → exact repository/Goal/contracts/providers/Production-policy digest → Production V2 controller composition → fenced bootstrap baseline → sole Policy router → prepare/optimize/queue/screen → at most one candidate HFSS → compare/diagnose/Best → next/reoptimize/reconcile or typed finalization → structured final manifest → atomic completed checkpoint. RunStore independently limits physical HFSS launches to two with zero automatic retries.
-- **Inputs:** runtime JSON, short-lived Readiness Manifest V1 containing passing `calibration-evidence/1.0`, exact clean Git revision, Production Evaluation Contract v1, nine-parameter baseline/schema, HFSS contract, vendor optimizer/config, vendor Builder, and PyAEDT interpreter bytes.
+- **Inputs:** runtime JSON, short-lived Readiness Manifest V1.1 containing passing recomputable `calibration-evidence/1.1`, exact clean Git revision, versioned model alignment/policy, Production Evaluation Contract v1, nine-parameter baseline/schema, HFSS contract, vendor optimizer/config, vendor Builder, and PyAEDT interpreter bytes.
 - **Outputs:** SQLite action/event/checkpoint ledger; immutable canonical Tool/evaluation/comparison/terminal/final-manifest artifacts; immutable registered copies of provider request/response/report, AEDT project, journal, and Touchstone files when reached. Mutable workspaces are convenience copies only.
 - **Recovery control plane:** checkpoint identity/integrity is checked before provider admission. UNKNOWN recovery uses an exact evidence-bound operator reconciliation API; it is not a runnable workflow entry and never calls the provider.
 - **Reachability:** the V2 call graph is reachable, but the checked-in formal entry stops before composition because current config is disabled and has no manifest. The dirty tree independently fails exact-HEAD readiness. Drift and policy-digest regressions prove invalid bindings cannot reach real worker composition/workspace creation. A safe no-AEDT Production-band V2 test promotes the `FULLY_ACHIEVED` candidate and emits `succeeded_candidate`. Current real execution is NOT RUN.
@@ -110,13 +110,13 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 - **Verification:** 7 PASS on 2026-08-22 after Phase 5C (4.67 s).
 - **Relation:** proves vendor optimizer internals, not Agent adapter/graph integration.
 
-## WF-007 — Supplied Builder standalone unittest
+## WF-007 — Supplied Builder standalone parameter-mapping unittest
 
 - **Entry:** `vendor/hfss_builder/test_nine_parameter_builder.py`.
-- **Scope:** nine-parameter mapping/Builder boundary.
-- **Reachability:** source is present, but collection under Agent Python imports `ansys.aedt` and fails because that interpreter lacks `ansys`.
-- **Verification:** `FAIL / ENVIRONMENT MISMATCH`; top-level Builder tests use stubs and pass separately.
-- **Known issue:** ISSUE-018.
+- **Scope:** pure exact-nine validation and metre-to-mm parameter mapping; intentionally no PyAEDT project construction.
+- **Reachability:** formal standalone test under the Agent `.venv`; `parameter_mapping.py` has no `ansys` import.
+- **Verification:** `UNIT TESTED` — 3 passed under Agent Python; ISSUE-018 resolved offline.
+- **Known boundary:** actual Builder execution remains WF-009/WF-011 and requires the declared PyAEDT interpreter.
 
 ## WF-008 — HFSS Builder probe
 
@@ -158,14 +158,14 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 - **Classification reason:** developer reference diagnostics, not called by Agent entries. Production surrogate reaches the same model through `SurrogateAdapter`, not these mains.
 - **Verification:** underlying model is covered by vendor optimizer tests; standalone mains not run.
 
-## WF-013 — Paired surrogate/HFSS calibration API
+## WF-013 — Paired surrogate/HFSS Calibration evidence API
 
-- **Entry:** no CLI/graph node; callable `assess_calibration(cases, policy)` plus `create_calibration_evidence(...)`. Physical collection is never started automatically.
+- **Entry:** callable `assess_calibration(cases, policy)` plus `create_calibration_evidence(...)`; physical collection is WF-017 and remains default-disabled.
 - **Call chain:** paired candidate/surrogate/HFSS data → compatibility/error/rank checks → report → strict context/provider/policy/source-bound evidence.
-- **Inputs/outputs:** paired results and policy produce `calibration-evidence/1.0` with a canonical digest.
+- **Inputs/outputs:** at least three paired results/two comparable pairs and the approved policy produce `calibration-evidence/1.1`, including structured cases, report, full provider identity, and five immutable receipts per case.
 - **Reachability:** generation is an explicit library workflow; its output is a mandatory semantic input to WF-001 readiness and RunStore real registration.
-- **Verification:** unit tests pass for compatible/reversed/context/grid cases, canonical round-trip and identity drift; readiness/RunStore gate integration passes offline. Historical ranking agreement remains 0.0.
-- **Known issues:** ISSUE-009 remains partial because no passing current physical dataset exists.
+- **Verification:** unit/integration tests cover compatible/reversed/context/grid cases, canonical round-trip, policy/provider/artifact/semantic/report drift, and full readiness recomputation. ISSUE-031 is resolved offline. Historical ranking agreement remains 0.0.
+- **Known issue:** ISSUE-009 remains partial because no passing current physical dataset has yet been collected.
 
 ## WF-014 — Supplied optimizer JSON Worker
 
@@ -192,3 +192,24 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 - **Outputs:** RunStore action/event/checkpoint evidence, structured decisions/budgets, immutable canonical/native artifacts, and `final-run-manifest/1.0`.
 - **Verification:** actual supplied worker plus MockHFSS reaches a typed END in the Phase 4 test suite: `END-TO-END VERIFIED` offline. No AEDT/HFSS license/process is involved.
 - **Known boundary:** Production adoption is complete offline; current physical calibration evidence and Phase 6 Canary authorization remain absent.
+
+## WF-017 — Authorized three-case real-HFSS Calibration collection
+
+- **Entries:** `PREPARE_HFSS_CALIBRATION.py` issues authority without AEDT; `RUN_HFSS_CALIBRATION.py` executes only when `HFSS_CALIBRATION_MANIFEST` is explicitly supplied.
+- **Admission:** checked-in defaults are disabled. Issuance requires a clean exact HEAD and binds Agent/optimizer/surrogate/Builder/PyAEDT/protocol/policy bytes, exact HFSS contract and model alignment, expiry, three deterministic candidate snapshots (baseline plus two interior points), and `ExecutionPolicy(3,0)`.
+- **Call chain:** validate authority before composition → Harness/RunStore registration → for each case freeze candidate → supplied surrogate receipt → one composite real HFSS action → freeze result, exact `.aedt`, and exact `.s2p` → assess approved policy → publish strict immutable Calibration Evidence.
+- **Safety:** every physical action is approval-, budget-, attempt-, idempotency-, and ambiguity-bound; no automatic retry. Any UNKNOWN/timeout/residual process stops normal progress.
+- **Verification:** fake three-case end-to-end campaign passes with 15 typed source receipts; manifest drift/default-disable/budget tests pass offline. Real execution is `NOT RUN` at this snapshot.
+
+## WF-018 — Exact Canary readiness issuance
+
+- **Entry:** `PREPARE_REAL_HFSS_CANARY.py`; never constructs a worker or launches AEDT.
+- **Admission:** requires a clean exact HEAD and a passing immutable WF-017 evidence JSON. It rebinds current policy/alignment/contracts/provider bytes, constructs the exact Production State/RunManifest identity, writes an eight-hour `real-hfss-readiness/1.1` manifest with `ExecutionPolicy(2,0)`, then validates the complete manifest and Calibration source artifacts before returning it.
+- **Output:** ignored short-lived authority under `runs/authorizations`; no checked-in enable flag is changed.
+- **Verification:** syntax and the underlying readiness/binding/recomputation suite pass offline; a generated manifest can exist only after real passing Calibration.
+
+## WF-019 — Versioned physical-model and Calibration policy contracts
+
+- **Entries:** strict loaders for `config/model_alignment.hfss_builder_v1.json` and `config/calibration_policy.paired_surrogate_hfss_v1.json`.
+- **Authority:** user-approved existing HFSS Builder; PI 3.5/0.02 and the exact HFSS contract/context/grid/ports/impedance are fixed before observing Calibration results. Empirical surrogate terms are conditionally accepted only by passing physical evidence.
+- **Verification:** strict field/content/contract/digest checks are wired into WF-017/WF-018/WF-001 and pass offline.

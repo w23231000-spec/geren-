@@ -15,7 +15,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-007 | HIGH | RESOLVED | MOCK / INTEGRATION | Mock frequency grid conflicted with evaluation plan |
 | ISSUE-008 | HIGH | RESOLVED | TEST / REGRESSION | Graph E2E/resume tests failed and traces were stale |
 | ISSUE-009 | HIGH | PARTIALLY RESOLVED | EVALUATION / OPTIMIZATION | Calibration gate is wired; no accepted current paired evidence exists |
-| ISSUE-010 | HIGH | OPEN | HFSS / MODEL | Physical model alignment remains unresolved |
+| ISSUE-010 | HIGH | RESOLVED FOR COLLECTION | HFSS / MODEL | Builder-authoritative model alignment is versioned and approved; physical correlation remains gated by Calibration |
 | ISSUE-011 | HIGH | PARTIALLY RESOLVED | REPRODUCIBILITY | New Git baseline exists; original history remains unavailable |
 | ISSUE-012 | HIGH | OPEN | VALIDATION | Historical real E2E cannot be attributed to current working tree |
 | ISSUE-013 | MEDIUM | PARTIALLY RESOLVED | STATE / RESUME | Action receipts make START replay safe, but saved-node continuation is absent |
@@ -23,7 +23,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-015 | MEDIUM | PARTIALLY RESOLVED | HFSS / CONCURRENCY | License lock ownership may outlive/diverge from Agent PID |
 | ISSUE-016 | MEDIUM | PARTIALLY RESOLVED | ARTIFACT | New V2 actions reconcile stale leases; historical V1 runs remain unchanged |
 | ISSUE-017 | MEDIUM | PARTIALLY RESOLVED | DOCUMENTATION | README and older architecture/status claims drift from current evidence |
-| ISSUE-018 | MEDIUM | OPEN | TEST / ENVIRONMENT | Standalone Builder test cannot collect under Agent Python |
+| ISSUE-018 | MEDIUM | RESOLVED OFFLINE | TEST / ENVIRONMENT | Pure Builder parameter mapping tests no longer import PyAEDT |
 | ISSUE-019 | MEDIUM | RESOLVED OFFLINE | HFSS / VALIDATION | Shared fail-closed validation checks the full returned grid against the sweep contract |
 | ISSUE-020 | LOW | OPEN | DOCUMENTATION / UX | 14 displayed stages do not map one-to-one to 18 graph nodes |
 | ISSUE-021 | HIGH | RESOLVED | HFSS / BUILDER | Explicit material SolveInside classification regression |
@@ -37,7 +37,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-029 | HIGH | RESOLVED OFFLINE | AGENT CONTROL / ROUTING | Candidate queue and diagnosis had no feedback loop |
 | ISSUE-030 | HIGH | RESOLVED OFFLINE | RELIABILITY / RECONCILIATION | UNKNOWN/corrupt checkpoints lacked evidence-bound recovery and chaos proof |
 
-| ISSUE-031 | BLOCKER | OPEN | CALIBRATION / AUTHORITY | Readiness accepts structurally valid but insufficient Calibration Evidence |
+| ISSUE-031 | BLOCKER | RESOLVED OFFLINE | CALIBRATION / AUTHORITY | Calibration Evidence 1.1 is policy/cardinality/provider/artifact/recomputation bound |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -112,23 +112,22 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Trigger:** use surrogate ranking as evidence of HFSS improvement.
 - **Phase 5C resolution:** added strict canonical `calibration-evidence/1.0` binding paired cases, policy/report, context, provider fingerprints, source artifact IDs, pass status, and digest. A real Readiness Manifest must embed passing evidence; readiness workflow binding and RunStore registration independently reject failing, context-mismatched, digest-drifted, or provider-drifted evidence before worker/action admission.
 - **Evidence after:** canonical round-trip/drift tests, readiness rejection tests, formal real-composition binding test, and full main suite pass offline. No HFSS/AEDT was launched.
-- **Residual:** no accepted calibration evidence exists for the current exact code/provider/model combination. The historical evidence remains a calibration failure and cannot authorize a Canary. Review of the committed implementation also exposed ISSUE-031: readiness does not yet enforce an approved policy, comparable-case cardinality, complete causal provider identity, or non-empty source-artifact receipts.
+- **Current residual:** no accepted calibration evidence exists yet for the current exact code/provider/model combination. The historical evidence remains a calibration failure and cannot authorize a Canary. ISSUE-031 is resolved offline; ISSUE-009 remains the physical-data gate until the authorized three-case campaign passes.
 - **Workaround:** keep physical claims blocked and create reviewed paired evidence under separately authorized solve/data collection.
-- **Fixed:** partially; structural enforcement is `OFFLINE VERIFIED`, but authoritative sufficiency remains `BROKEN` under ISSUE-031 and current physical calibration is absent.
-- **Suggested next action:** resolve ISSUE-031 and ISSUE-010, define the approved policy/cases, collect paired evidence under separate authority, and issue a matching readiness manifest only if it passes.
+- **Fixed:** partially; authority enforcement and collection are `OFFLINE VERIFIED`, while current physical calibration remains absent until the authorized campaign executes.
+- **Suggested next action:** after clean exact-revision offline verification, collect baseline plus two deterministic candidates and issue a matching Canary manifest only if it passes.
 
-### ISSUE-010 — Physical model alignment remains unresolved
+### ISSUE-010 — Physical model alignment is versioned for collection
 
 - **Classification:** HFSS / MODEL
-- **Severity / status:** HIGH / OPEN
-- **Location:** `docs/MODEL_RISKS.md`, `config/model_alignment.example.json`, Builder materials, equivalent model formulas.
-- **Description:** PI relative permittivity differs (3.5 vs 3.9); SiO2 thickness mapping is not shared; fixed 10 GHz-derived elements are used over 0.1–20 GHz; Gsub units and Rlf1 dimensions are uncertain; `alpha_eff` is unused.
+- **Severity / status:** HIGH / RESOLVED FOR COLLECTION on 2026-08-24
+- **Location:** `config/model_alignment.hfss_builder_v1.json`, `config/hfss_contract.pa_multi_2025_1.json`, Builder materials, equivalent model formulas.
+- **Resolution:** the user designated the existing HFSS Builder as physical-model authority. A strict versioned alignment binds the exact HFSS contract ID, `interposer_temple4`, the 200-point 0.1–20 GHz comparison grid, input/output ports, 50 ohms, PI 3.5/0.02, SiO2 4.0, and surrogate PI 3.5. The HFSS material contract records the approved Builder value. Empirical `Gsub`, `Rlf1`, and `alpha` terms are explicitly accepted only if the paired Calibration policy passes, rather than silently claimed as physically validated.
 - **Impact:** surrogate/HFSS comparison and any physical conclusion.
 - **Trigger:** treating automated completion as calibrated model validation.
 - **Evidence:** current config/source and historical ranking reversal.
-- **Workaround:** label results `uncalibrated` and avoid physical claims.
-- **Fixed:** no.
-- **Suggested next action:** obtain model-author decisions and fill a versioned alignment contract before calibration.
+- **Evidence:** strict loader rejects unknown/drifted fields and binds the current HFSS contract/context; focused policy/alignment/readiness tests pass offline. The changed tree has not yet run HFSS.
+- **Fixed:** yes for the prerequisite decision/versioning gap. Physical correlation remains ISSUE-009 and can only become `REAL HFSS VERIFIED` through the exact authorized Calibration campaign.
 
 ### ISSUE-011 — New Git baseline exists; original history remains unavailable
 
@@ -227,18 +226,18 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Needs verification:** future documentation update must not conceal open code issues.
 - **Suggested next action:** after code stabilization, reconcile README/usage docs with authoritative memory files.
 
-### ISSUE-018 — Standalone Builder test cannot collect under Agent Python
+### ISSUE-018 — Standalone Builder parameter test is PyAEDT-independent
 
 - **Classification:** TEST / ENVIRONMENT
-- **Severity / status:** MEDIUM / OPEN
-- **Location:** `vendor/hfss_builder/test_nine_parameter_builder.py`; import chain reaches `ansys.aedt.core`.
+- **Severity / status:** MEDIUM / RESOLVED OFFLINE on 2026-08-24
+- **Location:** `vendor/hfss_builder/parameter_mapping.py`, `nine_parameter_builder.py`, and `test_nine_parameter_builder.py`.
 - **Description:** explicit test collection under project `.venv` fails because PyAEDT is installed only in the separate interpreter.
 - **Impact:** current standalone Builder-test verification; main suite still tests Builder units through stubs.
 - **Trigger:** pytest collecting the vendor Builder test under Agent Python.
 - **Evidence:** 2026-08-20 collection error `ModuleNotFoundError: ansys`.
-- **Workaround:** run in the PyAEDT environment or isolate mapping imports from PyAEDT imports; neither was done this round.
-- **Fixed:** no.
-- **Suggested next action:** define the intended test interpreter and make collection behavior explicit.
+- **Resolution:** exact-nine validation and metre-to-mm Builder mapping moved to a pure module with no `ansys` import. The actual build function still imports the audited PyAEDT Builder only when a build is requested.
+- **Evidence:** standalone Builder mapping suite passes under the Agent `.venv` without importing or constructing AEDT; main tests also pass this boundary.
+- **Fixed:** yes offline. This does not claim a real project build.
 
 ### ISSUE-019 — HFSS return grid endpoints are not checked against contract
 
@@ -375,17 +374,16 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-031 — Readiness accepts structurally valid but insufficient Calibration Evidence
 
 - **Classification:** CALIBRATION / AUTHORITY / PROVENANCE
-- **Severity / status:** BLOCKER / OPEN
+- **Severity / status:** BLOCKER / RESOLVED OFFLINE on 2026-08-24
 - **Location:** `evaluation/calibration.py`, `domain/contracts.py::CalibrationEvidence`, `harness/real_hfss_safety.py::RealHFSSReadinessManifestV1`.
 - **Description:** the schema requires non-empty unique case IDs and some provider fingerprints, but it permits one case, arbitrary policy version/thresholds, any non-empty provider subset, and empty `source_artifact_ids`. `_ranking_agreement` returns 1.0 when there is no comparable pair. Readiness trusts the embedded `passed` report and checks only the provider keys supplied by the evidence.
 - **Impact:** a canonical, digest-stable object can be structurally valid without proving an approved policy, ranking evidence, the complete HFSS/surrogate causal identity, or immutable physical source artifacts. Such an object must not authorize Phase 6.
 - **Trigger:** construct passing evidence with one/non-comparable case, lenient thresholds, partial provider bindings, or no source receipts.
 - **Evidence:** current source inspection plus existing tests that deliberately construct accepted evidence with incomplete policy fields and no source artifact IDs; the full suite proves current behavior rather than sufficiency. No real tool was run.
-- **Workaround:** keep `real_hfss_enabled=false` and do not issue a readiness manifest.
-- **Fixed:** no.
-- **Required fix:** version and validate an approved policy; require enough comparable cases; bind the complete causal provider/contract identities; require immutable source-artifact receipts; recompute/validate the report from those receipts or bind an independently verified assessment digest.
-- **Exit evidence:** regressions must reject one-case/vacuous ranking, arbitrary policy, missing provider keys, empty/tampered source receipts, and report recomputation drift before readiness acceptance.
-- **Canary disposition:** mandatory `BLOCK@@; not eligible for risk acceptance.
+- **Resolution:** schema `calibration-evidence/1.1` requires the versioned recommended policy, at least three cases and two comparable pairs, complete surrogate/Builder/PyAEDT/protocol provider identity, and exactly five typed immutable receipts per case. The domain object recomputes per-case complex/dB errors, aggregate means, comparable-pair count, ranking agreement, and pass from structured case data. Real readiness separately reopens and hashes every receipt, strictly decodes candidate/surrogate/HFSS results, reconstructs `CalibrationCase`, reruns `assess_calibration`, and requires byte-identical report semantics.
+- **Evidence:** focused regressions reject one-case/vacuous ranking, arbitrary policy/policy digest drift, missing providers, empty/missing/role-duplicate receipts, byte tamper, forged wrong-candidate semantic artifacts, and aggregate/report drift. Relevant safety/calibration/Production set passed 73 tests; final full-suite evidence is recorded in `VALIDATION_MATRIX.md`.
+- **Fixed:** yes at `OFFLINE VERIFIED`. The mandatory authority gap is closed; absence or failure of actual current physical Calibration remains ISSUE-009 and cannot be risk-accepted.
+- **Canary disposition:** no longer a blocker after the exact committed implementation passes offline validation. Readiness still cannot be issued without real passing evidence.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.
