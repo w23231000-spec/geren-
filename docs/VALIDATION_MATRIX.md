@@ -348,6 +348,13 @@ Interpretation:
 - **Repair:** real composition heartbeat-loss bound is 120 seconds; action/solve timeout remains 7200 seconds and auto retry remains zero. Offline composition assertion and full process-safety regressions are required before the next campaign.
 - **Post-repair verification:** process/reconciliation/worker/Calibration focus `PASS` — 39 in 1.88 s; final full suite `PASS` — 226 in 46.35 s.
 
+### Third authorized Calibration target-design probe and repair
+
+- **Observed result:** AEDT started and wrote a 4,271-byte project plus lock. PyAEDT log proves target design insertion was attempted, then `active_design` received `None`/`bool` and `Hfss.__init__` failed. No geometry progress, setup, solve completion, or Touchstone exists.
+- **Cleanup/reconciliation:** process and Agent-lock scans empty. Operation `op_51e7f8d6face2265f8ce9f658dfc8137` / attempt `att_cd656198281bb3d76c7676caf459f80c` explicitly `CONFIRMED_FAILED`; evidence `art_f726f0afabb0245a06760bf27d6b081a`, digest `83091e195825d522e84855ab6b3b9a55d0fa6d6767f2e789027da1722ccfa536`.
+- **Repair:** exact-target gRPC design resolver accepts object return or bounded polling and rejects wrong names. Unit tests cover bool acknowledgement and wrong-design fail-closed behavior.
+- **Post-repair verification:** worker/process/reconciliation focus `PASS` — 41 in 1.87 s; configured AEDT Python worker import exit 0; final full suite `PASS` — 228 in 47.27 s.
+
 ## Historical real HFSS evidence
 
 Historical status is not current-working-tree validation.

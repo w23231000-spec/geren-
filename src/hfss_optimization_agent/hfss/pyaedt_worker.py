@@ -6,6 +6,7 @@ import argparse
 import json
 import math
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,72 @@ from .contracts import (
 
 
 _BUILD_STAGE_TOTAL = 13
+_ACTIVE_DESIGN_COMPAT_MARKER = "_hfss_agent_active_design_compat_v1"
+
+
+def _resolve_active_design(project_object, name: str, *, timeout_seconds: float = 30.0):
+    """Resolve a gRPC design object when ``SetActiveDesign`` returns bool/None.
+
+    PyAEDT 0.18.1 assumes the gRPC call returns an object, but AEDT 2025 R1 can
+    acknowledge the call with ``True`` or ``None`` before the design object is
+    queryable.  Poll only the exact requested design; never select a fallback.
+    """
+
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    try:
+        selected = project_object.SetActiveDesign(name)
+    except Exception:
+        selected = None
+    if selected is not None and not isinstance(selected, bool) and hasattr(selected, "GetName"):
+        return selected
+    while True:
+        for method_name, arguments in (
+            ("GetDesign", (name,)),
+            ("GetActiveDesign", ()),
+        ):
+            method = getattr(project_object, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                candidate = method(*arguments)
+                if (
+                    candidate is not None
+                    and not isinstance(candidate, bool)
+                    and hasattr(candidate, "GetName")
+                    and str(candidate.GetName()) == name
+                ):
+                    return candidate
+            except Exception:
+                pass
+        if time.monotonic() >= deadline:
+            raise RuntimeError(
+                f"AEDT did not expose the exact active design {name!r} within "
+                f"{timeout_seconds:.1f}s"
+            )
+        time.sleep(min(0.2, max(0.0, deadline - time.monotonic())))
+
+
+def _install_pyaedt_active_design_compatibility() -> None:
+    """Install the narrow PyAEDT 0.18.1/AEDT 2025 R1 gRPC compatibility hook."""
+
+    from ansys.aedt.core.desktop import Desktop
+
+    if getattr(Desktop, _ACTIVE_DESIGN_COMPAT_MARKER, False):
+        return
+    original = Desktop.active_design
+
+    def active_design(self, project_object=None, name=None, design_type=None):
+        if project_object is not None and isinstance(name, str) and name:
+            return _resolve_active_design(project_object, name)
+        return original(
+            self,
+            project_object=project_object,
+            name=name,
+            design_type=design_type,
+        )
+
+    Desktop.active_design = active_design
+    setattr(Desktop, _ACTIVE_DESIGN_COMPAT_MARKER, True)
 
 
 def _builder_stage_display(stage: str) -> tuple[int, str] | None:
@@ -136,6 +203,7 @@ def _open_hfss(project_path: Path, contract: dict[str, Any], options: dict[str, 
     from ansys.aedt.core import Hfss, settings
 
     settings.enable_screen_logs = bool(options.get("pyaedt_screen_logs", False))
+    _install_pyaedt_active_design_compatibility()
 
     return Hfss(
         project=str(project_path),
@@ -197,6 +265,7 @@ def _build(request: dict[str, Any]) -> dict[str, Any]:
         from ansys.aedt.core import settings
 
         settings.enable_screen_logs = bool(options.get("pyaedt_screen_logs", False))
+        _install_pyaedt_active_design_compatibility()
         from nine_parameter_builder import build_from_nine_parameters
 
         report("worker_ready", {"project_path": str(project_path)})

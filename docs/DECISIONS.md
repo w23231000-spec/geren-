@@ -409,3 +409,11 @@ These decisions are reconstructed from current source/configuration and availabl
 - **Reason:** AEDT 2025 R1 cold Desktop initialization can block the embedded Python heartbeat thread for more than the generic 15-second worker threshold even though the process is progressing.
 - **Evidence:** the second authorized probe reached PyAEDT Desktop initialization and was terminated only by the 15-second stale-heartbeat rule; process/lock cleanup and evidence reconciliation succeeded.
 - **Consequence:** cold start gets a bounded grace period without weakening the hard action deadline or adding retry. A 120-second heartbeat loss still terminates the process tree and yields no assumed success.
+
+## ADR-052 - PyAEDT gRPC design recovery is exact-name-only and bounded
+
+- **Status:** ACTIVE; OFFLINE VERIFIED; PHYSICAL RERUN PENDING
+- **Decision:** when PyAEDT 0.18.1 receives `bool`/`None` instead of a design object from AEDT 2025 R1 gRPC, the isolated worker may poll for at most 30 seconds using `GetDesign(requested_name)`/`GetActiveDesign`. It accepts only an object whose `GetName()` exactly matches the contract design.
+- **Reason:** the third probe proved AEDT inserted `interposer_temple4` but PyAEDT's constructor failed solely because it assumed `SetActiveDesign` returned an object.
+- **Evidence:** hashed PyAEDT log/empty project plus unit tests for bool acknowledgement and wrong-name rejection.
+- **Consequence:** the compatibility path never creates/selects `huitu`, a placeholder, or another design; target-only safety remains intact. Timeout/mismatch still fails the action without retry.

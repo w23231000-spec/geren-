@@ -123,6 +123,7 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - **ISSUE-032 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the first worker exited before AEDT on Python-3.10 `StrEnum` import; lazy package boundaries plus compatibility enum now pass under the configured AEDT/PyAEDT Python.
 - **ISSUE-033 — RESOLVED FOR NEW RUNS:** new Calibration campaigns preregister short-lived reconciliation authority; the original failed-import Run remains immutable `WAITING_RECONCILIATION` and is not resumed.
 - **ISSUE-034 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the second probe reached PyAEDT Desktop initialization, then the generic 15-second heartbeat killed a valid cold start. That exact UNKNOWN was evidence-reconciled as failed; real composition now uses a finite 120-second heartbeat bound.
+- **ISSUE-035 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the third probe created an empty AEDT project but PyAEDT gRPC returned bool/None instead of the inserted target design object. The exact failure is reconciled; the worker now resolves only the exact design with a 30-second bound.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
 - **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
 - **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
@@ -150,13 +151,14 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Both checked-in physical entries fail closed by default; compilation/runtime JSON/diff hygiene pass.
 - Post-ISSUE-032/033 final full suite: `PASS` — 226 passed in 46.48 s; configured AEDT-Python worker-import regression is collected.
 - Post-ISSUE-034 focused process/reconciliation set: `PASS` — 39 passed in 1.88 s; final full suite `PASS` — 226 passed in 46.35 s.
+- Post-ISSUE-035 focused worker/process/reconciliation set: `PASS` — 41 passed in 1.87 s; final full suite `PASS` — 228 passed in 47.27 s.
 - Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
 
 **NOT YET RUN — physical execution is authorized but remains gated.**
 
-The first authorized worker exited before PyAEDT because of Python-3.10 import incompatibility. The second exact-revision worker reached PyAEDT Desktop initialization but was safely terminated because the generic 15-second heartbeat was too short for cold start; its preregistered reconciliation evidence conclusively records failure/no physical result. Neither probe built or solved a project. No residual process or lock remains. After the 120-second bounded heartbeat fix passes offline verification and is committed, a fresh exact-HEAD three-case/zero-retry campaign may be issued. Only passing evidence permits the separately bound two-solve/zero-retry Canary.
+The first authorized worker exited before PyAEDT because of Python-3.10 import incompatibility. The second reached Desktop initialization but hit the old heartbeat bound. The third created an empty AEDT project and inserted the target name, but PyAEDT failed to recover the returned gRPC design object; it did not build geometry, create Setup/Sweep, solve, or export. Each actionable UNKNOWN with preregistered authority is reconciled as failed, and no residual process or Agent lock remains. After the exact-design compatibility fix passes offline verification and is committed, a fresh exact-HEAD three-case/zero-retry campaign may be issued.
 
 ## Next phase boundary
 

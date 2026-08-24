@@ -21,6 +21,7 @@ from hfss_optimization_agent.hfss.pyaedt_worker import (
     _candidate_values,
     _frequency_multiplier,
     _logical_expressions,
+    _resolve_active_design,
 )
 from hfss_optimization_agent.domain.contracts import (
     CALIBRATION_ARTIFACT_ROLES,
@@ -92,6 +93,46 @@ def test_logical_expression_matrix_maps_s11_and_s21_without_reciprocity_assumpti
     assert matrix == [["S(4,4)", "S(4,3)"], ["S(3,4)", "S(3,3)"]]
     assert expressions == ["S(4,4)", "S(4,3)", "S(3,4)", "S(3,3)"]
     assert matrix[1][0] == "S(3,4)"
+
+
+def test_grpc_active_design_compatibility_resolves_exact_object_after_bool_ack():
+    class Design:
+        def GetName(self):
+            return "interposer_temple4"
+
+    class Project:
+        def SetActiveDesign(self, _name):
+            return True
+
+        def GetDesign(self, _name):
+            return Design()
+
+        def GetActiveDesign(self):
+            return None
+
+    resolved = _resolve_active_design(
+        Project(), "interposer_temple4", timeout_seconds=0.0
+    )
+    assert resolved.GetName() == "interposer_temple4"
+
+
+def test_grpc_active_design_compatibility_never_selects_wrong_design():
+    class WrongDesign:
+        def GetName(self):
+            return "huitu"
+
+    class Project:
+        def SetActiveDesign(self, _name):
+            return None
+
+        def GetDesign(self, _name):
+            return WrongDesign()
+
+        def GetActiveDesign(self):
+            return WrongDesign()
+
+    with pytest.raises(RuntimeError, match="exact active design"):
+        _resolve_active_design(Project(), "interposer_temple4", timeout_seconds=0.0)
 
 
 @pytest.mark.parametrize(

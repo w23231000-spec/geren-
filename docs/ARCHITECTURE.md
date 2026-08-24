@@ -300,6 +300,8 @@ The PyAEDT worker runs on AEDT 2025 R1's embedded Python 3.10 while the Agent ru
 
 Real PyAEDT composition uses a finite 120-second heartbeat-loss threshold because AEDT cold-start calls can block the embedded Python heartbeat thread longer than the generic 15-second worker default. This is independent of the 7200-second solve deadline and 5-second termination-verification grace. Test workers may override the threshold downward to exercise bounded failure; Production has no heartbeat-triggered retry.
 
+PyAEDT 0.18.1 on AEDT 2025 R1 gRPC may acknowledge `SetActiveDesign` with `True`/`None` rather than the design object that its own constructor expects. The worker applies a narrow target-only compatibility hook: poll at most 30 seconds for `GetDesign(exact_name)` or an exact-name active object. Wrong/missing designs fail; no `huitu` or placeholder design is selected or created. This preserves the `interposer_temple4` target-only contract rather than relaxing Builder identity.
+
 ## Production and non-Production boundary
 
 - Canonical Production Workflow: exactly one, WF-001 via `RUN_REAL_HFSS.py`.

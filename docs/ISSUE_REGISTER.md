@@ -41,6 +41,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-032 | BLOCKER | RESOLVED OFFLINE | HFSS / RUNTIME | AEDT 2025 R1 Python 3.10 could not import the isolated worker entry |
 | ISSUE-033 | HIGH | RESOLVED FOR NEW RUNS | RELIABILITY / RECONCILIATION | Calibration campaign did not preregister UNKNOWN reconciliation authority |
 | ISSUE-034 | HIGH | RESOLVED OFFLINE | HFSS / SUPERVISION | Fifteen-second worker heartbeat killed valid AEDT cold startup |
+| ISSUE-035 | BLOCKER | RESOLVED OFFLINE | HFSS / PYAEDT | PyAEDT gRPC returned bool/None instead of the new target design object |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -416,6 +417,15 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Reconciliation:** the preregistered grant was used to attach immutable journal/process/lock/no-result evidence and conclude the exact UNKNOWN attempt `CONFIRMED_FAILED`. Its budget/attempt remain consumed; the campaign is not resumed.
 - **Evidence after:** composition regression asserts 120 seconds; process-supervision tests still exercise short injected heartbeat timeouts and bounded termination. Full offline suite must pass before a new campaign.
 - **Fixed:** offline configuration yes; real cold start and full solve still need the new exact-revision campaign.
+
+### ISSUE-035 — PyAEDT did not return the newly inserted target design object
+
+- **Classification:** HFSS / PYAEDT / GRPC COMPATIBILITY
+- **Severity / status:** BLOCKER / RESOLVED OFFLINE on 2026-08-24; physical rerun pending
+- **Trigger/evidence:** the third authorized probe started AEDT 2025 R1, created `pa_multi.aedt`, and attempted to insert only `interposer_temple4`. PyAEDT 0.18.1 `Desktop.active_design` assumed `SetActiveDesign` returned an object, but gRPC returned `None`/`bool`; its decorated `Hfss.__init__` consequently returned `False`, producing `TypeError`. The log shows no Builder geometry milestone, setup, solve, or Touchstone.
+- **Resolution:** the isolated worker installs a narrow compatibility hook before Hfss construction. For an explicitly requested design only, it accepts an object return or polls `GetDesign(name)`/`GetActiveDesign()` for at most 30 seconds and requires exact `GetName()` equality. It never selects or creates a fallback design.
+- **Safety/evidence:** the failed attempt was explicitly reconciled as confirmed failed with hashes of journal, response, PyAEDT log, empty project, and project lock; no process/Agent lock remained. Unit regressions prove bool acknowledgement resolves the exact object and a wrong design fails closed.
+- **Fixed:** offline compatibility logic yes. A new clean-revision physical build/solve is required.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.
