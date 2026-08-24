@@ -161,6 +161,7 @@ def test_real_composition_is_inert_and_carries_runtime_options(tmp_path):
         task_id="inert",
     )
     assert adapter.backend.process_isolated is True
+    assert adapter.backend.config.heartbeat_timeout_seconds == 120.0
     assert adapter.backend.config.worker_options["builder_source_root"] == str(builder.resolve())
     assert not (tmp_path / "runs").exists()
 

@@ -40,6 +40,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-031 | BLOCKER | RESOLVED OFFLINE | CALIBRATION / AUTHORITY | Calibration Evidence 1.1 is policy/cardinality/provider/artifact/recomputation bound |
 | ISSUE-032 | BLOCKER | RESOLVED OFFLINE | HFSS / RUNTIME | AEDT 2025 R1 Python 3.10 could not import the isolated worker entry |
 | ISSUE-033 | HIGH | RESOLVED FOR NEW RUNS | RELIABILITY / RECONCILIATION | Calibration campaign did not preregister UNKNOWN reconciliation authority |
+| ISSUE-034 | HIGH | RESOLVED OFFLINE | HFSS / SUPERVISION | Fifteen-second worker heartbeat killed valid AEDT cold startup |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -405,6 +406,16 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Resolution:** every new Calibration Run preregisters a short-lived, campaign-derived `reconcile_unknown` grant alongside the physical grant, with the same manifest expiry. It does not auto-reconcile or retry; it only makes the existing reviewed Phase-5B operator path usable if UNKNOWN occurs.
 - **Evidence after:** fake three-case campaign asserts both grants are durably present; reconciliation unit suite remains authoritative for resolution behavior.
 - **Residual:** `run:hfss-calibration-20260824-100309` remains `WAITING_RECONCILIATION` with one conservatively authorized action but zero observed AEDT/solve starts. It is never resumed or used as Calibration evidence.
+
+### ISSUE-034 — Worker heartbeat killed valid AEDT cold startup
+
+- **Classification:** HFSS / PROCESS SUPERVISION / TIMEOUT
+- **Severity / status:** HIGH / RESOLVED OFFLINE on 2026-08-24; physical rerun pending
+- **Trigger/evidence:** after ISSUE-032 repair, PyAEDT 0.18.1 began `Initializing new Desktop session`; the 15-second heartbeat threshold expired while the embedded Python was blocked in AEDT startup. The supervisor terminated and verified the process tree. No Builder stage, `.aedt`, Solve, `.s2p`, residual process, or lock remained.
+- **Resolution:** the real PyAEDT composition now declares a 120-second heartbeat-loss bound, separate from the 7200-second solve/action deadline and 5-second termination verification grace. This remains finite and does not create retries.
+- **Reconciliation:** the preregistered grant was used to attach immutable journal/process/lock/no-result evidence and conclude the exact UNKNOWN attempt `CONFIRMED_FAILED`. Its budget/attempt remain consumed; the campaign is not resumed.
+- **Evidence after:** composition regression asserts 120 seconds; process-supervision tests still exercise short injected heartbeat timeouts and bounded termination. Full offline suite must pass before a new campaign.
+- **Fixed:** offline configuration yes; real cold start and full solve still need the new exact-revision campaign.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.

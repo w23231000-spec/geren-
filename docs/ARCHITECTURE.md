@@ -298,6 +298,8 @@ Phase 3 places optimizer and HFSS workers behind `SupervisedProcessRunner`. Phas
 
 The PyAEDT worker runs on AEDT 2025 R1's embedded Python 3.10 while the Agent runtime remains Python 3.12+. Root and `hfss` package exports are therefore lazy, and shared enum contracts use `_compat.StrEnum`; the isolated worker import path must not eagerly traverse Agent/Harness composition. A configured-interpreter `--help` regression proves this boundary without importing or launching AEDT. New physical Calibration Runs also preregister an expiring `reconcile_unknown` grant at Run creation. This does not weaken UNKNOWN or add retry: it only permits the exact evidence-bound Phase-5B operator resolution if an indeterminate action occurs.
 
+Real PyAEDT composition uses a finite 120-second heartbeat-loss threshold because AEDT cold-start calls can block the embedded Python heartbeat thread longer than the generic 15-second worker default. This is independent of the 7200-second solve deadline and 5-second termination-verification grace. Test workers may override the threshold downward to exercise bounded failure; Production has no heartbeat-triggered retry.
+
 ## Production and non-Production boundary
 
 - Canonical Production Workflow: exactly one, WF-001 via `RUN_REAL_HFSS.py`.

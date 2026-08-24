@@ -340,6 +340,14 @@ Interpretation:
 - **Evidence level:** ISSUE-032 `RESOLVED OFFLINE`; ISSUE-033 `RESOLVED FOR NEW RUNS`; fixed physical campaign `NEEDS VERIFICATION`.
 - **Post-repair full main suite:** `PASS` — 226 passed in 46.48 s.
 
+### Second authorized Calibration cold-start probe and repair
+
+- **Observed result:** Python-3.10 import succeeded and PyAEDT reported version 0.18.1 plus Desktop initialization. The generic 15-second heartbeat expired during cold start; supervisor terminated the process tree in about 20.2 s. Builder/Solve/extraction did not start and no `.aedt`/`.s2p` exists.
+- **Cleanup:** no AEDT/HFSS/Ansys/worker process and no active/quarantined lock remained.
+- **Explicit reconciliation:** `op_010fc0a5660a6ad518932068ad1b9747` / `att_2911e49b15479ae67cd1698c263bfec8` became `CONFIRMED_FAILED`; immutable evidence artifact `art_fc08e727591a9e23207787291c90bc47`, request digest `0853e6b5dad11c252d715777ff47ba263190c2703fac6ff62a0de4a111fe4bdd`. No new attempt or budget refund occurred.
+- **Repair:** real composition heartbeat-loss bound is 120 seconds; action/solve timeout remains 7200 seconds and auto retry remains zero. Offline composition assertion and full process-safety regressions are required before the next campaign.
+- **Post-repair verification:** process/reconciliation/worker/Calibration focus `PASS` — 39 in 1.88 s; final full suite `PASS` — 226 in 46.35 s.
+
 ## Historical real HFSS evidence
 
 Historical status is not current-working-tree validation.

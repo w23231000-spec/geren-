@@ -401,3 +401,11 @@ These decisions are reconstructed from current source/configuration and availabl
 - **Reason:** reconciliation must be possible after an indeterminate action without weakening the rule that authority cannot be invented after observing an outcome.
 - **Evidence:** fake campaign proves both approvals; Phase-5B tests prove exact, one-time, evidence-bound failure/success resolution with no new attempt/refund/retry.
 - **Consequence:** the pre-fix UNKNOWN Run remains immutable unresolved evidence; replacement physical work requires a new clean revision and new campaign rather than resume.
+
+## ADR-051 - Real AEDT heartbeat loss is bounded at 120 seconds
+
+- **Status:** ACTIVE; OFFLINE VERIFIED; PHYSICAL RERUN PENDING
+- **Decision:** Production/Calibration PyAEDT composition uses a 120-second heartbeat-loss threshold. The solve/action deadline remains 7200 seconds and termination verification remains separately bounded; test workers may use shorter injected thresholds.
+- **Reason:** AEDT 2025 R1 cold Desktop initialization can block the embedded Python heartbeat thread for more than the generic 15-second worker threshold even though the process is progressing.
+- **Evidence:** the second authorized probe reached PyAEDT Desktop initialization and was terminated only by the 15-second stale-heartbeat rule; process/lock cleanup and evidence reconciliation succeeded.
+- **Consequence:** cold start gets a bounded grace period without weakening the hard action deadline or adding retry. A 120-second heartbeat loss still terminates the process tree and yields no assumed success.

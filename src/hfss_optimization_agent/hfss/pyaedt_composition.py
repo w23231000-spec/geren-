@@ -25,6 +25,7 @@ def compose_pyaedt_hfss(
     solve_timeout_seconds: float = 7200.0,
     build_timeout_seconds: float = 1800.0,
     extract_timeout_seconds: float = 600.0,
+    heartbeat_timeout_seconds: float = 120.0,
     license_wait_seconds: float = 60.0,
     aedt_version: str = "2025.1",
     non_graphical: bool = True,
@@ -62,7 +63,7 @@ def compose_pyaedt_hfss(
             build_timeout_seconds=build_timeout_seconds,
             extract_timeout_seconds=extract_timeout_seconds,
             builder_attestation=builder_attestation,
-            heartbeat_timeout_seconds=15.0,
+            heartbeat_timeout_seconds=heartbeat_timeout_seconds,
             termination_grace_seconds=5.0,
             environment={
                 "PYTHONPATH": pythonpath,
