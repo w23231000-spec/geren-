@@ -27,7 +27,13 @@ _BUILD_STAGE_TOTAL = 13
 _ACTIVE_DESIGN_COMPAT_MARKER = "_hfss_agent_active_design_compat_v1"
 
 
-def _resolve_active_design(project_object, name: str, *, timeout_seconds: float = 30.0):
+def _resolve_active_design(
+    project_object,
+    name: str,
+    *,
+    timeout_seconds: float = 30.0,
+    application_refresher=None,
+):
     """Resolve a gRPC design object when ``SetActiveDesign`` returns bool/None.
 
     PyAEDT 0.18.1 assumes the gRPC call returns an object, but AEDT 2025 R1 can
@@ -37,6 +43,11 @@ def _resolve_active_design(project_object, name: str, *, timeout_seconds: float 
 
     deadline = time.monotonic() + max(0.0, float(timeout_seconds))
     observed_designs: tuple[str, ...] = ()
+    application_refreshed = False
+    try:
+        requested_project_name = str(project_object.GetName())
+    except Exception:
+        requested_project_name = ""
     while True:
         for method_name, arguments in (
             # AEDT can acknowledge InsertDesign before the new design is visible
@@ -60,6 +71,29 @@ def _resolve_active_design(project_object, name: str, *, timeout_seconds: float 
                     return candidate
             except Exception:
                 pass
+        if application_refresher is not None and not application_refreshed:
+            application_refreshed = True
+            try:
+                refreshed_desktop = application_refresher()
+                refreshed_project = None
+                if requested_project_name:
+                    set_project = getattr(refreshed_desktop, "SetActiveProject", None)
+                    if callable(set_project):
+                        refreshed_project = set_project(requested_project_name)
+                if refreshed_project is None:
+                    get_project = getattr(refreshed_desktop, "GetActiveProject", None)
+                    if callable(get_project):
+                        refreshed_project = get_project()
+                if refreshed_project is not None:
+                    refreshed_name = str(refreshed_project.GetName())
+                    if requested_project_name and refreshed_name != requested_project_name:
+                        raise RuntimeError(
+                            "refreshed AEDT application selected the wrong project"
+                        )
+                    project_object = refreshed_project
+                    continue
+            except Exception:
+                pass
         list_designs = getattr(project_object, "GetTopDesignList", None)
         if callable(list_designs):
             try:
@@ -71,7 +105,8 @@ def _resolve_active_design(project_object, name: str, *, timeout_seconds: float 
         if time.monotonic() >= deadline:
             raise RuntimeError(
                 f"AEDT did not expose the exact active design {name!r} within "
-                f"{timeout_seconds:.1f}s; observed top designs={observed_designs!r}"
+                f"{timeout_seconds:.1f}s; observed top designs={observed_designs!r}; "
+                f"application_refreshed={application_refreshed}"
             )
         time.sleep(min(0.2, max(0.0, deadline - time.monotonic())))
 
@@ -87,7 +122,21 @@ def _install_pyaedt_active_design_compatibility() -> None:
 
     def active_design(self, project_object=None, name=None, design_type=None):
         if project_object is not None and isinstance(name, str) and name:
-            return _resolve_active_design(project_object, name)
+            refresher = None
+            if getattr(self, "is_grpc_api", False) and getattr(
+                self, "grpc_plugin", None
+            ) is not None:
+                def refresh_application():
+                    refreshed = self.grpc_plugin.recreate_application(True)
+                    self._odesktop = refreshed
+                    return refreshed
+
+                refresher = refresh_application
+            return _resolve_active_design(
+                project_object,
+                name,
+                application_refresher=refresher,
+            )
         return original(
             self,
             project_object=project_object,

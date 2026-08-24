@@ -362,6 +362,13 @@ Interpretation:
 - **Repair:** the resolver now repeats exact-name activation throughout the finite interval instead of activating once and only reading. It captures normalized `GetTopDesignList()` evidence on timeout and retains exact-name rejection of `huitu`/fallbacks.
 - **Post-repair verification:** worker/backend/process focus `PASS` — 31 in 1.24 s; final full main suite `PASS` — 229 in 46.74 s.
 
+### Fifth authorized Calibration stale-gRPC-application probe and repair
+
+- **Observed result:** clean HEAD `ad093263d852193ebe1f4384181c238b9416b86c` retried activation but reported `observed top designs=()`. This isolates stale gRPC application visibility after `InsertDesign`; no geometry, Setup/Sweep, Solve result, or Touchstone exists.
+- **Cleanup/reconciliation:** zero AEDT/HFSS/worker processes and no Agent lock remained. Operation `op_958d6e55c74c48235f8c487efd08ea1e` / attempt `att_bac8e3b29c8efc0cca73c7472905c8b6` became `CONFIRMED_FAILED`; evidence `art_d694f78574d7d34fa9119268a9c42d04`, digest `2ed1c261705958806c727f5bbd289f25c686d4130f02268160c765a813137e3a`. No retry/refund/new attempt.
+- **Repair:** one PyAEDT-supported application recreation is permitted, followed by exact original-project reacquisition and exact target-design resolution. Wrong project/design still fails closed.
+- **Post-repair verification:** worker/backend/process focus `PASS` — 32 in 1.28 s; full main suite `PASS` — 230 in 46.45 s.
+
 ## Historical real HFSS evidence
 
 Historical status is not current-working-tree validation.

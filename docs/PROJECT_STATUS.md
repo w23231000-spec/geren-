@@ -123,7 +123,7 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - **ISSUE-032 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the first worker exited before AEDT on Python-3.10 `StrEnum` import; lazy package boundaries plus compatibility enum now pass under the configured AEDT/PyAEDT Python.
 - **ISSUE-033 — RESOLVED FOR NEW RUNS:** new Calibration campaigns preregister short-lived reconciliation authority; the original failed-import Run remains immutable `WAITING_RECONCILIATION` and is not resumed.
 - **ISSUE-034 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the second probe reached PyAEDT Desktop initialization, then the generic 15-second heartbeat killed a valid cold start. That exact UNKNOWN was evidence-reconciled as failed; real composition now uses a finite 120-second heartbeat bound.
-- **ISSUE-035 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the third probe exposed the PyAEDT bool/None assumption. A fourth clean-revision probe proved that one activation followed by read-only polling was insufficient: the target remained delayed/unexposed for 30 seconds. That exact UNKNOWN is reconciled as failed. The worker now retries `SetActiveDesign(exact_name)` throughout the finite interval, records the observed top-design list on failure, and still rejects every wrong/fallback design.
+- **ISSUE-035 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the third probe exposed the PyAEDT bool/None assumption; the fourth/fifth proved same-proxy polling and repeated activation cannot see the just-inserted design (`GetTopDesignList()==()`). All exact UNKNOWN attempts are reconciled as failed. The worker now performs one PyAEDT-supported gRPC application refresh, reacquires only the exact same project, then resolves only the exact target design within the finite interval. Wrong project/design and every fallback remain rejected.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
 - **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
 - **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
@@ -141,7 +141,7 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Final full main suite: `PASS` — 203 passed in 50.69 s, explicit exit code 0. The count decreased because 16 obsolete one-pass characterization tests are preserved but disabled, not because current V2 tests were skipped.
 - Final post-reliability/post-documentation full suite: `PASS` — 205 passed in 53.33 s, explicit exit code 0; the two added tests are V2 completed no-op and concurrent single-physical-workflow proof.
 - Python syntax compilation for changed modules: `PASS`.
-- Real AEDT startup/target-design probes: `BROKEN BEFORE SOLVE`; four bounded attempts, zero confirmed Solve launches/results, zero current residual processes/Agent locks.
+- Real AEDT startup/target-design probes: `BROKEN BEFORE SOLVE`; five bounded attempts, zero confirmed Solve launches/results, zero current residual processes/Agent locks.
 - Current-tree real HFSS E2E: `NOT RUN`.
 - ISSUE-019 focused contract/adapter suite: `PASS` — 33 passed in 0.67 s; final full offline suite: `PASS` — 213 passed in 45.71 s.
 - Calibration-authority/model/real-safety focused set: `PASS` — 73 passed in 1.70 s.
@@ -153,13 +153,14 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Post-ISSUE-034 focused process/reconciliation set: `PASS` — 39 passed in 1.88 s; final full suite `PASS` — 226 passed in 46.35 s.
 - Post-ISSUE-035 focused worker/process/reconciliation set: `PASS` — 41 passed in 1.87 s; final full suite `PASS` — 228 passed in 47.27 s.
 - Post-delayed-activation repair focused worker/backend/process set: `PASS` — 31 passed in 1.24 s; final full suite `PASS` — 229 passed in 46.74 s.
+- Post-gRPC-application-refresh repair focused worker/backend/process set: `PASS` — 32 passed in 1.28 s; final full suite `PASS` — 230 passed in 46.45 s.
 - Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
 
 **AEDT HAS BEEN STARTED UNDER BOUNDED AUTHORITY; NO HFSS SOLVE OR E2E RESULT EXISTS YET.**
 
-The first authorized worker exited before PyAEDT because of Python-3.10 import incompatibility. The second reached Desktop initialization but hit the old heartbeat bound. The third and fourth created an empty AEDT project and attempted only the target design; the fourth proved delayed gRPC activation also requires repeated exact-name activation. None built geometry, created Setup/Sweep, solved, or exported Touchstone. Every campaign used a single attempt and zero automatic retry; each actionable UNKNOWN with preregistered authority is now reconciled as failed, and no residual process or Agent lock remains. The repeated-activation repair is `OFFLINE VERIFIED` and must be committed before a fresh exact-HEAD campaign.
+The first authorized worker exited before PyAEDT because of Python-3.10 import incompatibility. The second reached Desktop initialization but hit the old heartbeat bound. The third through fifth created an empty AEDT project and attempted only the target design; the fifth proved the stale gRPC application proxy reports an empty top-design list even after repeated activation. None built geometry, created Setup/Sweep, solved, or exported Touchstone. Every campaign used a single attempt and zero automatic retry; each actionable UNKNOWN with preregistered authority is reconciled as failed, and no residual process or Agent lock remains. The exact-project application-refresh repair is `OFFLINE VERIFIED` and must be committed before a fresh exact-HEAD campaign.
 
 ## Next phase boundary
 

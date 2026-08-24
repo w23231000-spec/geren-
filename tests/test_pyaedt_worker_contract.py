@@ -171,6 +171,52 @@ def test_grpc_active_design_compatibility_retries_delayed_activation(monkeypatch
     assert project.activations == 3
 
 
+def test_grpc_active_design_compatibility_refreshes_same_project_proxy():
+    class Design:
+        def GetName(self):
+            return "interposer_temple4"
+
+    class StaleProject:
+        def GetName(self):
+            return "pa_multi"
+
+        def SetActiveDesign(self, _name):
+            return None
+
+        def GetDesign(self, _name):
+            return None
+
+        def GetActiveDesign(self):
+            return None
+
+    class FreshProject(StaleProject):
+        def SetActiveDesign(self, name):
+            assert name == "interposer_temple4"
+            return Design()
+
+    class FreshDesktop:
+        def SetActiveProject(self, name):
+            assert name == "pa_multi"
+            return FreshProject()
+
+    refresh_count = 0
+
+    def refresh():
+        nonlocal refresh_count
+        refresh_count += 1
+        return FreshDesktop()
+
+    resolved = _resolve_active_design(
+        StaleProject(),
+        "interposer_temple4",
+        timeout_seconds=0.0,
+        application_refresher=refresh,
+    )
+
+    assert resolved.GetName() == "interposer_temple4"
+    assert refresh_count == 1
+
+
 @pytest.mark.parametrize(
     ("unit", "expected"),
     [("Hz", 1.0), ("kHz", 1e3), ("MHz", 1e6), ("GHz", 1e9), ("THz", 1e12)],

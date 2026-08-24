@@ -413,7 +413,7 @@ These decisions are reconstructed from current source/configuration and availabl
 ## ADR-052 - PyAEDT gRPC design recovery is exact-name-only and bounded
 
 - **Status:** ACTIVE; OFFLINE VERIFIED; PHYSICAL RERUN PENDING
-- **Decision:** when PyAEDT 0.18.1 receives `bool`/`None` instead of a design object from AEDT 2025 R1 gRPC, the isolated worker may retry `SetActiveDesign(requested_name)` and query `GetDesign`/`GetActiveDesign` for at most 30 seconds. It accepts only an object whose `GetName()` exactly matches the contract design and reports the observed top-design names on timeout.
-- **Reason:** the third probe proved the return-type mismatch; the fourth proved AEDT's design visibility can lag the first activation request, so repeated exact-name activation—not fallback selection—is required.
-- **Evidence:** immutable reconciliation evidence for both probes plus unit tests for bool acknowledgement, delayed activation, and wrong-name rejection.
+- **Decision:** when PyAEDT 0.18.1 receives `bool`/`None` and the current gRPC proxy cannot see the inserted design, the worker may recreate the PyAEDT application proxy once, reacquire only the exact original project, and retry exact design resolution for at most 30 seconds. Exact project/design equality remains mandatory.
+- **Reason:** the fifth probe reported an empty top-design list after repeated activation, proving proxy staleness rather than a naming delay. PyAEDT already uses `recreate_application(True)` for supported multi-desktop/release transitions.
+- **Evidence:** immutable reconciliation evidence for the third through fifth probes plus unit tests for exact-project refresh, bool acknowledgement, delayed activation, and wrong-name rejection.
 - **Consequence:** the compatibility path never creates/selects `huitu`, a placeholder, or another design; target-only safety remains intact. Timeout/mismatch still fails the action without retry.
