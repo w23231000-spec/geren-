@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import math
 from dataclasses import dataclass
-from enum import StrEnum
+from .._compat import StrEnum
 from pathlib import PurePosixPath
 from typing import Any, Mapping
 

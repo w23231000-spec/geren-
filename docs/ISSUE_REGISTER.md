@@ -38,6 +38,8 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-030 | HIGH | RESOLVED OFFLINE | RELIABILITY / RECONCILIATION | UNKNOWN/corrupt checkpoints lacked evidence-bound recovery and chaos proof |
 
 | ISSUE-031 | BLOCKER | RESOLVED OFFLINE | CALIBRATION / AUTHORITY | Calibration Evidence 1.1 is policy/cardinality/provider/artifact/recomputation bound |
+| ISSUE-032 | BLOCKER | RESOLVED OFFLINE | HFSS / RUNTIME | AEDT 2025 R1 Python 3.10 could not import the isolated worker entry |
+| ISSUE-033 | HIGH | RESOLVED FOR NEW RUNS | RELIABILITY / RECONCILIATION | Calibration campaign did not preregister UNKNOWN reconciliation authority |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -384,6 +386,25 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Evidence:** focused regressions reject one-case/vacuous ranking, arbitrary policy/policy digest drift, missing providers, empty/missing/role-duplicate receipts, byte tamper, forged wrong-candidate semantic artifacts, and aggregate/report drift. Relevant safety/calibration/Production set passed 73 tests; final full-suite evidence is recorded in `VALIDATION_MATRIX.md`.
 - **Fixed:** yes at `OFFLINE VERIFIED`. The mandatory authority gap is closed; absence or failure of actual current physical Calibration remains ISSUE-009 and cannot be risk-accepted.
 - **Canary disposition:** no longer a blocker after the exact committed implementation passes offline validation. Readiness still cannot be issued without real passing evidence.
+
+### ISSUE-032 — AEDT 2025 R1 Python 3.10 could not import the isolated worker
+
+- **Classification:** HFSS / RUNTIME / COMPATIBILITY
+- **Severity / status:** BLOCKER / RESOLVED OFFLINE on 2026-08-24; physical rerun pending
+- **Trigger/evidence:** the first authorized Calibration baseline action launched the supervised worker, which exited in about 0.1 s before AEDT/model construction with `ImportError: cannot import name 'StrEnum'` from Python 3.10. No `ansysedt` process, project, solve, extraction, residual process, or lock remained. Harness conservatively recorded the action `UNKNOWN`.
+- **Root cause:** `python -m hfss_optimization_agent.hfss.pyaedt_worker` executes package `__init__` files first. They eagerly imported Agent/Harness modules requiring Python 3.11+ even though the isolated PyAEDT worker is designed to run in AEDT 2025 R1's Python 3.10.
+- **Resolution:** package and HFSS exports are lazy; all shared string enums use a small Python-3.10-compatible `StrEnum` shim. AEDT/PyAEDT Python can now execute the worker CLI import path without importing/launching AEDT.
+- **Evidence after:** configured PyAEDT/AEDT Python executes `-m hfss_optimization_agent.hfss.pyaedt_worker --help` with exit 0; focused worker/Calibration/import suite passes. A full physical rerun is required before real verification.
+- **Fixed:** offline import boundary yes; `REAL HFSS VERIFIED` not yet claimed.
+
+### ISSUE-033 — Calibration UNKNOWN lacked preregistered reconciliation authority
+
+- **Classification:** RELIABILITY / RECONCILIATION / CALIBRATION
+- **Severity / status:** HIGH / RESOLVED FOR NEW RUNS on 2026-08-24
+- **Trigger/evidence:** the failed ISSUE-032 attempt correctly became `WAITING_RECONCILIATION`, but the campaign had registered only `real_hfss` approval. Reconciliation policy correctly refuses authority added after a Run becomes non-active, so this historical Run remains preserved as unresolved evidence rather than being rewritten.
+- **Resolution:** every new Calibration Run preregisters a short-lived, campaign-derived `reconcile_unknown` grant alongside the physical grant, with the same manifest expiry. It does not auto-reconcile or retry; it only makes the existing reviewed Phase-5B operator path usable if UNKNOWN occurs.
+- **Evidence after:** fake three-case campaign asserts both grants are durably present; reconciliation unit suite remains authoritative for resolution behavior.
+- **Residual:** `run:hfss-calibration-20260824-100309` remains `WAITING_RECONCILIATION` with one conservatively authorized action but zero observed AEDT/solve starts. It is never resumed or used as Calibration evidence.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.

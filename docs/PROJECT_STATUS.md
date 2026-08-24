@@ -12,9 +12,9 @@ Evolve the deterministic baseline→candidate Workflow into an engineering Agent
 | Item | Current fact |
 |---|---|
 | Branch | `master` |
-| Implementation baseline | `5aca68ca73ee978425f867943b4a3e764fde5278` — `feat: harden calibration authority and prepare real canary` |
-| Current HEAD | Evidence-only synchronization commit containing this snapshot; query Git because a commit cannot contain its own hash |
-| Working tree | Expected clean immediately after this evidence-only synchronization commit; both physical issuers recheck rather than trust this statement |
+| Prior offline baseline | `5aca68ca73ee978425f867943b4a3e764fde5278` — Calibration-authority implementation before the first physical import probe |
+| Current HEAD | Compatibility/reconciliation implementation commit containing this snapshot; query Git because a commit cannot contain its own hash |
+| Working tree | Expected clean immediately after that commit; both physical issuers recheck rather than trust this statement |
 | Staged files | None |
 | Commit authority | User explicitly authorized the implementation and final evidence commits |
 | Original history | Not recovered; the prospective repository baseline remains the traceability anchor |
@@ -120,6 +120,8 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - **ISSUE-010 — RESOLVED FOR COLLECTION:** the user approved the existing HFSS Builder as physical authority. `model_alignment.hfss_builder_v1.json` binds the exact HFSS contract, 200-point comparison grid, ports, impedance, materials, and the rule that empirical surrogate terms are accepted only through passing Calibration.
 - **ISSUE-018 — RESOLVED OFFLINE:** pure nine-parameter mapping is isolated from the PyAEDT import boundary; its standalone test passes under Agent Python.
 - **ISSUE-031 — RESOLVED OFFLINE:** Calibration Evidence 1.1 and readiness recomputation reject formal/semantic fabrication before Canary admission.
+- **ISSUE-032 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the first worker exited before AEDT on Python-3.10 `StrEnum` import; lazy package boundaries plus compatibility enum now pass under the configured AEDT/PyAEDT Python.
+- **ISSUE-033 — RESOLVED FOR NEW RUNS:** new Calibration campaigns preregister short-lived reconciliation authority; the original failed-import Run remains immutable `WAITING_RECONCILIATION` and is not resumed.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
 - **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
 - **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
@@ -145,14 +147,15 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Standalone pure Builder mapping: `PASS` — 3 passed; supplied optimizer vendor suite: `PASS` — 7 passed in 5.19 s.
 - Environment preflight: `PASS` in required headless mode; PyAEDT 0.18.1, AEDT 2025.1 executable, and idle Agent lock were observed without launching AEDT or acquiring a license.
 - Both checked-in physical entries fail closed by default; compilation/runtime JSON/diff hygiene pass.
+- Post-ISSUE-032/033 final full suite: `PASS` — 226 passed in 46.48 s; configured AEDT-Python worker-import regression is collected.
 - Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
 
 **NOT YET RUN — physical execution is authorized but remains gated.**
 
-The checked-in code-level defaults remain fail-closed and contain no authority path. The user authorized the exact sequence: final offline verification and commit; an eight-hour exact-HEAD Calibration manifest for baseline plus two deterministic candidates with three launches/zero retry; then, only if Calibration passes, an eight-hour exact-HEAD Canary manifest with two launches/zero retry. ISSUE-013 and ISSUE-015/026 residual risk is accepted only for this bounded Canary. No AEDT launch, build, solve, extraction, ADS call, license acquisition, or real worker start has occurred at this snapshot.
+The first authorized Calibration worker process exited before importing PyAEDT/AEDT because the AEDT 2025 R1 Python 3.10 runtime lacked `enum.StrEnum`. No AEDT process, model build, solve, extraction, project, residual process, or lock was observed; the Harness conservatively preserved the action as `UNKNOWN`. The checked-in defaults remain fail-closed. After the compatibility fix passes full offline verification and is committed, a fresh exact-HEAD three-case/zero-retry campaign may be issued. Only passing evidence permits the separately bound two-solve/zero-retry Canary. ISSUE-013 and ISSUE-015/026 residual risk acceptance remains limited to that bounded Canary.
 
 ## Next phase boundary
 
-Finish the full offline suite and evidence documents, commit the exact implementation revision, and recheck clean HEAD/environment. Then issue and execute the three-case Calibration campaign through `PREPARE_HFSS_CALIBRATION.py` / `RUN_HFSS_CALIBRATION.py`. A passing immutable report permits `PREPARE_REAL_HFSS_CANARY.py` to issue the two-solve readiness manifest and `RUN_REAL_HFSS.py` to execute WF-001. Calibration failure, UNKNOWN, timeout, residual process, or evidence drift stops the sequence.
+Run the full offline suite including the configured AEDT-Python worker-import regression, commit the compatibility revision, and recheck clean HEAD/processes/lock. Then issue a new three-case Calibration campaign; never resume or reuse `run:hfss-calibration-20260824-100309`. A passing immutable report permits `PREPARE_REAL_HFSS_CANARY.py` and WF-001. Any new Calibration failure, UNKNOWN, timeout, residual process, or evidence drift stops the sequence.

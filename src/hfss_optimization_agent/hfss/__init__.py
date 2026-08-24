@@ -1,11 +1,13 @@
-"""Mock provider, guarded orchestration contracts, and inert real backend boundary."""
+"""Mock provider, guarded orchestration contracts, and real worker boundary.
 
-from .backend import HFSSBackendInterface, RawSParameterData, UnavailableHFSSBackend
-from .contracts import HFSSRunContract, MaterialContract, PortContract, SweepContract, load_hfss_contract
-from .guarded_adapter import GuardedHFSSAdapter, GuardedHFSSConfig
-from .mock_hfss import MockHFSS
-from .pyaedt_composition import compose_pyaedt_hfss
-from .worker_backend import JsonSubprocessHFSSBackend, JsonWorkerConfig
+Exports are lazy so ``python -m ...hfss.pyaedt_worker`` on AEDT's Python 3.10 does
+not import the Agent/Harness composition before the isolated worker starts.
+"""
+
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
 
 __all__ = [
     "GuardedHFSSAdapter",
@@ -23,3 +25,31 @@ __all__ = [
     "UnavailableHFSSBackend",
     "load_hfss_contract",
 ]
+
+
+_EXPORTS = {
+    "HFSSBackendInterface": (".backend", "HFSSBackendInterface"),
+    "RawSParameterData": (".backend", "RawSParameterData"),
+    "UnavailableHFSSBackend": (".backend", "UnavailableHFSSBackend"),
+    "HFSSRunContract": (".contracts", "HFSSRunContract"),
+    "MaterialContract": (".contracts", "MaterialContract"),
+    "PortContract": (".contracts", "PortContract"),
+    "SweepContract": (".contracts", "SweepContract"),
+    "load_hfss_contract": (".contracts", "load_hfss_contract"),
+    "GuardedHFSSAdapter": (".guarded_adapter", "GuardedHFSSAdapter"),
+    "GuardedHFSSConfig": (".guarded_adapter", "GuardedHFSSConfig"),
+    "MockHFSS": (".mock_hfss", "MockHFSS"),
+    "compose_pyaedt_hfss": (".pyaedt_composition", "compose_pyaedt_hfss"),
+    "JsonSubprocessHFSSBackend": (".worker_backend", "JsonSubprocessHFSSBackend"),
+    "JsonWorkerConfig": (".worker_backend", "JsonWorkerConfig"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    try:
+        module_name, attribute = _EXPORTS[name]
+    except KeyError as exc:
+        raise AttributeError(name) from exc
+    value = getattr(import_module(module_name, __name__), attribute)
+    globals()[name] = value
+    return value

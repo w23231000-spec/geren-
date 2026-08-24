@@ -1,7 +1,10 @@
 """Offline tests for the real-worker contract; these never import or launch PyAEDT."""
 
 import hashlib
+import json
+import os
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -44,6 +47,31 @@ from hfss_optimization_agent.harness.real_hfss_safety import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "config" / "hfss_contract.pa_multi_2025_1.json"
+
+
+def test_configured_aedt_python_can_import_worker_cli_without_launching_aedt():
+    configuration = json.loads((ROOT / "runtime_config.json").read_text(encoding="utf-8"))
+    interpreter = Path(configuration["pyaedt_python"])
+    if not interpreter.is_file():
+        pytest.skip("configured AEDT/PyAEDT Python is unavailable")
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(ROOT / "src")
+    completed = subprocess.run(
+        [
+            str(interpreter),
+            "-m",
+            "hfss_optimization_agent.hfss.pyaedt_worker",
+            "--help",
+        ],
+        cwd=ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=20.0,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "pyaedt-hfss-worker" in completed.stdout
 
 
 def contract_dict():

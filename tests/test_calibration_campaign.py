@@ -36,6 +36,7 @@ from hfss_optimization_agent.harness.real_hfss_safety import (
     HFSS_WORKER_PROTOCOL,
     RepositoryEvidence,
 )
+from hfss_optimization_agent.harness.run_store import RunStore
 from hfss_optimization_agent.hfss.contracts import load_hfss_contract
 
 
@@ -193,3 +194,9 @@ def test_fake_three_case_campaign_creates_reproducible_passing_evidence(
     )
     assert len(result.evidence.source_artifacts) == 15
     assert result.evidence_path.is_file()
+    assert (
+        RunStore(tmp_path / "runs" / ".runstore" / "runstore.sqlite3").count_rows(
+            "approvals", run_id=result.run_id
+        )
+        == 2
+    )

@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from enum import StrEnum
+from .._compat import StrEnum
 import hashlib
 from pathlib import Path
 import sqlite3

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from enum import StrEnum
+from .._compat import StrEnum
 from pathlib import Path
 from typing import Any, Mapping
 

@@ -20,6 +20,7 @@ from ..harness.calibration_safety import (
     CALIBRATION_COLLECTION_WORKFLOW_ID,
     CalibrationCollectionAuthorization,
 )
+from ..harness.reconciliation import RECONCILIATION_APPROVAL_SCOPE
 from ..harness.core import HarnessCore, HarnessSettings
 from ..harness.errors import HFSSExecutionError, WorkflowError
 from ..harness.result_codecs import (
@@ -180,6 +181,12 @@ def run_calibration_campaign(
                 ApprovalGrant(
                     approval_id=authority.approval_id,
                     scope="real_hfss",
+                    granted_by=f"calibration_manifest:{authority.campaign_id}",
+                    expires_at=authority.expires_at,
+                ),
+                ApprovalGrant(
+                    approval_id=f"reconcile:{authority.campaign_id}",
+                    scope=RECONCILIATION_APPROVAL_SCOPE,
                     granted_by=f"calibration_manifest:{authority.campaign_id}",
                     expires_at=authority.expires_at,
                 ),

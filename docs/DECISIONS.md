@@ -385,3 +385,19 @@ These decisions are reconstructed from current source/configuration and availabl
 - **Reason:** evidence acquisition and product verification have different purposes and budgets; separating authority prevents Calibration solves from silently expanding Canary scope.
 - **Evidence:** offline manifest/budget/default-disable/fake-campaign/readiness binding tests.
 - **Consequence:** a clean exact commit is mandatory before issuance. Calibration failure, UNKNOWN, timeout, or residual process terminates the sequence; there is no solve retry.
+
+## ADR-049 - The AEDT Python worker has an import-light Python 3.10 boundary
+
+- **Status:** ACTIVE; OFFLINE VERIFIED ON CONFIGURED AEDT 2025 R1 PYTHON
+- **Decision:** root/HFSS package exports are lazy and shared string enums use a local Python-3.10-compatible shim. The isolated `pyaedt_worker` entry must not eagerly import Agent/Harness composition intended for the Python-3.12 Agent runtime.
+- **Reason:** `python -m package.submodule` executes package initializers first; the first authorized worker probe exposed a pre-AEDT `StrEnum` import failure.
+- **Evidence:** configured PyAEDT/AEDT Python executes the worker CLI help path with exit 0; focused imports/tests pass without launching AEDT.
+- **Consequence:** any future worker dependency must remain compatible with the declared embedded interpreter or be kept beyond the worker boundary.
+
+## ADR-050 - UNKNOWN reconciliation authority is preregistered, never retrofitted
+
+- **Status:** ACTIVE; OFFLINE VERIFIED FOR NEW CALIBRATION RUNS
+- **Decision:** every Calibration Run registers an expiring `reconcile_unknown` grant at creation together with its physical grant. No approval can be added after the Run becomes `WAITING_RECONCILIATION`; no code auto-applies the grant.
+- **Reason:** reconciliation must be possible after an indeterminate action without weakening the rule that authority cannot be invented after observing an outcome.
+- **Evidence:** fake campaign proves both approvals; Phase-5B tests prove exact, one-time, evidence-bound failure/success resolution with no new attempt/refund/retry.
+- **Consequence:** the pre-fix UNKNOWN Run remains immutable unresolved evidence; replacement physical work requires a new clean revision and new campaign rather than resume.

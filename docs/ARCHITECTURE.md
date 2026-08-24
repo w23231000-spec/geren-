@@ -296,6 +296,8 @@ Readiness Manifest V1.1 fixes task/run/workflow identity, creation/expiry, Git H
 
 Phase 3 places optimizer and HFSS workers behind `SupervisedProcessRunner`. Phase 5B adds bounded kill-verification-failure and Windows parent-death proof, plus explicit evidence-bound quarantine archival. Job assignment still occurs before worker resume; unverified cleanup remains UNKNOWN and quarantined. This is offline verified with ordinary Windows child processes; actual AEDT lifecycle remains a Canary gate under ISSUE-015/026.
 
+The PyAEDT worker runs on AEDT 2025 R1's embedded Python 3.10 while the Agent runtime remains Python 3.12+. Root and `hfss` package exports are therefore lazy, and shared enum contracts use `_compat.StrEnum`; the isolated worker import path must not eagerly traverse Agent/Harness composition. A configured-interpreter `--help` regression proves this boundary without importing or launching AEDT. New physical Calibration Runs also preregister an expiring `reconcile_unknown` grant at Run creation. This does not weaken UNKNOWN or add retry: it only permits the exact evidence-bound Phase-5B operator resolution if an indeterminate action occurs.
+
 ## Production and non-Production boundary
 
 - Canonical Production Workflow: exactly one, WF-001 via `RUN_REAL_HFSS.py`.

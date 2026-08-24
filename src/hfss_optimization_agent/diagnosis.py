@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from enum import StrEnum
+from ._compat import StrEnum
 from typing import Any
 
 from .core.models import EvaluationResult, EvaluationComparison

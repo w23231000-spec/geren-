@@ -331,6 +331,15 @@ Interpretation:
 - **Default entry fail-closed probe:** both `RUN_HFSS_CALIBRATION.py` and `RUN_REAL_HFSS.py` reject disabled configuration before provider composition. No AEDT/HFSS/ADS process started.
 - **Evidence level:** implementation `OFFLINE VERIFIED`; physical Calibration/Canary `NOT RUN` at this snapshot.
 
+### First authorized Calibration import probe and repair
+
+- **Observed result:** baseline composite worker exited 1 in about 0.1 s before PyAEDT/AEDT import with Python-3.10 `StrEnum` incompatibility. Harness status is `UNKNOWN / WAITING_RECONCILIATION`; one conservative action authorization is retained, but observed AEDT/model/solve launch count is 0.
+- **Residual-process check:** no `ansysedt`, HFSS, Ansys, or worker Python process; no active/quarantine lock; no `.aedt` or `.s2p` was created.
+- **Repair evidence:** package/HFSS exports are lazy and shared enums have a Python-3.10 shim. Configured PyAEDT/AEDT Python executes `hfss_optimization_agent.hfss.pyaedt_worker --help` with exit 0. Focused worker/Calibration/import suite `PASS` — 26 passed in 0.73 s.
+- **Reconciliation improvement:** new campaigns preregister the short-lived exact reconciliation scope; fake campaign proves two grants. The pre-fix Run remains immutable evidence because authority correctly cannot be added after UNKNOWN.
+- **Evidence level:** ISSUE-032 `RESOLVED OFFLINE`; ISSUE-033 `RESOLVED FOR NEW RUNS`; fixed physical campaign `NEEDS VERIFICATION`.
+- **Post-repair full main suite:** `PASS` — 226 passed in 46.48 s.
+
 ## Historical real HFSS evidence
 
 Historical status is not current-working-tree validation.
