@@ -199,7 +199,7 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 - **Admission:** checked-in defaults are disabled. Issuance requires a clean exact HEAD and binds Agent/optimizer/surrogate/Builder/PyAEDT/protocol/policy bytes, exact HFSS contract and model alignment, expiry, three deterministic candidate snapshots (baseline plus two interior points), and `ExecutionPolicy(3,0)`.
 - **Call chain:** validate authority before composition → Harness/RunStore registration → for each case freeze candidate → supplied surrogate receipt → one composite real HFSS action → freeze result, exact `.aedt`, and exact `.s2p` → assess approved policy → publish strict immutable Calibration Evidence.
 - **Safety:** every physical action is approval-, budget-, attempt-, idempotency-, and ambiguity-bound; no automatic retry. Any UNKNOWN/timeout/residual process stops normal progress.
-- **Verification:** fake three-case end-to-end campaign passes with 15 typed source receipts; manifest drift/default-disable/budget tests pass offline. Five bounded real startup/build probes have run, but none reached a confirmed Solve or produced an accepted case; current Calibration remains `BROKEN BEFORE SOLVE / NEEDS VERIFICATION`.
+- **Verification:** fake three-case end-to-end campaign passes with 15 typed source receipts; manifest drift/default-disable/budget tests pass offline. Six bounded real campaigns have run, but no accepted case exists. Batch evidence isolates unreachable/unacceptable license authority as the current upstream blocker; physical Calibration remains `BROKEN BEFORE SOLVE`.
 
 ## WF-018 — Exact Canary readiness issuance
 

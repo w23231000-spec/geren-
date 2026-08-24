@@ -417,3 +417,11 @@ These decisions are reconstructed from current source/configuration and availabl
 - **Reason:** the fifth probe reported an empty top-design list after repeated activation, proving proxy staleness rather than a naming delay. PyAEDT already uses `recreate_application(True)` for supported multi-desktop/release transitions.
 - **Evidence:** immutable reconciliation evidence for the third through fifth probes plus unit tests for exact-project refresh, bool acknowledgement, delayed activation, and wrong-name rejection.
 - **Consequence:** the compatibility path never creates/selects `huitu`, a placeholder, or another design; target-only safety remains intact. Timeout/mismatch still fails the action without retry.
+
+## ADR-053 - Legitimate license authority is a physical evidence prerequisite
+
+- **Status:** ACTIVE; PHYSICAL BLOCKER OBSERVED
+- **Decision:** AEDT process/gRPC startup alone does not satisfy readiness. Calibration and Canary require a reachable, legitimately provisioned ANSYS/organization license authority that can check out the required HFSS feature. Unverified third-party license sources are outside the execution boundary.
+- **Reason:** four campaign batch logs show the shell can start while `hfss_gui` fails with FlexNet `-15,10`; downstream empty-design/PyAEDT symptoms are not independently attributable.
+- **Evidence:** exact sixth-campaign reconciliation `art_8094c55489184ab113e28b033d7a21b1`, closed port 1055, stopped service, and matching earlier batch logs.
+- **Consequence:** ISSUE-036 blocks all further real actions. After legitimate administrator configuration, readiness must be recomputed and a new clean-HEAD campaign issued; failed Runs are never resumed.

@@ -41,7 +41,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | Best update | PASS | PASS | PASS | PASS | `BestPolicy` seeds from baseline Evaluation evidence and promotes only through a matching eligible `ComparisonRecord` |
 | Authoritative terminal outcome/exit code | PASS | PASS | PASS | PASS | Baseline/candidate success, NO_SOLUTION, rejected, invalid, failed, cancelled, waiting, and historical completed mappings are explicitly tested |
 | Real-entry fail-closed interlock | PASS | PASS | PASS | PASS | Checked-in config has no manifest; boolean-only, missing/noncanonical/expired/drifted readiness fails before worker composition/workspace creation |
-| Readiness causal identity | PASS | PASS | FAIL | PASS | Git/source/Goal/Run/contracts/approval bindings pass, but Calibration authority lacks approved policy/cardinality/complete providers/source receipts under ISSUE-031 |
+| Readiness causal identity | PASS | PASS | PASS | PASS | Git/source/Goal/Run/contracts/approval/policy/cardinality/provider/source-receipt bindings and semantic recomputation pass offline; no physical Calibration exists under ISSUE-009/036 |
 | Real HFSS solve-launch ceiling | PASS | PASS | PASS | PASS | Concurrent distinct approved actions admit at most two; ordinal 3 is rejected transactionally, cached replay consumes no new launch, automatic retries are fixed at zero |
 | SQLite RunStore schema/lifecycle | PASS | PASS | PASS | PASS | Run/operation/attempt/reservation/artifact/event/checkpoint identities and lifecycle transitions pass file-backed SQLite tests |
 | Action receipt crash recovery | PASS | PASS | PASS | PASS | Provider success is durable before Graph checkpoint; injected checkpoint crash resumes without repeating baseline HFSS callback |
@@ -68,16 +68,16 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | V1/V2 historical checkpoint boundary | PASS | PASS | PASS | PASS | Explicit reader classifies completed/interrupted V1 evidence and preserves source; formal SQLite composition has no legacy path/probe and cannot resume file checkpoints |
 | SQLite checkpoint CAS | PASS | PASS | PASS | PASS | Revision/fence/manifest CAS, historical-digest replay rejection, terminal no-op, and Windows connection-close regressions pass |
 | Resume/reuse | PASS | PASS | PASS | PASS | Receipt replay, evidence-bound UNKNOWN resolution, double resume, waiting recovery, and completed strict no-op pass; saved-node continuation remains absent under ISSUE-013 |
-| Calibration Evidence / real gate | PASS | PASS | FAIL | PASS | Canonical structure/digest/context binding passes, but authoritative sufficiency is BROKEN under ISSUE-031; current paired evidence is absent and real execution is NOT RUN |
+| Calibration Evidence / real gate | PASS | PASS | PASS | PASS | Calibration Evidence 1.1 authority/recomputation passes offline; current paired physical evidence is absent because license checkout fails under ISSUE-036 |
 | HFSS returned frequency-grid contract | PASS | PASS | PASS | PASS | Count, finite/monotonic values, endpoints, every linear/log point, unit drift, explicit fail-closed, and adapter pre-acceptance failure pass offline; real AEDT is NOT RUN |
-| Environment preflight | PASS | NOT AVAILABLE | PASS | PASS | Current preflight result is PASS; it does not launch AEDT or prove a license |
+| Environment preflight | PASS | FAIL | FAIL | PASS | File/package/headless checks pass, but real batch evidence proves the configured license endpoint cannot provide `hfss_gui`; ISSUE-036 blocks physical admission |
 | Package editable import provenance | PASS | PASS | PASS | PASS | Project `.venv`, ordinary import, and module CLI resolve to the current repository `src` |
 
 ## Current full-workflow results
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: exact committed identity is available, but ISSUE-009/010/031 block; ISSUE-013 and ISSUE-015/026 need explicit conditional acceptance; ISSUE-019 is resolved offline |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-009 has no physical Calibration because ISSUE-036 blocks legitimate license checkout; ISSUE-010/031 are resolved for collection/offline authority |
 | WF-002 deterministic Offline | PASS | NOT AVAILABLE | PASS | Test-backed full route uses explicit Offline Contract v1, promotes candidate, and emits typed success |
 | WF-003 supplied optimizer + MockHFSS | PASS | NOT AVAILABLE | PASS | Formal entry delegates to supplied-Tools Closed-loop V2; actual supervised optimizer worker + MockHFSS reaches typed END |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
@@ -368,6 +368,14 @@ Interpretation:
 - **Cleanup/reconciliation:** zero AEDT/HFSS/worker processes and no Agent lock remained. Operation `op_958d6e55c74c48235f8c487efd08ea1e` / attempt `att_bac8e3b29c8efc0cca73c7472905c8b6` became `CONFIRMED_FAILED`; evidence `art_d694f78574d7d34fa9119268a9c42d04`, digest `2ed1c261705958806c727f5bbd289f25c686d4130f02268160c765a813137e3a`. No retry/refund/new attempt.
 - **Repair:** one PyAEDT-supported application recreation is permitted, followed by exact original-project reacquisition and exact target-design resolution. Wrong project/design still fails closed.
 - **Post-repair verification:** worker/backend/process focus `PASS` — 32 in 1.28 s; full main suite `PASS` — 230 in 46.45 s.
+
+### Sixth authorized Calibration and license-authority finding
+
+- **Observed result:** clean HEAD `479a5ca84470f3f9e1d9fdc335679d1264e665a4`, campaign `hfss-calibration-20260824-105414`, stopped after one baseline attempt and zero automatic retries. No Builder milestone, Solve result, Touchstone, or accepted case exists.
+- **Root evidence:** the campaign `batch.log` records FlexNet `-15,10` for feature `hfss_gui` at `1055@localhost`. Retrospective scan proves the same upstream error in campaigns `102020`, `103140`, and `104554`; prior PyAEDT symptoms are not independently attributable.
+- **Cleanup/reconciliation:** operation `op_450ae811bb520e722e541d4b9a91456f` / attempt `att_95f454115faf49f8cef1fdf95386995b` became `CONFIRMED_FAILED`; evidence `art_8094c55489184ab113e28b033d7a21b1`, digest `60e901ef3f3013b89ba954b0f399a187acccddafeffbdf974f68ee0f673392cd`. No process/Agent lock remains and no retry/refund/new attempt occurred.
+- **License boundary:** port 1055 is not listening. Starting the exact stopped Windows service was denied for lack of service-control permission and changed no state. The discovered local license provenance is unverified/unacceptable and was not enabled or used.
+- **Result:** ISSUE-036 `OPEN / BLOCKER`; real Calibration, Canary, and E2E remain `NOT RUN / BROKEN BEFORE SOLVE`. Last full offline suite remains `PASS` — 230 in 46.45 s.
 
 ## Historical real HFSS evidence
 

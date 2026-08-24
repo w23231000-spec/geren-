@@ -41,7 +41,8 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-032 | BLOCKER | RESOLVED OFFLINE | HFSS / RUNTIME | AEDT 2025 R1 Python 3.10 could not import the isolated worker entry |
 | ISSUE-033 | HIGH | RESOLVED FOR NEW RUNS | RELIABILITY / RECONCILIATION | Calibration campaign did not preregister UNKNOWN reconciliation authority |
 | ISSUE-034 | HIGH | RESOLVED OFFLINE | HFSS / SUPERVISION | Fifteen-second worker heartbeat killed valid AEDT cold startup |
-| ISSUE-035 | BLOCKER | RESOLVED OFFLINE | HFSS / PYAEDT | PyAEDT gRPC returned bool/None instead of the new target design object |
+| ISSUE-035 | BLOCKER | NEEDS VERIFICATION | HFSS / PYAEDT | PyAEDT gRPC returned bool/None while upstream license checkout was failing |
+| ISSUE-036 | BLOCKER | OPEN | HFSS / LICENSING / ENVIRONMENT | Configured license server is unreachable and local license provenance is not acceptable for use |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -421,11 +422,21 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-035 — PyAEDT did not return the newly inserted target design object
 
 - **Classification:** HFSS / PYAEDT / GRPC COMPATIBILITY
-- **Severity / status:** BLOCKER / RESOLVED OFFLINE on 2026-08-24; physical rerun pending
-- **Trigger/evidence:** the third authorized probe started AEDT 2025 R1, created `pa_multi.aedt`, and attempted to insert only `interposer_temple4`. PyAEDT 0.18.1 `Desktop.active_design` assumed `SetActiveDesign` returned an object, but gRPC returned `None`/`bool`. Fourth/fifth exact-revision probes proved same-proxy reads and repeated activation still report no top designs. No probe reached Builder geometry, setup, solve, or Touchstone.
+- **Severity / status:** BLOCKER / NEEDS VERIFICATION; upstream ISSUE-036 blocks attribution
+- **Trigger/evidence:** the third authorized probe started AEDT 2025 R1, created `pa_multi.aedt`, and attempted to insert only `interposer_temple4`. PyAEDT 0.18.1 `Desktop.active_design` received `None`/`bool`; later probes reported no top designs. Subsequent `batch.log` review proves every design-stage probe simultaneously failed the `hfss_gui` license checkout with FlexNet `-15,10`, so the design/API symptom cannot be isolated from the upstream license failure.
 - **Resolution:** the isolated worker installs a narrow compatibility hook before Hfss construction. After the first stale-proxy observation it invokes PyAEDT's own `grpc_plugin.recreate_application(True)` once, reacquires only the exact original project, then retries exact target resolution within 30 seconds. Exact project and design names are mandatory; it never selects or creates a fallback design.
 - **Safety/evidence:** all failed attempts were explicitly reconciled as confirmed failed. The fifth is operation `op_958d6e55c74c48235f8c487efd08ea1e`, attempt `att_bac8e3b29c8efc0cca73c7472905c8b6`, evidence `art_d694f78574d7d34fa9119268a9c42d04`. No process/Agent lock remained; no new attempt/refund/retry occurred. Unit regressions prove exact-project proxy refresh, bool acknowledgement, delayed activation, and wrong-design fail-closed behavior.
-- **Fixed:** offline compatibility logic yes. A new clean-revision physical build/solve is required.
+- **Fixed:** compatibility logic is unit tested, but physical attribution is not proven. A legitimate reachable license server must close ISSUE-036 before this issue can be verified.
+
+### ISSUE-036 — Real HFSS license authority is unreachable/unacceptable
+
+- **Classification:** HFSS / LICENSING / ENVIRONMENT / AUTHORITY
+- **Severity / status:** BLOCKER / OPEN on 2026-08-24
+- **Trigger/evidence:** `batch.log` for campaigns `102020`, `103140`, `104554`, and `105414` records FlexNet `-15,10`, feature `hfss_gui`, and connection refusal at the configured `1055@localhost` endpoint. Port 1055 is not listening and the matching Windows service is stopped. The Codex process lacks service-control permission.
+- **Authority finding:** the only local license file inspected identifies third-party/unverifiable provenance rather than a verifiable ANSYS/organization entitlement. It was not enabled or used; attempting to start the service failed before any state change.
+- **Impact:** Calibration has zero accepted physical cases and no confirmed Solve result. Canary/readiness issuance and Phase 6 remain prohibited. ISSUE-035 cannot be physically attributed while license checkout fails upstream.
+- **Required resolution:** supply a legitimate ANSYS/organization license server endpoint and entitlement, or have an authorized administrator configure/start it. Re-run a no-Solve license/readiness check, then issue a fresh clean-HEAD campaign. Do not reuse any failed Run.
+- **Safety:** no service was started, no license daemon/port became active, all physical processes were terminated, and every exact UNKNOWN with preregistered authority was reconciled as failed without retry/refund.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.

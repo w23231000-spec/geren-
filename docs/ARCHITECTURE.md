@@ -300,6 +300,8 @@ The PyAEDT worker runs on AEDT 2025 R1's embedded Python 3.10 while the Agent ru
 
 Real PyAEDT composition uses a finite 120-second heartbeat-loss threshold because AEDT cold-start calls can block the embedded Python heartbeat thread longer than the generic 15-second worker default. This is independent of the 7200-second solve deadline and 5-second termination-verification grace. Test workers may override the threshold downward to exercise bounded failure; Production has no heartbeat-triggered retry.
 
+Real AEDT process startup is not equivalent to a successful HFSS license checkout. Current batch evidence shows the shell/gRPC server can start while `hfss_gui` fails with FlexNet `-15,10`; downstream empty-design symptoms are therefore not valid Builder/PyAEDT attribution. Physical evidence collection requires a reachable legitimate ANSYS/organization license authority. An unverified local license source is outside the accepted execution boundary and cannot authorize Calibration or Canary.
+
 PyAEDT 0.18.1 on AEDT 2025 R1 gRPC may acknowledge `SetActiveDesign` with `True`/`None`, while the application proxy that issued `InsertDesign` can remain stale and report no designs. The worker applies a narrow target-only compatibility hook: it may invoke PyAEDT's supported gRPC application recreation once, reacquire only the exact same project, and for at most 30 seconds repeat `SetActiveDesign(exact_name)` plus `GetDesign`/`GetActiveDesign`. It accepts only exact project and design names; a terminal error includes the normalized top-design list and refresh fact. Wrong/missing identities fail; no `huitu` or placeholder design is selected or created.
 
 ## Production and non-Production boundary
