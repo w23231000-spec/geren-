@@ -1,6 +1,6 @@
 # Project Status
 
-Updated: **2026-08-24 +08:00**
+Updated: **2026-08-25 +08:00**
 Repository root: `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`
 
 ## Current objective
@@ -120,12 +120,15 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - **ISSUE-010 — RESOLVED FOR COLLECTION:** the user approved the existing HFSS Builder as physical authority. `model_alignment.hfss_builder_v1.json` binds the exact HFSS contract, 200-point comparison grid, ports, impedance, materials, and the rule that empirical surrogate terms are accepted only through passing Calibration.
 - **ISSUE-018 — RESOLVED OFFLINE:** pure nine-parameter mapping is isolated from the PyAEDT import boundary; its standalone test passes under Agent Python.
 - **ISSUE-031 — RESOLVED OFFLINE:** Calibration Evidence 1.1 and readiness recomputation reject formal/semantic fabrication before Canary admission.
-- **ISSUE-032 — RESOLVED OFFLINE / PHYSICAL RERUN PENDING:** the first worker exited before AEDT on Python-3.10 `StrEnum` import; lazy package boundaries plus compatibility enum now pass under the configured AEDT/PyAEDT Python.
+- **ISSUE-032 — RESOLVED BY PHYSICAL EVIDENCE:** exact revision `6d88b62...` imported the Python-3.10 worker and completed a Baseline build/Solve/extraction; the original `StrEnum` failure did not recur.
 - **ISSUE-033 — RESOLVED FOR NEW RUNS:** new Calibration campaigns preregister short-lived reconciliation authority; the original failed-import Run remains immutable `WAITING_RECONCILIATION` and is not resumed.
 - **ISSUE-034 — SUPERSEDED BY ISSUE-037:** increasing the stale-heartbeat bound fixed cold startup but did not make an in-process Python heartbeat reliable during a blocking native solve.
 - **ISSUE-035 — RESOLVED BY PHYSICAL BUILD EVIDENCE:** the seventh campaign created exact `interposer_temple4`, completed Builder geometry/materials/ports/boundaries/Setup1/Sweep/report, and saved the project before submitting Solve.
 - **ISSUE-036 — OPERATIONAL CHECKOUT FAILURE NOT REPRODUCED / AUTHORITY REVIEW OPEN:** the seventh campaign did not reproduce FlexNet `-15,10` and reached Solve submission. That removes licensing connectivity as the observed flow blocker; it does not independently establish entitlement provenance.
-- **ISSUE-037 — RESOLVED OFFLINE / REAL RERUN PENDING:** synchronous `analyze_setup` starved the Python-thread heartbeat for 120 seconds. PyAEDT workers now use a separate Job-contained heartbeat companion process; the 7200-second hard action timeout and zero-retry policy remain unchanged.
+- **ISSUE-037 — RESOLVED BY PHYSICAL EVIDENCE:** at exact revision `6d88b62fed733c0ac018b8db6611c4238143d6a1`, the companion remained live through a complete Baseline build/Solve/extraction and through Candidate 1 until Windows suspended the machine. Native-call starvation is no longer the observed blocker.
+- **ISSUE-038 — OPEN / PHYSICAL RERUN PENDING:** campaign `hfss-calibration-20260824-151230` entered Modern Standby after lid closure. Candidate 1 stopped after three non-converged adaptive passes; Sweep/S-parameter extraction never completed. The Run remains `UNKNOWN / WAITING_RECONCILIATION`, with no retry or Candidate 2 launch. The replacement run requires AC power, lid open, and sleep disabled; software-level suspend prevention/telemetry remains future reliability work.
+- **ISSUE-039 — RESOLVED OFFLINE:** the fake Calibration fixture's fixed approval expired on 2026-08-25 UTC. Its deterministic synthetic expiry is now 2099; production short-lived manifest validation is unchanged.
+- **ISSUE-040 — RESOLVED OFFLINE:** Builder Plot 6 duplicated `S(3,3)` instead of the second reflection `S(4,4)`. The three manual two-port reports are now distinct; physical extraction continues to request the complete contract-derived four-expression matrix.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
 - **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
 - **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
@@ -143,7 +146,7 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Final full main suite: `PASS` — 203 passed in 50.69 s, explicit exit code 0. The count decreased because 16 obsolete one-pass characterization tests are preserved but disabled, not because current V2 tests were skipped.
 - Final post-reliability/post-documentation full suite: `PASS` — 205 passed in 53.33 s, explicit exit code 0; the two added tests are V2 completed no-op and concurrent single-physical-workflow proof.
 - Python syntax compilation for changed modules: `PASS`.
-- Real AEDT/target build: seventh bounded campaign reached exact build and Solve submission; no accepted physical case/confirmed Solve result yet; zero current residual processes/Agent locks.
+- Real AEDT/target execution: the eighth campaign at exact revision `6d88b62...` completed one Baseline build/Solve/structured extraction/Touchstone; Candidate 1 was interrupted by host suspend and remains `UNKNOWN`; no three-case Calibration Evidence exists.
 - Current-tree real HFSS E2E: `NOT RUN`.
 - ISSUE-019 focused contract/adapter suite: `PASS` — 33 passed in 0.67 s; final full offline suite: `PASS` — 213 passed in 45.71 s.
 - Calibration-authority/model/real-safety focused set: `PASS` — 73 passed in 1.70 s.
@@ -157,14 +160,15 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Post-delayed-activation repair focused worker/backend/process set: `PASS` — 31 passed in 1.24 s; final full suite `PASS` — 229 passed in 46.74 s.
 - Post-gRPC-application-refresh repair focused worker/backend/process set: `PASS` — 32 passed in 1.28 s; final full suite `PASS` — 230 passed in 46.45 s.
 - Post-ISSUE-037 native-call supervision set: `PASS` — 40 passed in 3.11 s; final full suite `PASS` — 233 passed in 36.65 s.
+- Post-ISSUE-039/040 focused fixture/Builder/port-contract set: `PASS` — 7 passed in 0.68 s; final main suite `PASS` — 233 passed in 36.24 s. The standalone vendor Builder report regression is outside the configured main-suite discovery and passed explicitly.
 - Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
 
-**THE EXACT TARGET WAS BUILT AND SOLVE WAS SUBMITTED; NO CONFIRMED HFSS RESULT, TOUCHSTONE, CALIBRATION, OR E2E RESULT EXISTS YET.**
+**EXACT REVISION `6d88b62...` COMPLETED ONE BASELINE BUILD/SOLVE/EXTRACTION; THE THREE-CASE CALIBRATION, CANARY, AND CLOSED-LOOP E2E ARE NOT VERIFIED.**
 
-The seventh authorized campaign at revision `2248da81d77edefb3ab7372040ca54a8edfa9ec4` passed preflight, started an independent headless AEDT session, created exact `interposer_temple4`, completed Builder geometry/materials/ports/boundaries/Setup1/Sweep/report, saved `pa_multi.aedt`, and submitted `analyze_setup`. Its `batch.log` contains no prior FlexNet `-15,10`. The worker's same-process Python heartbeat then stopped during the blocking native call; after exactly the finite 120-second stale bound, Job supervision terminated and verified the tree. The exact UNKNOWN was evidence-reconciled as confirmed failed without retry/refund. No structured response, accepted result, Touchstone, residual process, or Agent lock exists.
+Campaign `hfss-calibration-20260824-151230` at clean revision `6d88b62fed733c0ac018b8db6611c4238143d6a1` completed the Baseline composite in about 1875.75 seconds, including exact build, Solve, structured complex-S extraction, and Touchstone. Candidate 1 then built and entered Solve. Its companion heartbeat remained current until Windows Kernel-Power recorded lid-triggered Modern Standby; after resume the stale-heartbeat safety path terminated the tree and returned physical `UNKNOWN`. Manual inspection of a copied project shows three of six adaptive passes, `Max Mag. Delta S = 0.029237` versus target `0.02`, `NOT CONVERGED`, `Terminated abnormally`, no completed Sweep, and blank Sweep reports. Candidate 2 never launched and no Calibration Evidence exists. The old campaign is never resumed or reused.
 
 ## Next phase boundary
 
-Commit the offline-verified native-call heartbeat repair, verify a clean exact HEAD, issue a new short-lived three-case authority, and run a fresh Calibration campaign. Never resume the reconciled seventh Run. A passing three-case Calibration remains mandatory before Canary readiness can be issued.
+Commit the deterministic fixture and Builder-report correction with synchronized evidence, verify a clean exact HEAD, run the headless preflight, then issue a new short-lived three-case authority and start a fresh Calibration campaign from Baseline. Keep the Windows host on AC power with lid open and sleep disabled. Never resume or reuse campaign `hfss-calibration-20260824-151230`; a passing three-case Calibration remains mandatory before Canary readiness can be issued.

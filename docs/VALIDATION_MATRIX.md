@@ -59,7 +59,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | Standalone Builder test harness | PASS | FAIL | NOT RUN | NOT AVAILABLE | Collection fails in Agent Python because `ansys` is absent |
 | Builder attestation/drift boundary | PASS | PASS | PASS | PASS | Builder drift and wrong snapshot digest fail before license-lock acquisition; worker imports only the attested snapshot |
 | HFSS composite request | PASS | PASS | PASS | PASS | Fake request/response is digest-bound; real AEDT verified build and Solve submission, but no accepted Solve/extraction response exists |
-| Windows worker process isolation/timeout/cancel/parent death | PASS | PASS | PASS | PASS | Real Windows tests plus seventh-campaign Job termination prove bounded cleanup; native-call companion is OFFLINE VERIFIED and awaits physical rerun |
+| Windows worker process isolation/timeout/cancel/parent death | PASS | PASS | PASS | PASS | Real Windows tests plus seventh/eighth-campaign Job termination prove bounded cleanup; the companion completed a real Baseline and remained current until host suspend |
 | Residual-process UNKNOWN/lock quarantine | PASS | PASS | PASS | PASS | Injected kill-verification/unverified descendant becomes UNKNOWN; quarantine release requires accepted empty-process evidence bound to exact marker bytes/token and archives audit evidence |
 | Artifact store | PASS | PASS | PASS | PASS | Canonical JSON and provider-native file publish/replay pass containment, concurrency, mutable-source, tamper, and receipt verification; supporting artifacts commit with the Tool result |
 | Final Run Manifest | PASS | PASS | PASS | PASS | Typed terminal paths emit a strict immutable manifest with ledger cutoff, decisions/events/artifacts, policy versions, terminal outcome, Run identity, and calibration summary |
@@ -68,7 +68,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 | V1/V2 historical checkpoint boundary | PASS | PASS | PASS | PASS | Explicit reader classifies completed/interrupted V1 evidence and preserves source; formal SQLite composition has no legacy path/probe and cannot resume file checkpoints |
 | SQLite checkpoint CAS | PASS | PASS | PASS | PASS | Revision/fence/manifest CAS, historical-digest replay rejection, terminal no-op, and Windows connection-close regressions pass |
 | Resume/reuse | PASS | PASS | PASS | PASS | Receipt replay, evidence-bound UNKNOWN resolution, double resume, waiting recovery, and completed strict no-op pass; saved-node continuation remains absent under ISSUE-013 |
-| Calibration Evidence / real gate | PASS | PASS | PASS | PASS | Calibration Evidence 1.1 authority/recomputation passes offline; current paired physical evidence is absent because the seventh campaign stopped during baseline Solve under ISSUE-037 |
+| Calibration Evidence / real gate | PASS | PASS | PASS | PASS | Calibration Evidence 1.1 authority/recomputation passes offline; current paired physical evidence is absent because the eighth campaign stopped during Candidate 1 under ISSUE-038 |
 | HFSS returned frequency-grid contract | PASS | PASS | PASS | PASS | Count, finite/monotonic values, endpoints, every linear/log point, unit drift, and fail-closed behavior pass offline; real extraction was not reached |
 | Environment preflight | PASS | PASS | PASS | PASS | Agent/PyAEDT/AEDT/headless/lock preflight passed and the campaign reached Solve submission; entitlement provenance remains an external review item |
 | Package editable import provenance | PASS | PASS | PASS | PASS | Project `.venv`, ordinary import, and module CLI resolve to the current repository `src` |
@@ -77,7 +77,7 @@ Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT
 
 | Workflow | Full Offline result | Current Real HFSS result | Current E2E result | Readiness / evidence |
 |---|---|---|---|---|
-| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-009 has no passing physical Calibration; ISSUE-037 repair is offline verified but has not completed a fresh manual campaign |
+| WF-001 canonical Production | NOT AVAILABLE | NOT RUN | NOT RUN | FAIL readiness: ISSUE-009 has no passing physical Calibration; the eighth collection stopped under ISSUE-038 before completing three cases |
 | WF-002 deterministic Offline | PASS | NOT AVAILABLE | PASS | Test-backed full route uses explicit Offline Contract v1, promotes candidate, and emits typed success |
 | WF-003 supplied optimizer + MockHFSS | PASS | NOT AVAILABLE | PASS | Formal entry delegates to supplied-Tools Closed-loop V2; actual supervised optimizer worker + MockHFSS reaches typed END |
 | WF-004 environment preflight | NOT AVAILABLE | NOT RUN | NOT AVAILABLE | PASS for its own read-only preflight scope only |
@@ -392,6 +392,14 @@ Interpretation:
 - **Repair:** PyAEDT uses a Job-contained companion process for native-call-safe heartbeat; ordinary workers retain thread heartbeat. Calibration console output now configures UTF-8.
 - **Verification:** focused process/lock/worker/Calibration suite `PASS` — 40 in 3.11 s; full offline suite `PASS` — 233 in 36.65 s; configured AEDT Python import/CLI probes pass without launching AEDT.
 - **Evidence level:** repair `OFFLINE VERIFIED`; target build `REAL HFSS VERIFIED` for this exact historical revision only; completed Solve/Calibration/Canary/E2E `NOT RUN / NEEDS VERIFICATION`.
+
+### Eighth authorized Calibration, host suspend finding, and rerun preparation
+
+- **Exact physical revision:** `6d88b62fed733c0ac018b8db6611c4238143d6a1`; campaign `hfss-calibration-20260824-151230`; clean pre-run Git and 233-test offline gate were reported and preflight passed without consuming a license.
+- **Baseline result:** complete target build, Solve, structured complex-S extraction, and Touchstone completed in about 1875.75 seconds. This is `REAL HFSS VERIFIED` only for the exact Baseline/provider/contract/source combination at that revision.
+- **Candidate 1 stop:** companion heartbeat remained current until Windows entered lid-triggered Modern Standby. Manual copied-project inspection shows 3/6 adaptive passes, `Max Mag. Delta S 0.029237 > 0.02`, `NOT CONVERGED`, `Terminated abnormally`, no completed Sweep, and no S-parameter result. Harness returned `UNKNOWN`, did not retry, and did not launch Candidate 2.
+- **Campaign result:** no three-case Calibration Evidence and no Canary/Closed-loop E2E claim. The old Run remains `WAITING_RECONCILIATION` and is excluded from reuse.
+- **Offline repair evidence:** the expired deterministic fake approval and duplicated manual Plot 6 were corrected without changing production expiry enforcement or contract-driven four-trace extraction. Focused tests `PASS` — 7 in 0.68 s; final main suite `PASS` — 233 in 36.24 s. Real rendering for the corrected Builder digest remains `NEEDS VERIFICATION`.
 
 ## Historical real HFSS evidence
 

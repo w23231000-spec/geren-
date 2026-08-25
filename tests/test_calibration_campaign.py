@@ -71,7 +71,7 @@ def authorization() -> CalibrationCollectionAuthorization:
         run_id="run:calibration-test",
         workflow_id=CALIBRATION_COLLECTION_WORKFLOW_ID,
         created_at="2026-08-24T00:00:00+00:00",
-        expires_at="2026-08-25T00:00:00+00:00",
+        expires_at="2099-08-25T00:00:00+00:00",
         git_head="0" * 40,
         agent_source_sha256="1" * 64,
         hfss_contract_id=contract.contract_id,

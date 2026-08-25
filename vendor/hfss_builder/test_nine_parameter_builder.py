@@ -1,8 +1,21 @@
 from __future__ import annotations
 
+import importlib.util
 import unittest
+from pathlib import Path
 
 from parameter_mapping import map_nine_parameters
+
+
+ANALYSIS_PATH = Path(__file__).parent / "pa_multi_builder" / "analysis.py"
+ANALYSIS_SPEC = importlib.util.spec_from_file_location(
+    "hfss_builder_pure_analysis", ANALYSIS_PATH
+)
+if ANALYSIS_SPEC is None or ANALYSIS_SPEC.loader is None:
+    raise RuntimeError("Could not load the pure Builder analysis module")
+ANALYSIS_MODULE = importlib.util.module_from_spec(ANALYSIS_SPEC)
+ANALYSIS_SPEC.loader.exec_module(ANALYSIS_MODULE)
+S_PARAMETER_REPORTS = ANALYSIS_MODULE.S_PARAMETER_REPORTS
 
 
 class NineParameterBuilderTests(unittest.TestCase):
@@ -18,6 +31,17 @@ class NineParameterBuilderTests(unittest.TestCase):
             "RDL_w_layer2": 80e-6,
             "RDL_d_layer2": 50e-6,
         }
+
+    def test_two_port_reports_are_distinct_and_cover_both_reflections(self):
+        self.assertEqual(
+            S_PARAMETER_REPORTS,
+            (
+                ("S Parameter Plot 4", "dB(S(3,3))"),
+                ("S Parameter Plot 5", "dB(S(4,3))"),
+                ("S Parameter Plot 6", "dB(S(4,4))"),
+            ),
+        )
+        self.assertEqual(len({expression for _, expression in S_PARAMETER_REPORTS}), 3)
 
     def test_maps_all_nine_values_to_explicit_mm(self):
         mapped = map_nine_parameters(self.parameters)

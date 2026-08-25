@@ -38,12 +38,15 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-030 | HIGH | RESOLVED OFFLINE | RELIABILITY / RECONCILIATION | UNKNOWN/corrupt checkpoints lacked evidence-bound recovery and chaos proof |
 
 | ISSUE-031 | BLOCKER | RESOLVED OFFLINE | CALIBRATION / AUTHORITY | Calibration Evidence 1.1 is policy/cardinality/provider/artifact/recomputation bound |
-| ISSUE-032 | BLOCKER | RESOLVED OFFLINE | HFSS / RUNTIME | AEDT 2025 R1 Python 3.10 could not import the isolated worker entry |
+| ISSUE-032 | BLOCKER | RESOLVED BY PHYSICAL EVIDENCE | HFSS / RUNTIME | AEDT Python 3.10 worker completed a real Baseline composite at exact revision `6d88b62...` |
 | ISSUE-033 | HIGH | RESOLVED FOR NEW RUNS | RELIABILITY / RECONCILIATION | Calibration campaign did not preregister UNKNOWN reconciliation authority |
 | ISSUE-034 | HIGH | SUPERSEDED | HFSS / SUPERVISION | A longer same-process heartbeat still failed during blocking native Solve |
 | ISSUE-035 | BLOCKER | RESOLVED BY PHYSICAL BUILD EVIDENCE | HFSS / PYAEDT | Exact target creation and complete Builder path were observed in the seventh campaign |
 | ISSUE-036 | BLOCKER | AUTHORITY REVIEW OPEN | HFSS / LICENSING / ENVIRONMENT | Prior checkout failure did not recur; entitlement provenance remains a separate review item |
-| ISSUE-037 | BLOCKER | RESOLVED OFFLINE | HFSS / SUPERVISION | Blocking native Solve starved the worker's Python-thread heartbeat |
+| ISSUE-037 | BLOCKER | RESOLVED BY PHYSICAL EVIDENCE | HFSS / SUPERVISION | Companion heartbeat survived a complete real Baseline Solve/extraction |
+| ISSUE-038 | HIGH | OPEN | HFSS / HOST LIFECYCLE | Lid-triggered Modern Standby interrupted Candidate 1 and left physical outcome UNKNOWN |
+| ISSUE-039 | MEDIUM | RESOLVED OFFLINE | TEST / TIME | Fixed fake-Calibration approval expired with wall-clock time |
+| ISSUE-040 | LOW | RESOLVED OFFLINE | HFSS / BUILDER / REPORT | Manual Plot 6 duplicated `S(3,3)` instead of `S(4,4)` |
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -394,11 +397,11 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-032 — AEDT 2025 R1 Python 3.10 could not import the isolated worker
 
 - **Classification:** HFSS / RUNTIME / COMPATIBILITY
-- **Severity / status:** BLOCKER / RESOLVED OFFLINE on 2026-08-24; physical rerun pending
+- **Severity / status:** BLOCKER / RESOLVED BY PHYSICAL EVIDENCE on 2026-08-25
 - **Trigger/evidence:** the first authorized Calibration baseline action launched the supervised worker, which exited in about 0.1 s before AEDT/model construction with `ImportError: cannot import name 'StrEnum'` from Python 3.10. No `ansysedt` process, project, solve, extraction, residual process, or lock remained. Harness conservatively recorded the action `UNKNOWN`.
 - **Root cause:** `python -m hfss_optimization_agent.hfss.pyaedt_worker` executes package `__init__` files first. They eagerly imported Agent/Harness modules requiring Python 3.11+ even though the isolated PyAEDT worker is designed to run in AEDT 2025 R1's Python 3.10.
 - **Resolution:** package and HFSS exports are lazy; all shared string enums use a small Python-3.10-compatible `StrEnum` shim. AEDT/PyAEDT Python can now execute the worker CLI import path without importing/launching AEDT.
-- **Evidence after:** configured PyAEDT/AEDT Python executes `-m hfss_optimization_agent.hfss.pyaedt_worker --help` with exit 0; focused worker/Calibration/import suite passes. A full physical rerun is required before real verification.
+- **Evidence after:** configured PyAEDT/AEDT Python executes `-m hfss_optimization_agent.hfss.pyaedt_worker --help` with exit 0; focused worker/Calibration/import suite passes. Exact revision `6d88b62...` subsequently imported the worker and completed a real Baseline build/Solve/structured extraction/Touchstone.
 - **Fixed:** offline import boundary yes; `REAL HFSS VERIFIED` not yet claimed.
 
 ### ISSUE-033 — Calibration UNKNOWN lacked preregistered reconciliation authority
@@ -435,19 +438,44 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Severity / status:** BLOCKER / OPERATIONAL FAILURE NOT REPRODUCED; AUTHORITY REVIEW OPEN on 2026-08-24
 - **Trigger/evidence:** `batch.log` for campaigns `102020`, `103140`, `104554`, and `105414` records FlexNet `-15,10`, feature `hfss_gui`, and connection refusal at the configured `1055@localhost` endpoint. A later user-authorized gate recheck observes the same local service Running and port 1055 listening; this removes the connectivity symptom only, not the license-authority/provenance blocker.
 - **Authority finding:** the only local license file inspected identifies third-party/unverifiable provenance rather than a verifiable ANSYS/organization entitlement. It was not enabled or used; attempting to start the service failed before any state change.
-- **Current evidence/impact:** the seventh campaign's `batch.log` contains no prior FlexNet `-15,10`; AEDT completed the exact build and accepted `analyze_setup` submission. License connectivity is not the observed cause of that stop, but this does not independently verify entitlement provenance. Calibration still has zero accepted physical cases and no confirmed Solve result.
-- **Required resolution:** keep entitlement provenance under explicit operator review. Independently, commit and manually test the ISSUE-037 repair using a fresh clean-HEAD campaign; do not reuse any failed Run.
+- **Current evidence/impact:** the eighth campaign at exact revision `6d88b62...` completed a Baseline build/Solve/extraction without the prior FlexNet `-15,10`. License connectivity is therefore not the observed campaign blocker, but this does not independently verify entitlement provenance. No passing three-case Calibration exists.
+- **Required resolution:** keep entitlement provenance under explicit operator review. The next campaign must use a fresh clean revision/manifest and must not reuse any failed Run.
 - **Safety:** no service was started, no license daemon/port became active, all physical processes were terminated, and every exact UNKNOWN with preregistered authority was reconciled as failed without retry/refund.
 
 ### ISSUE-037 — Blocking native Solve starved the Python-thread heartbeat
 
 - **Classification:** HFSS / PROCESS SUPERVISION / NATIVE CALL
-- **Severity / status:** BLOCKER / RESOLVED OFFLINE on 2026-08-24; real rerun pending
+- **Severity / status:** BLOCKER / RESOLVED BY PHYSICAL EVIDENCE on 2026-08-25
 - **Trigger/evidence:** campaign `hfss-calibration-20260824-124719`, operation `op_f7b18d41bbe3a71e7ac1315143b60578`, attempt `att_e3d942c4f2d2300a154a753265d03a15`, completed the exact build and entered synchronous `hfss.analyze_setup(..., blocking=True)`. The worker heartbeat stopped for the 120-second stale bound, so Job supervision terminated the tree and conservatively returned UNKNOWN.
 - **Root cause/resolution:** the heartbeat emitter was a Python thread inside the same worker. Only PyAEDT workers now opt into a separate `heartbeat_companion` process that records the parent PID and inherits the same kill-on-close Job. The 7200-second hard deadline, stale threshold, termination verification, and zero-retry policy are unchanged.
 - **Reconciliation:** verified zero processes/Agent lock and no response/result/Touchstone before concluding `CONFIRMED_FAILED`. Evidence `art_b067a5b684f8701089b178ecd449c88c`, digest `901f5cf1e59e2feb12eb3fb58f47d6db508c7e041600c9f21f749a31b407fac6`; attempt/budget remain consumed and the Run is not resumed.
 - **Offline evidence:** native-call starvation and hard-timeout regressions plus focused worker/process/lock/Calibration tests pass (40 in 3.11 s); full suite passes (233 in 36.65 s). Configured AEDT Python imports the companion and worker CLI without launching AEDT.
-- **Residual:** a fresh physical campaign must confirm Solve/result/Touchstone; none is inferred.
+- **Physical evidence:** exact revision `6d88b62fed733c0ac018b8db6611c4238143d6a1`, campaign `hfss-calibration-20260824-151230`, completed the Baseline composite build/Solve/structured extraction/Touchstone in about 1875.75 seconds. The companion also remained current during Candidate 1 until the OS entered Modern Standby. Native-call starvation is not the observed stop.
+- **Residual:** three-case Calibration and Canary remain unverified; the independent host-suspend failure is ISSUE-038.
+
+### ISSUE-038 — Windows Modern Standby interrupted an active real-HFSS operation
+
+- **Classification:** HFSS / HOST LIFECYCLE / RELIABILITY
+- **Severity / status:** HIGH / OPEN on 2026-08-25; replacement physical campaign pending
+- **Trigger/evidence:** campaign `hfss-calibration-20260824-151230`, Candidate 1 operation `op_8dee096f940d185beeeb6317eaa1e495`, had a current companion heartbeat at 00:00:24 local time; Windows Kernel-Power recorded entry into Modern Standby at 00:00:25 with reason `Lid`. The safety supervisor later terminated the stale process tree and returned `UNKNOWN` without retry.
+- **Manual inspection evidence:** the copied `pa_multi.aedt` shows three of six adaptive passes, current `Max Mag. Delta S = 0.029237` above target `0.02`, `NOT CONVERGED`, and `Terminated abnormally`. `Setup1 : Sweep` has no S-parameter data. Candidate 2 did not start and no Calibration Evidence was emitted.
+- **Disposition:** preserve the original workspace and stale-lock evidence. The failed Run remains `UNKNOWN / WAITING_RECONCILIATION` and is not resumed or reused. Immediate rerun control is AC power, lid open, sleep disabled, terminal retained, and a fresh manifest/new campaign. Software sleep inhibition and suspend/resume telemetry remain future reliability work because explicit lid-close policy cannot be assumed overrideable.
+
+### ISSUE-039 — Fake Calibration approval expired with wall-clock time
+
+- **Classification:** TEST / TIME / REPRODUCIBILITY
+- **Severity / status:** MEDIUM / RESOLVED OFFLINE on 2026-08-25
+- **Trigger/evidence:** `tests/test_calibration_campaign.py::test_fake_three_case_campaign_creates_reproducible_passing_evidence` failed after its fixed `2026-08-25T00:00:00+00:00` approval expired, while all other tests passed.
+- **Resolution:** the deterministic synthetic fixture now expires in 2099. Production issuance, short-lived manifest validation, RunStore approval expiry, and real HFSS gates are unchanged.
+- **Evidence:** focused fake campaign passes; final main suite passes 233 tests in 36.24 seconds.
+
+### ISSUE-040 — Builder manual S-parameter report duplicated one reflection
+
+- **Classification:** HFSS / BUILDER / REPORTING
+- **Severity / status:** LOW / RESOLVED OFFLINE on 2026-08-25
+- **Trigger/evidence:** `create_reports` created Plot 4 `dB(S(3,3))`, Plot 5 `dB(S(4,3))`, and Plot 6 `dB(S(3,3))`. Ports `4` and `3` are the two valid exported port names, so `S(3,3)` itself is valid; the third plot was only a duplicate.
+- **Resolution:** Plot 6 now requests `dB(S(4,4))`; a pure no-PyAEDT test requires three distinct manual reports. Contract-driven extraction remains unchanged and continues to request `S(4,4)`, `S(4,3)`, `S(3,4)`, and `S(3,3)`.
+- **Evidence:** focused Builder/fixture/port-contract tests pass (7 in 0.68 seconds); final main suite passes 233 in 36.24 seconds. Real report rendering for the new Builder digest remains `NEEDS VERIFICATION`.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.

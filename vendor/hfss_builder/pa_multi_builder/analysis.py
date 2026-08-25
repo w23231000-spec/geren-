@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 
+S_PARAMETER_REPORTS = (
+    ("S Parameter Plot 4", "dB(S(3,3))"),
+    ("S Parameter Plot 5", "dB(S(4,3))"),
+    ("S Parameter Plot 6", "dB(S(4,4))"),
+)
+
+
 def assign_boundaries_and_ports(hfss, include_radiation_region=False):
     """Assign all boundaries by stable object name and explicit coordinates."""
     hfss.assign_perfect_e("Rectangle6", name="PerfE3")
@@ -75,11 +82,7 @@ def create_analysis(hfss, progress_callback=None, stage_prefix="design"):
 
 def create_reports(hfss):
     solution = "Setup1 : Sweep"
-    for name, expression in (
-        ("S Parameter Plot 4", "dB(S(3,3))"),
-        ("S Parameter Plot 5", "dB(S(4,3))"),
-        ("S Parameter Plot 6", "dB(S(3,3))"),
-    ):
+    for name, expression in S_PARAMETER_REPORTS:
         hfss.post.create_report(
             expression,
             setup_sweep_name=solution,
