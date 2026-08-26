@@ -42,12 +42,12 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-033 | HIGH | RESOLVED FOR NEW RUNS | RELIABILITY / RECONCILIATION | Calibration campaign did not preregister UNKNOWN reconciliation authority |
 | ISSUE-034 | HIGH | SUPERSEDED | HFSS / SUPERVISION | A longer same-process heartbeat still failed during blocking native Solve |
 | ISSUE-035 | BLOCKER | RESOLVED BY PHYSICAL BUILD EVIDENCE | HFSS / PYAEDT | Exact target creation and complete Builder path were observed in the seventh campaign |
-| ISSUE-036 | BLOCKER | AUTHORITY REVIEW OPEN | HFSS / LICENSING / ENVIRONMENT | Prior checkout failure did not recur; entitlement provenance remains a separate review item |
+| ISSUE-036 | BLOCKER | USER-ACCEPTED CURRENT ENVIRONMENT / OPERATIONALLY RESTORED | HFSS / LICENSING / ENVIRONMENT | `lmreread` restored `ansyslmd` and `hfss_gui`; fresh-run checkout remains to be observed |
 | ISSUE-037 | BLOCKER | RESOLVED BY PHYSICAL EVIDENCE | HFSS / SUPERVISION | Companion heartbeat survived a complete real Baseline Solve/extraction |
 | ISSUE-038 | HIGH | OPEN / RERUN MITIGATED | HFSS / HOST LIFECYCLE | Original lid-suspend outcome remains UNKNOWN; replacement campaign completed all cases |
 | ISSUE-039 | MEDIUM | RESOLVED OFFLINE | TEST / TIME | Fixed fake-Calibration approval expired with wall-clock time |
 | ISSUE-040 | LOW | RESOLVED OFFLINE | HFSS / BUILDER / REPORT | Manual Plot 6 duplicated `S(3,3)` instead of `S(4,4)` |
-| ISSUE-041 | HIGH | OFFLINE VERIFIED / REAL RUN NOT AUTHORIZED | VALIDATION / HFSS / EXPERIMENT | Two-solve optimization-outcome diagnostic is bounded and cannot bypass failed Calibration |
+| ISSUE-041 | HIGH | FIRST REAL ATTEMPT CONFIRMED FAILED / REPLACEMENT PENDING | VALIDATION / HFSS / EXPERIMENT | Pre-build license failure is reconciled; optimized candidate did not start |
 
 ## Issue details updated by current status
 
@@ -438,12 +438,13 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-036 — Real HFSS license authority is unreachable/unacceptable
 
 - **Classification:** HFSS / LICENSING / ENVIRONMENT / AUTHORITY
-- **Severity / status:** BLOCKER / OPERATIONAL FAILURE NOT REPRODUCED; AUTHORITY REVIEW OPEN on 2026-08-24
+- **Severity / status:** BLOCKER FOR PRODUCTION; USER-ACCEPTED CURRENT ENVIRONMENT / OPERATIONALLY RESTORED FOR BOUNDED DIAGNOSTIC on 2026-08-26
 - **Trigger/evidence:** `batch.log` for campaigns `102020`, `103140`, `104554`, and `105414` records FlexNet `-15,10`, feature `hfss_gui`, and connection refusal at the configured `1055@localhost` endpoint. A later user-authorized gate recheck observes the same local service Running and port 1055 listening; this removes the connectivity symptom only, not the license-authority/provenance blocker.
 - **Authority finding:** the only local license file inspected identifies third-party/unverifiable provenance rather than a verifiable ANSYS/organization entitlement. It was not enabled or used; attempting to start the service failed before any state change.
-- **Current evidence/impact:** the eighth campaign at exact revision `6d88b62...` completed a Baseline build/Solve/extraction without the prior FlexNet `-15,10`. License connectivity is therefore not the observed campaign blocker, but this does not independently verify entitlement provenance. No passing three-case Calibration exists.
-- **Required resolution:** keep entitlement provenance under explicit operator review. The next campaign must use a fresh clean revision/manifest and must not reuse any failed Run.
-- **Safety:** no service was started, no license daemon/port became active, all physical processes were terminated, and every exact UNKNOWN with preregistered authority was reconciled as failed without retry/refund.
+- **Current evidence/impact:** the eighth and ninth Calibration campaigns prove the worker/Builder/Solve path can complete when a feature is available, but diagnostic campaign `hfss-optimization-diagnostic-20260826-075244` at revision `2608d0c...` again failed during Desktop initialization. Its `batch.log` records feature `hfss_gui`, `desired vendor daemon is down`, and FlexNet `-97,121` at `1055@localhost`; read-only inspection found no listener on port 1055 and no `ansyslmd` process. PyAEDT converted the failed constructor into `TypeError: __init__() should return None, not 'bool'`.
+- **Current operator decision/recovery:** the user explicitly accepted using the current local license environment for this diagnostic. Standard FlexNet `lmreread` changed `ansyslmd` from `-95,378` to `UP v11.19.5`; `lmstat -f hfss_gui` reports 100 issued and 0 in use. This is operational availability evidence, not an independent provenance certification or a completed checkout.
+- **Required resolution:** never reuse the failed Run. Recheck daemon/feature status immediately before a newly authorized campaign; actual HFSS checkout remains the physical proof. Production/Canary provenance requirements are not relaxed by this bounded diagnostic acceptance.
+- **Safety:** operator interruption triggered Job-contained termination; afterward no AEDT/HFSS process or Agent lock remained. Operation `op_f3b649d045ac1e7a1c7f9c2d2ae91249` was reconciled `CONFIRMED_FAILED` without retry/refund/new attempt. Evidence artifact `art_26402400b240bc5e4f1b837071596b81`, SHA-256 `09fda1b8ce36d413c86c4b21c846222c910aefe0b4e9757b3627b8572ed59eb7`.
 
 ### ISSUE-037 — Blocking native Solve starved the Python-thread heartbeat
 

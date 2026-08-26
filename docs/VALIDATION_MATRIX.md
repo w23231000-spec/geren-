@@ -2,7 +2,7 @@
 
 Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT AVAILABLE`, `STALE`, `UNKNOWN`, or `NEEDS VERIFICATION`. Historical evidence is separated from current-working-tree evidence.
 
-Latest 2026-08-26 diagnostic preparation: focused workflow tests `PASS` (5 in 0.37 s), full main suite `PASS` (238 in 40.40 s), vendor optimizer suite `PASS` (7 in 4.47 s), full NSGA-III optimization `PASS/OFFLINE VERIFIED` (6400 evaluations, 215 feasible Pareto points), and environment preflight `PASS`. Real HFSS/AEDT is `NOT RUN`; no authorization manifest exists because the working tree is not yet a clean exact commit.
+Latest 2026-08-26 diagnostic evidence: focused workflow tests `PASS` (5 in 0.37 s), full main suite `PASS` (238 in 40.40 s), vendor optimizer suite `PASS` (7 in 4.47 s), and full NSGA-III optimization `OFFLINE VERIFIED` (6400 evaluations, 215 feasible Pareto points). Clean revision `2608d0c...` admitted one real Baseline attempt, but FlexNet `-97,121` blocked Desktop initialization before build. The attempt is now `CONFIRMED_FAILED` with immutable reconciliation evidence; optimized `P0028` and physical comparison are `NOT RUN`. Standard `lmreread` subsequently restored `ansyslmd`/`hfss_gui` availability for a fresh campaign.
 
 ## Status dimensions
 
@@ -45,7 +45,7 @@ Latest 2026-08-26 diagnostic preparation: focused workflow tests `PASS` (5 in 0.
 | Real-entry fail-closed interlock | PASS | PASS | PASS | PASS | Checked-in config has no manifest; boolean-only, missing/noncanonical/expired/drifted readiness fails before worker composition/workspace creation |
 | Readiness causal identity | PASS | PASS | PASS | PASS | Git/source/Goal/Run/contracts/approval/policy/cardinality/provider/source-receipt bindings and semantic recomputation pass; current physical evidence is valid but failing and therefore correctly cannot authorize Canary under ISSUE-009 |
 | Real HFSS solve-launch ceiling | PASS | PASS | PASS | PASS | Concurrent distinct approved actions admit at most two; ordinal 3 is rejected transactionally, cached replay consumes no new launch, automatic retries are fixed at zero |
-| Optimization-outcome diagnostic | PASS | PASS | PASS | PASS | Full optimizer recommendation is frozen; fake baseline/candidate campaign produces 10 receipts and physical delta evidence; default-off, dirty-tree, identity, and two-launch gates fail closed; real AEDT NOT RUN |
+| Optimization-outcome diagnostic | PASS | PASS | PASS | PASS | Offline/fake path passes; first real Baseline initialization failed before build and was evidence-reconciled as failed. `P0028` and physical comparison NOT RUN; replacement campaign pending |
 | SQLite RunStore schema/lifecycle | PASS | PASS | PASS | PASS | Run/operation/attempt/reservation/artifact/event/checkpoint identities and lifecycle transitions pass file-backed SQLite tests |
 | Action receipt crash recovery | PASS | PASS | PASS | PASS | Provider success is durable before Graph checkpoint; injected checkpoint crash resumes without repeating baseline HFSS callback |
 | Action idempotency/concurrency | PASS | PASS | PASS | PASS | Same concurrent request and same semantic request with different caller keys create one operation/attempt/physical callback |

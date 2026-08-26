@@ -30,7 +30,7 @@ Twenty identifiable entries, harnesses, workers, or callable workflow paths are 
 | WF-017 | Authorized three-case real-HFSS Calibration collection | PHYSICAL EVIDENCE | Yes, default-disabled; REAL HFSS VERIFIED / CALIBRATION FAILED |
 | WF-018 | Exact Canary readiness issuance | AUTHORITY ISSUER | Yes, but current failing evidence is rejected |
 | WF-019 | Versioned physical-model and Calibration policy contracts | CONTRACT LIBRARY | Yes, WIRED / OFFLINE VERIFIED |
-| WF-020 | Frozen optimization-outcome HFSS A/B diagnostic | DIAGNOSTIC PHYSICAL EVIDENCE | Code reachable, default-disabled / REAL RUN NOT AUTHORIZED |
+| WF-020 | Frozen optimization-outcome HFSS A/B diagnostic | DIAGNOSTIC PHYSICAL EVIDENCE | First Baseline attempt confirmed failed before build / replacement pending |
 
 No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists. The former one-pass characterization is preserved as `tests/legacy_comparison_graph_characterization.py.disabled`; historical checkpoints/runs are evidence/reference artifacts, not runnable workflows.
 
@@ -229,4 +229,4 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 - **Admission:** checked-in defaults are disabled. The issuer requires a clean exact HEAD, completed non-quick optimizer summary, one unique recommendation with predicted worst-S11 and mean-reflected-power improvement, exact provider/source/contract identities, eight-hour expiry, and `ExecutionPolicy(2,0)`.
 - **Call chain:** validate authority before composition → freeze baseline and `optimized_P0028` → one surrogate and one composite HFSS result for each case → freeze candidate/result/`.aedt`/`.s2p` receipts → compute physical before/after metrics and an explicit `formal_canary_authorized=false` report.
 - **Safety:** exactly two physical launches, independent workspaces, target design `interposer_temple4`, hard deadlines, process isolation, license lock, zero automatic retries, and evidence-bound UNKNOWN reconciliation.
-- **Verification:** focused fake campaign 5 PASS; full main suite 238 PASS; complete vendor optimization and vendor suite 7 PASS; environment preflight PASS. Default execution and dirty-tree issuance both fail closed. Real HFSS is `NOT RUN`; no manifest has been issued.
+- **Verification:** focused fake campaign 5 PASS; full main suite 238 PASS; complete vendor optimization and vendor suite 7 PASS. Clean revision `2608d0c...` issued exact authority and admitted Baseline, but FlexNet `-97,121` stopped Desktop initialization before Builder geometry. Supervision cleaned the tree and exact evidence reconciled the operation as failed without retry/refund. `lmreread` subsequently restored the user-accepted current `ansyslmd`/`hfss_gui` environment. Optimized `P0028`, Solve, extraction, and physical comparison are NOT RUN.
