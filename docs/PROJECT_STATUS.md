@@ -1,11 +1,11 @@
 # Project Status
 
-Updated: **2026-08-25 +08:00**
+Updated: **2026-08-26 +08:00**
 Repository root: `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`
 
 ## Current objective
 
-Evolve the deterministic baseline→candidate Workflow into an engineering Agent that repeatedly observes, diagnoses, decides, acts, evaluates, and decides again. Phases 0-5D and ISSUE-019 established the sole Closed-loop V2 Production topology and its offline safety envelope. Calibration authority, Builder test isolation, the user-approved Builder-authoritative model alignment/recommended policy, and separately authorized three-solve Calibration plus two-solve Canary issuance paths are now offline verified and committed. Real execution remains possible only while the issuer observes a clean exact Git revision and every short-lived gate passes.
+Evolve the deterministic baseline→candidate Workflow into an engineering Agent that repeatedly observes, diagnoses, decides, acts, evaluates, and decides again. The formal Production Canary remains blocked because current paired Calibration fails. A separate, bounded, non-Production two-solve diagnostic has now been prepared to compare the existing baseline with one recommendation frozen from a complete surrogate optimization; it can measure physical before/after improvement but cannot certify surrogate accuracy or unlock Production.
 
 ## Git and working-tree evidence
 
@@ -13,10 +13,10 @@ Evolve the deterministic baseline→candidate Workflow into an engineering Agent
 |---|---|
 | Branch | `master` |
 | Prior offline baseline | `5aca68ca73ee978425f867943b4a3e764fde5278` — Calibration-authority implementation before the first physical import probe |
-| Current HEAD | Compatibility/reconciliation implementation commit containing this snapshot; query Git because a commit cannot contain its own hash |
-| Working tree | Expected clean immediately after that commit; both physical issuers recheck rather than trust this statement |
-| Staged files | None |
-| Commit authority | User explicitly authorized the implementation and final evidence commits |
+| Current HEAD before this task | `d5642979aaf92d5d950987b833d9c7c947de581a` |
+| Working tree | Dynamic operational fact: query Git immediately before authorization. The issuer requires and independently verifies a clean exact HEAD; the pre-commit preparation state was correctly rejected |
+| Staged files | Dynamic operational fact: query Git. The intended 15-file change set passed staged status/stat/diff checks during the 2026-08-26 operator review |
+| Commit authority | User-controlled; the diagnostic issuer never stages or commits files |
 | Original history | Not recovered; the prospective repository baseline remains the traceability anchor |
 
 ## Current Production Workflow
@@ -110,13 +110,13 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 | Policy/budget binding | Readiness fingerprints include canonical Production policy digest; RunManifest repeats policy ID/budget; policy budget permits one baseline and one candidate solve while RunStore independently enforces `2/0` | `UNIT TESTED / INTEGRATION TESTED` |
 | Old Graph cleanup | The 18-node one-pass builder and `compose_comparison_workflow` are deleted; shared transactional invoke logic is `workflow_runner.py`; the former test is retained as a disabled historical characterization file | `CODE PRESENT / OFFLINE VERIFIED` by reachability scan and full suite |
 | Checkpoint cleanup | Formal SQLite composition has no legacy path/read hook. V1/V2 file parsing remains explicit and evidence-only; no historical file can authorize continuation | `UNIT TESTED / OFFLINE VERIFIED` |
-| HFSS frequency-grid contract | Shared converter/worker validation requires count, finite monotonic values, and point-by-point linear/log agreement; unverifiable explicit grids fail closed | `UNIT TESTED / INTEGRATION TESTED / OFFLINE VERIFIED`; real AEDT `NOT RUN` |
-| Final readiness review | Model/policy contracts and evidence authority are implemented; a default-disabled Harness campaign can collect exactly baseline plus two deterministic candidates. The current tree must still pass the final suite and be committed before physical collection | `OFFLINE IMPLEMENTED / PHYSICAL GATE PENDING` |
+| HFSS frequency-grid contract | Shared converter/worker validation requires count, finite monotonic values, and point-by-point linear/log agreement; unverifiable explicit grids fail closed | `UNIT TESTED / INTEGRATION TESTED / REAL HFSS VERIFIED` for all three cases at exact revision `d5642979...` |
+| Final readiness review | Exact-revision physical collection completed baseline plus two deterministic candidates and froze all required evidence, but the approved Calibration policy rejected the surrogate/HFSS agreement | `REAL HFSS VERIFIED / CALIBRATION FAILED / CANARY BLOCKED` |
 
 ## Current blockers and deferred architecture work
 
 - **ISSUE-005 — RESOLVED OFFLINE:** `OptimizationObjective` now changes the canonical `OptimizerRequest` and the vendor runtime objective CSV; the supplied worker returns and verifies the effective-objective digest.
-- **ISSUE-009 — PARTIALLY RESOLVED / CURRENT PHYSICAL GATE:** enforcement and collection are wired, but no current passing three-case physical dataset exists yet; the historical ranking reversal remains failing evidence.
+- **ISSUE-009 — PARTIALLY RESOLVED / CURRENT PHYSICAL GATE:** campaign `hfss-calibration-20260825-082540` completed all three physical cases at exact revision `d5642979aaf92d5d950987b833d9c7c947de581a`, but failed the approved Calibration policy: mean complex RMSE `0.34258 > 0.02`, mean magnitude-dB RMSE `6.80456 > 1.0`, and ranking agreement `0.6667 < 0.8`. The evidence is valid failing evidence and cannot authorize Canary.
 - **ISSUE-010 — RESOLVED FOR COLLECTION:** the user approved the existing HFSS Builder as physical authority. `model_alignment.hfss_builder_v1.json` binds the exact HFSS contract, 200-point comparison grid, ports, impedance, materials, and the rule that empirical surrogate terms are accepted only through passing Calibration.
 - **ISSUE-018 — RESOLVED OFFLINE:** pure nine-parameter mapping is isolated from the PyAEDT import boundary; its standalone test passes under Agent Python.
 - **ISSUE-031 — RESOLVED OFFLINE:** Calibration Evidence 1.1 and readiness recomputation reject formal/semantic fabrication before Canary admission.
@@ -126,12 +126,13 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - **ISSUE-035 — RESOLVED BY PHYSICAL BUILD EVIDENCE:** the seventh campaign created exact `interposer_temple4`, completed Builder geometry/materials/ports/boundaries/Setup1/Sweep/report, and saved the project before submitting Solve.
 - **ISSUE-036 — OPERATIONAL CHECKOUT FAILURE NOT REPRODUCED / AUTHORITY REVIEW OPEN:** the seventh campaign did not reproduce FlexNet `-15,10` and reached Solve submission. That removes licensing connectivity as the observed flow blocker; it does not independently establish entitlement provenance.
 - **ISSUE-037 — RESOLVED BY PHYSICAL EVIDENCE:** at exact revision `6d88b62fed733c0ac018b8db6611c4238143d6a1`, the companion remained live through a complete Baseline build/Solve/extraction and through Candidate 1 until Windows suspended the machine. Native-call starvation is no longer the observed blocker.
-- **ISSUE-038 — OPEN / PHYSICAL RERUN PENDING:** campaign `hfss-calibration-20260824-151230` entered Modern Standby after lid closure. Candidate 1 stopped after three non-converged adaptive passes; Sweep/S-parameter extraction never completed. The Run remains `UNKNOWN / WAITING_RECONCILIATION`, with no retry or Candidate 2 launch. The replacement run requires AC power, lid open, and sleep disabled; software-level suspend prevention/telemetry remains future reliability work.
+- **ISSUE-038 — OPEN / OPERATIONALLY MITIGATED FOR THE REPLACEMENT RUN:** campaign `hfss-calibration-20260824-151230` remains immutable `UNKNOWN / WAITING_RECONCILIATION`, but replacement campaign `hfss-calibration-20260825-082540` completed all three cases without host suspend. Software sleep inhibition and suspend/resume telemetry remain future reliability work.
 - **ISSUE-039 — RESOLVED OFFLINE:** the fake Calibration fixture's fixed approval expired on 2026-08-25 UTC. Its deterministic synthetic expiry is now 2099; production short-lived manifest validation is unchanged.
 - **ISSUE-040 — RESOLVED OFFLINE:** Builder Plot 6 duplicated `S(3,3)` instead of the second reflection `S(4,4)`. The three manual two-port reports are now distinct; physical extraction continues to request the complete contract-derived four-expression matrix.
+- **ISSUE-041 — OFFLINE VERIFIED / REAL RUN NOT AUTHORIZED:** a separate default-disabled optimization-outcome diagnostic freezes the current full optimizer recommendation and permits exactly baseline plus that candidate under `ExecutionPolicy(2,0)`. It is explicitly non-Canary and cannot bypass ISSUE-009.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
-- **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline; actual AEDT descendant behavior remains `NEEDS VERIFICATION`.
-- **ISSUE-027 — RESOLVED OFFLINE:** formal provider-native files are frozen and transactionally registered before `SUCCEEDED`; actual real AEDT file behavior remains `NOT RUN`, not a reason to claim real verification.
+- **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline. Three normal real AEDT composites exited cleanly with no Agent lock or AEDT/HFSS process left; real timeout/kill-failure behavior remains `NEEDS VERIFICATION`.
+- **ISSUE-027 — RESOLVED BY PHYSICAL EVIDENCE:** each of the three real cases froze its structured HFSS result, exact `.aedt`, and exact `.s2p` as immutable content-addressed receipts before campaign assessment.
 - **ISSUE-028 — PARTIALLY RESOLVED:** formal real registration now rejects missing Agent/PyAEDT/provider/source/revision/contract identities. General non-real/programmatic manifests still permit intentionally sparse fingerprints, so the domain-wide issue is not closed.
 - **ISSUE-029 — RESOLVED OFFLINE:** the queue/diagnosis feedback loop is now the sole formal Production topology; real physical behavior remains `NOT RUN`.
 - Phase 5D migration cleanup, Production adoption, ISSUE-019 closure, and the implementation baseline are `OFFLINE VERIFIED / COMMITTED`. See `CALIBRATION_AND_CANARY_REVIEW.md` for exact identities and blocker dispositions.
@@ -146,7 +147,7 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Final full main suite: `PASS` — 203 passed in 50.69 s, explicit exit code 0. The count decreased because 16 obsolete one-pass characterization tests are preserved but disabled, not because current V2 tests were skipped.
 - Final post-reliability/post-documentation full suite: `PASS` — 205 passed in 53.33 s, explicit exit code 0; the two added tests are V2 completed no-op and concurrent single-physical-workflow proof.
 - Python syntax compilation for changed modules: `PASS`.
-- Real AEDT/target execution: the eighth campaign at exact revision `6d88b62...` completed one Baseline build/Solve/structured extraction/Touchstone; Candidate 1 was interrupted by host suspend and remains `UNKNOWN`; no three-case Calibration Evidence exists.
+- Real AEDT/target execution: campaign `hfss-calibration-20260825-082540` at exact revision `d5642979...` completed Baseline plus two candidates, including target-only build, Solve, structured complex-S extraction, Touchstone export, and immutable evidence publication for every case.
 - Current-tree real HFSS E2E: `NOT RUN`.
 - ISSUE-019 focused contract/adapter suite: `PASS` — 33 passed in 0.67 s; final full offline suite: `PASS` — 213 passed in 45.71 s.
 - Calibration-authority/model/real-safety focused set: `PASS` — 73 passed in 1.70 s.
@@ -161,14 +162,18 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Post-gRPC-application-refresh repair focused worker/backend/process set: `PASS` — 32 passed in 1.28 s; final full suite `PASS` — 230 passed in 46.45 s.
 - Post-ISSUE-037 native-call supervision set: `PASS` — 40 passed in 3.11 s; final full suite `PASS` — 233 passed in 36.65 s.
 - Post-ISSUE-039/040 focused fixture/Builder/port-contract set: `PASS` — 7 passed in 0.68 s; final main suite `PASS` — 233 passed in 36.24 s. The standalone vendor Builder report regression is outside the configured main-suite discovery and passed explicitly.
+- Optimization-outcome diagnostic focused suite: `PASS` — 5 passed in 0.37 s; final main suite: `PASS` — 238 passed in 40.40 s; vendor optimizer suite: `PASS` — 7 passed in 4.47 s.
+- Complete current surrogate optimization: `OFFLINE VERIFIED` — NSGA-III, population 64, 100 generations, seed 42, 6400 evaluations, 215 feasible Pareto points, recommendation `P0028`; no AEDT was launched.
+- Diagnostic environment preflight: `PASS` — configured PyAEDT 0.18.1, AEDT 2025.1 executable, target-only Builder/contract, headless mode, writable runs directory, and idle lock observed. License entitlement is not proven by this check.
+- Diagnostic entry default-disable probe: `PASS` — execution rejected before provider composition; preparation probe also correctly rejected the dirty working tree, so no authority manifest exists yet.
 - Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
 
-**EXACT REVISION `6d88b62...` COMPLETED ONE BASELINE BUILD/SOLVE/EXTRACTION; THE THREE-CASE CALIBRATION, CANARY, AND CLOSED-LOOP E2E ARE NOT VERIFIED.**
+**EXACT REVISION `d5642979...` COMPLETED THE THREE-CASE REAL-HFSS COLLECTION; CALIBRATION FAILED, SO CANARY AND CLOSED-LOOP E2E REMAIN BLOCKED / NOT RUN.**
 
-Campaign `hfss-calibration-20260824-151230` at clean revision `6d88b62fed733c0ac018b8db6611c4238143d6a1` completed the Baseline composite in about 1875.75 seconds, including exact build, Solve, structured complex-S extraction, and Touchstone. Candidate 1 then built and entered Solve. Its companion heartbeat remained current until Windows Kernel-Power recorded lid-triggered Modern Standby; after resume the stale-heartbeat safety path terminated the tree and returned physical `UNKNOWN`. Manual inspection of a copied project shows three of six adaptive passes, `Max Mag. Delta S = 0.029237` versus target `0.02`, `NOT CONVERGED`, `Terminated abnormally`, no completed Sweep, and blank Sweep reports. Candidate 2 never launched and no Calibration Evidence exists. The old campaign is never resumed or reused.
+Campaign `hfss-calibration-20260825-082540` at clean revision `d5642979aaf92d5d950987b833d9c7c947de581a` completed Baseline, Candidate 1, and Candidate 2 in approximately 1288.55, 1070.83, and 1314.91 seconds. All three journals report `completed`; batch logs report normal simulation completion and Touchstone export; each case froze candidate, surrogate, HFSS, project, and Touchstone receipts. Evidence `calibration-evidence/1.1` was therefore validly generated, but `passed=false`: aggregate complex RMSE was `0.3425806839` against `0.02`, aggregate magnitude-dB RMSE was `6.8045604230` against `1.0`, and pairwise ranking agreement was `2/3 = 0.6666666667` against `0.8`. No Canary readiness can be issued from this evidence. The earlier suspended campaign remains separate immutable UNKNOWN evidence.
 
 ## Next phase boundary
 
-Commit the deterministic fixture and Builder-report correction with synchronized evidence, verify a clean exact HEAD, run the headless preflight, then issue a new short-lived three-case authority and start a fresh Calibration campaign from Baseline. Keep the Windows host on AC power with lid open and sleep disabled. Never resume or reuse campaign `hfss-calibration-20260824-151230`; a passing three-case Calibration remains mandatory before Canary readiness can be issued.
+Do not issue or run the formal Canary from the failing Calibration evidence. The user-approved diagnostic path permits `PREPARE_HFSS_OPTIMIZATION_DIAGNOSTIC.py` only when the present model/code/document set is a reviewed clean exact revision; the issuer then binds the frozen full-optimization summary into an eight-hour two-solve manifest. The operator must independently confirm legitimate license authority, AC power, lid-open/sleep-disabled conditions, and explicitly run `RUN_HFSS_OPTIMIZATION_DIAGNOSTIC.py`. A positive HFSS before/after result supports the candidate's physical usefulness only; it does not close ISSUE-009 or authorize Production.

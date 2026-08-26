@@ -14,7 +14,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-006 | HIGH | RESOLVED | STATE / HFSS | Failed/invalid candidate paths could finish as completed |
 | ISSUE-007 | HIGH | RESOLVED | MOCK / INTEGRATION | Mock frequency grid conflicted with evaluation plan |
 | ISSUE-008 | HIGH | RESOLVED | TEST / REGRESSION | Graph E2E/resume tests failed and traces were stale |
-| ISSUE-009 | HIGH | PARTIALLY RESOLVED | EVALUATION / OPTIMIZATION | Calibration gate is wired; no accepted current paired evidence exists |
+| ISSUE-009 | HIGH | PARTIALLY RESOLVED / PHYSICAL CALIBRATION FAILED | EVALUATION / OPTIMIZATION | Current three-case evidence is complete but rejects surrogate/HFSS agreement |
 | ISSUE-010 | HIGH | RESOLVED FOR COLLECTION | HFSS / MODEL | Builder-authoritative model alignment is versioned and approved; physical correlation remains gated by Calibration |
 | ISSUE-011 | HIGH | PARTIALLY RESOLVED | REPRODUCIBILITY | New Git baseline exists; original history remains unavailable |
 | ISSUE-012 | HIGH | OPEN | VALIDATION | Historical real E2E cannot be attributed to current working tree |
@@ -44,9 +44,11 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-035 | BLOCKER | RESOLVED BY PHYSICAL BUILD EVIDENCE | HFSS / PYAEDT | Exact target creation and complete Builder path were observed in the seventh campaign |
 | ISSUE-036 | BLOCKER | AUTHORITY REVIEW OPEN | HFSS / LICENSING / ENVIRONMENT | Prior checkout failure did not recur; entitlement provenance remains a separate review item |
 | ISSUE-037 | BLOCKER | RESOLVED BY PHYSICAL EVIDENCE | HFSS / SUPERVISION | Companion heartbeat survived a complete real Baseline Solve/extraction |
-| ISSUE-038 | HIGH | OPEN | HFSS / HOST LIFECYCLE | Lid-triggered Modern Standby interrupted Candidate 1 and left physical outcome UNKNOWN |
+| ISSUE-038 | HIGH | OPEN / RERUN MITIGATED | HFSS / HOST LIFECYCLE | Original lid-suspend outcome remains UNKNOWN; replacement campaign completed all cases |
 | ISSUE-039 | MEDIUM | RESOLVED OFFLINE | TEST / TIME | Fixed fake-Calibration approval expired with wall-clock time |
 | ISSUE-040 | LOW | RESOLVED OFFLINE | HFSS / BUILDER / REPORT | Manual Plot 6 duplicated `S(3,3)` instead of `S(4,4)` |
+| ISSUE-041 | HIGH | OFFLINE VERIFIED / REAL RUN NOT AUTHORIZED | VALIDATION / HFSS / EXPERIMENT | Two-solve optimization-outcome diagnostic is bounded and cannot bypass failed Calibration |
+
 ## Issue details updated by current status
 
 ### ISSUE-004 — Rule comparison cannot drive Best update or summary
@@ -111,20 +113,22 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Fix/evidence after:** fixtures now load the explicit Offline contract, traces include all 18 nodes on the full route, and completed-checkpoint reuse is asserted. 2026-08-21 main suite: 115 passed.
 - **Fixed:** yes for the stale tests and completed-run reuse. At Phase 0 close, mid-run semantic resume remained ISSUE-025; Phase 1 subsequently resolved its V2 type-fidelity defect and made V1 evidence-only.
 
-### ISSUE-009 — Calibration gate is wired; no accepted current paired evidence exists
+### ISSUE-009 — Current physical Calibration rejects surrogate/HFSS alignment
 
 - **Classification:** EVALUATION / OPTIMIZATION / MODEL
 - **Severity / status:** HIGH / PARTIALLY RESOLVED on 2026-08-22
-- **Location:** `evaluation/calibration.py`, `domain/contracts.py::CalibrationEvidence`, `harness/real_hfss_safety.py`, `harness/run_store.py`; historical run `real-vscode-20260818-101711`.
+- **Location:** `evaluation/calibration.py`, `domain/contracts.py::CalibrationEvidence`, `harness/real_hfss_safety.py`, `harness/run_store.py`; current campaign `hfss-calibration-20260825-082540`.
 - **Description before Phase 5C:** the calibration API existed but Production never gated on it. A reconstruction-only calculation from the historical paired run found mean complex RMSE 0.07320, mean dB RMSE 3.327 dB, and pairwise ranking agreement 0.0. Surrogate predicted candidate improvement while HFSS worsened.
 - **Impact:** Optimization/physical conclusions; surrogate recommendation is not trustworthy as a performance claim.
 - **Trigger:** use surrogate ranking as evidence of HFSS improvement.
 - **Phase 5C resolution:** added strict canonical `calibration-evidence/1.0` binding paired cases, policy/report, context, provider fingerprints, source artifact IDs, pass status, and digest. A real Readiness Manifest must embed passing evidence; readiness workflow binding and RunStore registration independently reject failing, context-mismatched, digest-drifted, or provider-drifted evidence before worker/action admission.
 - **Evidence after:** canonical round-trip/drift tests, readiness rejection tests, formal real-composition binding test, and full main suite pass offline. No HFSS/AEDT was launched.
-- **Current residual:** no accepted calibration evidence exists yet for the current exact code/provider/model combination. The historical evidence remains a calibration failure and cannot authorize a Canary. ISSUE-031 is resolved offline; ISSUE-009 remains the physical-data gate until the authorized three-case campaign passes.
-- **Workaround:** keep physical claims blocked and create reviewed paired evidence under separately authorized solve/data collection.
-- **Fixed:** partially; authority enforcement and collection are `OFFLINE VERIFIED`, while current physical calibration remains absent until the authorized campaign executes.
-- **Suggested next action:** after clean exact-revision offline verification, collect baseline plus two deterministic candidates and issue a matching Canary manifest only if it passes.
+- **Current physical evidence:** at clean revision `d5642979aaf92d5d950987b833d9c7c947de581a`, Baseline and both deterministic candidates completed build/Solve/extraction. All 15 mandatory immutable receipts exist. The strict evidence report records mean complex RMSE `0.3425806839` versus maximum `0.02`, mean magnitude-dB RMSE `6.8045604230` versus maximum `1.0`, and pairwise ranking agreement `0.6666666667` versus minimum `0.8`; all three policy reasons fail.
+- **Ranking detail:** the surrogate orders `baseline < candidate_2 < candidate_1` by worst S11 magnitude, while HFSS orders `baseline < candidate_1 < candidate_2`; the Candidate 1/Candidate 2 pair is reversed, producing two agreements across three comparable pairs.
+- **Current residual:** physical data is no longer absent; it is valid failing evidence. ISSUE-031 correctly prevented a formally complete but physically inconsistent dataset from authorizing Canary.
+- **Workaround:** keep Canary and physical-improvement claims blocked. Use the frozen frequency-domain pairs to diagnose and version a surrogate/model-alignment correction, then collect a new exact-revision three-case campaign.
+- **Fixed:** partially; authority, collection, immutable evidence, and fail-closed enforcement are now `REAL HFSS VERIFIED`, but physical surrogate correlation is `BROKEN` under the approved thresholds.
+- **Suggested next action:** perform a read-only frequency/port/component error decomposition before deciding whether the defect is parameter mapping, equivalent-model formulation, calibration constants, or another evidenced cause. Do not relax thresholds merely to pass the existing data.
 
 ### ISSUE-010 — Physical model alignment is versioned for collection
 
@@ -134,8 +138,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Resolution:** the user designated the existing HFSS Builder as physical-model authority. A strict versioned alignment binds the exact HFSS contract ID, `interposer_temple4`, the 200-point 0.1–20 GHz comparison grid, input/output ports, 50 ohms, PI 3.5/0.02, SiO2 4.0, and surrogate PI 3.5. The HFSS material contract records the approved Builder value. Empirical `Gsub`, `Rlf1`, and `alpha` terms are explicitly accepted only if the paired Calibration policy passes, rather than silently claimed as physically validated.
 - **Impact:** surrogate/HFSS comparison and any physical conclusion.
 - **Trigger:** treating automated completion as calibrated model validation.
-- **Evidence:** current config/source and historical ranking reversal.
-- **Evidence:** strict loader rejects unknown/drifted fields and binds the current HFSS contract/context; focused policy/alignment/readiness tests pass offline. The changed tree has not yet run HFSS.
+- **Evidence:** strict loader rejects unknown/drifted fields and binds the current HFSS contract/context; focused policy/alignment/readiness tests pass offline. The current exact-revision three-case campaign ran HFSS and failed physical correlation under ISSUE-009.
 - **Fixed:** yes for the prerequisite decision/versioning gap. Physical correlation remains ISSUE-009 and can only become `REAL HFSS VERIFIED` through the exact authorized Calibration campaign.
 
 ### ISSUE-011 — New Git baseline exists; original history remains unavailable
@@ -456,10 +459,11 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-038 — Windows Modern Standby interrupted an active real-HFSS operation
 
 - **Classification:** HFSS / HOST LIFECYCLE / RELIABILITY
-- **Severity / status:** HIGH / OPEN on 2026-08-25; replacement physical campaign pending
+- **Severity / status:** HIGH / OPEN on 2026-08-25; replacement campaign completed, software prevention still absent
 - **Trigger/evidence:** campaign `hfss-calibration-20260824-151230`, Candidate 1 operation `op_8dee096f940d185beeeb6317eaa1e495`, had a current companion heartbeat at 00:00:24 local time; Windows Kernel-Power recorded entry into Modern Standby at 00:00:25 with reason `Lid`. The safety supervisor later terminated the stale process tree and returned `UNKNOWN` without retry.
 - **Manual inspection evidence:** the copied `pa_multi.aedt` shows three of six adaptive passes, current `Max Mag. Delta S = 0.029237` above target `0.02`, `NOT CONVERGED`, and `Terminated abnormally`. `Setup1 : Sweep` has no S-parameter data. Candidate 2 did not start and no Calibration Evidence was emitted.
-- **Disposition:** preserve the original workspace and stale-lock evidence. The failed Run remains `UNKNOWN / WAITING_RECONCILIATION` and is not resumed or reused. Immediate rerun control is AC power, lid open, sleep disabled, terminal retained, and a fresh manifest/new campaign. Software sleep inhibition and suspend/resume telemetry remain future reliability work because explicit lid-close policy cannot be assumed overrideable.
+- **Replacement evidence:** fresh campaign `hfss-calibration-20260825-082540` completed Baseline and both candidates without suspension, showing the operator controls were sufficient for that run. This does not change or overwrite the original UNKNOWN Run.
+- **Disposition:** preserve the original workspace and stale-lock evidence. The failed Run remains `UNKNOWN / WAITING_RECONCILIATION` and is not resumed or reused. Continue AC/lid/sleep/terminal controls for future physical runs. Software sleep inhibition and suspend/resume telemetry remain future reliability work because explicit lid-close policy cannot be assumed overrideable.
 
 ### ISSUE-039 — Fake Calibration approval expired with wall-clock time
 
@@ -476,6 +480,17 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 - **Trigger/evidence:** `create_reports` created Plot 4 `dB(S(3,3))`, Plot 5 `dB(S(4,3))`, and Plot 6 `dB(S(3,3))`. Ports `4` and `3` are the two valid exported port names, so `S(3,3)` itself is valid; the third plot was only a duplicate.
 - **Resolution:** Plot 6 now requests `dB(S(4,4))`; a pure no-PyAEDT test requires three distinct manual reports. Contract-driven extraction remains unchanged and continues to request `S(4,4)`, `S(4,3)`, `S(3,4)`, and `S(3,3)`.
 - **Evidence:** focused Builder/fixture/port-contract tests pass (7 in 0.68 seconds); final main suite passes 233 in 36.24 seconds. Real report rendering for the new Builder digest remains `NEEDS VERIFICATION`.
+
+### ISSUE-041 — Optimization-outcome HFSS experiment must not bypass failed Calibration
+
+- **Classification:** VALIDATION / HFSS / EXPERIMENT BOUNDARY
+- **Severity / status:** HIGH / OFFLINE VERIFIED; REAL RUN NOT AUTHORIZED on 2026-08-26
+- **Reason:** the current surrogate fails the approved three-case Calibration, but a narrower engineering question remains useful: does the parameter set selected by the current full optimizer improve real HFSS relative to the unchanged baseline?
+- **Risk:** reusing the Production Canary entry or accepting a runtime-supplied candidate would silently bypass ISSUE-009, mix candidate selection with physical observation, or misstate a two-point result as global surrogate validity.
+- **Resolution:** added a separate default-disabled workflow that accepts only a completed non-quick optimizer summary, freezes its unique recommendation, binds exact clean Git/provider/contract identities into an eight-hour manifest, permits exactly two solves and zero retries, and writes `formal_canary_authorized=false` into the report. It cannot create Production readiness or relax Calibration policy.
+- **Offline evidence:** recommendation `P0028` came from NSGA-III population 64 × 100 generations (6400 evaluations; seed 42; 215 feasible Pareto points). Focused tests pass 5 in 0.37 seconds; full main suite passes 238 in 40.40 seconds; vendor suite passes 7 in 4.47 seconds; environment preflight passes. Default execution and dirty-tree issuance fail before provider composition.
+- **Current boundary:** no AEDT/HFSS process was launched and no authority manifest was issued. User review/commit, clean exact HEAD, legitimate license confirmation, host-power controls, short-lived issuance, and an explicit operator run are still required.
+- **Interpretation:** even if optimized HFSS is better than baseline HFSS, the result establishes only local physical outcome evidence for this frozen pair. It does not prove global ranking accuracy, close ISSUE-009, or authorize WF-001.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.

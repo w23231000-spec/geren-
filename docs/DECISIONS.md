@@ -433,3 +433,11 @@ These decisions are reconstructed from current source/configuration and availabl
 - **Reason:** synchronous native `analyze_setup` can starve all Python threads in its caller for longer than the finite heartbeat bound; a liveness signal inside that interpreter is not independent.
 - **Evidence:** the seventh campaign reached Solve and then lost only the in-process heartbeat; native-call starvation, hard-timeout, parent-death, lock, worker-contract, and Calibration regressions pass offline.
 - **Consequence:** active native Solve can continue to its hard deadline while the supervisor still detects worker death, companion death, cancellation, timeout, and unverifiable cleanup. UNKNOWN remains fail-closed and never auto-retries.
+
+## ADR-055 - Optimization-outcome HFSS comparison is a separate non-Production diagnostic
+
+- **Status:** ACTIVE; OFFLINE VERIFIED; REAL RUN NOT AUTHORIZED
+- **Decision:** evaluate the current optimizer's practical outcome with exactly two real solves: the unchanged baseline and the unique recommendation frozen from a completed full non-quick surrogate optimization. Use a separate default-disabled issuer/runner, short-lived clean-HEAD authority, `ExecutionPolicy(2,0)`, independent workspaces, immutable receipts, and `formal_canary_authorized=false`.
+- **Reason:** a local physical before/after test is useful while the broader three-case Calibration mismatch is investigated, but it must not weaken the evidence required for surrogate accuracy, ranking authority, or Production admission.
+- **Evidence:** full NSGA-III run (population 64, 100 generations, seed 42, 6400 evaluations, 215 feasible Pareto points) selected `P0028`; focused fake campaign and safety tests pass 5; full main suite passes 238; vendor suite passes 7; default execution and dirty-tree issuance fail closed.
+- **Consequence:** a favorable physical delta supports only this frozen candidate's local usefulness. It neither closes ISSUE-009 nor allows `PREPARE_REAL_HFSS_CANARY.py`; any Production claim still requires passing Calibration Evidence.

@@ -197,17 +197,18 @@ Authoritative request/result/ranking/candidate JSON and selected provider-native
 | HFSS contract/converter | WIRED | UNIT TESTED | Production boundary |
 | Guarded HFSS adapter | WIRED | INTEGRATION TESTED with fake backend | Production |
 | JSON worker backend | WIRED / COMPOSITE / ATTESTED | INTEGRATION TESTED with fake backend | Production |
-| PyAEDT Worker | WIRED / JOB-SUPERVISED | Contract tested; current real execution NOT RUN | Production internal |
-| Nine-parameter Builder | WIRED / SNAPSHOT-ATTESTED | Drift-before-lock integration PASS; historical real use only | Production build stage |
+| PyAEDT Worker | WIRED / JOB-SUPERVISED | Contract tested; three current real composites completed normally | Production internal |
+| Nine-parameter Builder | WIRED / SNAPSHOT-ATTESTED | Drift-before-lock integration PASS; three current target-only physical builds completed | Production build stage |
 | MockHFSS | ACTIVE MOCK | UNIT TESTED; Offline E2E PASS | Offline/supplied-Mock |
 | Rule evaluator | WIRED WITH EXPLICIT CONTRACTS | UNIT/INTEGRATION TESTED | Offline and Production use distinct versioned contracts |
 | Evaluation comparator | AUTHORITATIVE FOR PROMOTION | UNIT/INTEGRATION TESTED | Production/Mock shared decision evidence |
 | Diagnosis | WIRED | UNIT TESTED | Production node |
 | Best update | WIRED TO `ComparisonRecord` EVIDENCE | Unit/integration PASS with no-AEDT providers | Production node |
-| Calibration Evidence | WIRED AS REAL ADMISSION GATE | OFFLINE VERIFIED | Schema 1.1 is approved-policy/cardinality/provider/immutable-artifact/recomputation bound; no current physical evidence accepted yet |
+| Calibration Evidence | WIRED AS REAL ADMISSION GATE | REAL HFSS VERIFIED / CALIBRATION FAILED | Current schema-1.1 evidence is source-complete and recomputable but fails all approved aggregate accuracy/ranking criteria, so Canary stays blocked |
+| Optimization-outcome A/B diagnostic | WIRED / DEFAULT-DISABLED / NON-CANARY | Fake two-case integration PASS; full optimizer OFFLINE VERIFIED; real AEDT NOT RUN | Separate bounded physical experiment; never authorizes Production |
 | SQLite RunStore | WIRED / AUTHORITATIVE | Concurrency, crash, CAS, identity, budget, approval, terminal no-op PASS | All formal Agent workflows |
 | Harness action/event ledger | WIRED | Unit/integration and Graph crash-window PASS | Every formal provider call and authoritative durable write |
-| Artifact store | WIRED / IMMUTABLE JSON + NATIVE FILES | Containment, concurrent publish, mutable-source, tamper, and replay verification PASS | All Agent workflows; real AEDT files NOT RUN |
+| Artifact store | WIRED / IMMUTABLE JSON + NATIVE FILES | Offline safety tests plus three current real `.aedt`/`.s2p` receipt pairs | All Agent workflows |
 | Structured decision trace + final manifest | WIRED / APPEND-ONLY CUTOFF | Policy decision identity/replay and terminal manifest integration PASS | All typed terminal Agent workflows |
 | SQLite checkpoint V2 | WIRED / CANONICAL / APPEND-ONLY | Round-trip, CAS, fencing, historical-digest rejection, Graph integration PASS | All Agent workflows |
 | V1/V2 historical import | EXPLICIT READER / EVIDENCE-ONLY | V1 interrupted/completed classification and source-preservation tests PASS | Not reachable from formal invoke |
@@ -258,6 +259,10 @@ WF-001 supplies the Production contract and safe no-AEDT evidence completes cand
 Physical collection is a separate default-disabled Harness workflow, not a Graph shortcut. `PREPARE_HFSS_CALIBRATION.py` can issue only a clean exact-HEAD, eight-hour authority for deterministic baseline plus two interior candidates and `ExecutionPolicy(3,0)`. `RUN_HFSS_CALIBRATION.py` validates that authority before composing providers; each candidate, surrogate result, HFSS result, `.aedt`, and `.s2p` is frozen through the same action/attempt/budget/idempotency ledger. No automatic solve retry exists. Only passing evidence can be consumed by `PREPARE_REAL_HFSS_CANARY.py`, which reconstructs the exact Production State identity and self-validates an eight-hour `ExecutionPolicy(2,0)` readiness manifest without launching AEDT.
 
 The model basis is also versioned before data collection: the user approved the current HFSS Builder as physical authority. `model_alignment.hfss_builder_v1.json` binds the exact HFSS contract/context, 200-point comparison grid, ports, impedance, and materials. The surrogate PI constant now matches 3.5; empirical equivalent-model terms remain acceptable only if the real paired Calibration threshold passes. This resolves the decision/versioning portion of ISSUE-010 without pre-claiming physical correlation.
+
+At exact revision `d5642979aaf92d5d950987b833d9c7c947de581a`, campaign `hfss-calibration-20260825-082540` exercised this boundary end to end for Baseline plus two deterministic candidates. All physical actions and immutable receipts completed, but assessment returned mean complex RMSE `0.3425806839`, mean magnitude-dB RMSE `6.8045604230`, and pairwise S11-ranking agreement `0.6666666667`, all outside the approved limits. This is valid failing Calibration evidence: it verifies the collection/admission architecture while rejecting the present surrogate as a physical-ranking authority.
+
+The optimization-outcome diagnostic is deliberately outside this gate. Its no-AEDT issuer reads a completed full vendor summary, requires a unique recommendation with predicted improvement, freezes baseline and recommendation, and binds them to a clean exact revision for eight hours. The runner admits exactly two composite HFSS actions under `ExecutionPolicy(2,0)` and freezes candidate, surrogate, HFSS, `.aedt`, and `.s2p` for each case. Its report compares real worst-S11 and mean reflected power, but always declares `formal_canary_authorized=false`; it cannot be consumed as Calibration Evidence or Production readiness.
 
 ## Artifact flow
 
@@ -314,5 +319,6 @@ PyAEDT 0.18.1 on AEDT 2025 R1 gRPC may acknowledge `SetActiveDesign` with `True`
 - Active diagnostic experiment: `tools/probe_hfss_builder.py`.
 - Reference: vendor optimizer CLI, vendor Builder CLI, electrical-equivalent diagnostic mains.
 - Separately authorized physical evidence workflow: WF-017 Calibration collection; never automatically reached from Production or an offline Graph.
+- Separately authorized diagnostic physical workflow: WF-020 baseline versus frozen full-optimizer recommendation; exactly two solves, non-Production, and never accepted as Canary authority.
 - Not Production-wired: `UnavailableHFSSBackend`, `metric_deltas`, thermal/reliability rows.
 - No explicit Golden workflow or Golden-data contract was identified.

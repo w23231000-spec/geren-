@@ -4,7 +4,7 @@ Baseline: `FS-2026-08-20`. Classification follows reachable code, not historical
 
 ## Inventory summary
 
-Sixteen identifiable entries, harnesses, workers, or callable workflow paths are present. They are not sixteen peer workflows:
+Twenty identifiable entries, harnesses, workers, or callable workflow paths are present. They are not twenty peer workflows:
 
 - **Canonical Production Workflow = 1:** WF-001.
 - **Internal Tool Workers = 2:** WF-011 and WF-014. They are implementation details and are not counted as independent Production Workflows.
@@ -27,6 +27,10 @@ Sixteen identifiable entries, harnesses, workers, or callable workflow paths are
 | WF-014 | Supplied optimizer JSON Worker | INTERNAL TOOL WORKER | Reachable from WF-001/WF-003; not an independent workflow |
 | WF-015 | Deterministic V2 Closed-loop Agent | MOCK AGENT | Yes, END-TO-END VERIFIED |
 | WF-016 | Supplied Tools + MockHFSS V2 Closed-loop Agent | MOCK AGENT | Yes, END-TO-END VERIFIED |
+| WF-017 | Authorized three-case real-HFSS Calibration collection | PHYSICAL EVIDENCE | Yes, default-disabled; REAL HFSS VERIFIED / CALIBRATION FAILED |
+| WF-018 | Exact Canary readiness issuance | AUTHORITY ISSUER | Yes, but current failing evidence is rejected |
+| WF-019 | Versioned physical-model and Calibration policy contracts | CONTRACT LIBRARY | Yes, WIRED / OFFLINE VERIFIED |
+| WF-020 | Frozen optimization-outcome HFSS A/B diagnostic | DIAGNOSTIC PHYSICAL EVIDENCE | Code reachable, default-disabled / REAL RUN NOT AUTHORIZED |
 
 No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists. The former one-pass characterization is preserved as `tests/legacy_comparison_graph_characterization.py.disabled`; historical checkpoints/runs are evidence/reference artifacts, not runnable workflows.
 
@@ -50,6 +54,10 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 | WF-014 | module CLI invoked by adapter | No | No | supplied vendor model | supplied | vendor objectives/constraints/metrics | canonical request/response + vendor result directory |
 | WF-015 | `RUN_CLOSED_LOOP_OFFLINE.py`, `closed-loop-offline-demo`, launch 2A | No | No | deterministic Mock | deterministic Mock | Offline Evaluation Contract v1 | RunStore + typed controller/checkpoints |
 | WF-016 | `RUN_CLOSED_LOOP_SUPPLIED_MOCK.py`, `closed-loop-supplied-mock-demo`, launch 2B | No | No | supplied | supervised supplied worker | Offline Evaluation Contract v1 | RunStore + typed controller/checkpoints |
+| WF-017 | `PREPARE_HFSS_CALIBRATION.py` + `RUN_HFSS_CALIBRATION.py` | Yes, separately authorized | Yes | supplied | No | Calibration policy | RunStore + 15 immutable receipts |
+| WF-018 | `PREPARE_REAL_HFSS_CANARY.py` | No | No | Reads evidence | No | Recomputes Calibration | Emits short-lived authority only |
+| WF-019 | Strict contract loaders | No | No | No | No | Model-alignment/Calibration contracts | No execution state |
+| WF-020 | `PREPARE_HFSS_OPTIMIZATION_DIAGNOSTIC.py` + `RUN_HFSS_OPTIMIZATION_DIAGNOSTIC.py` | Yes, separately authorized | Yes | supplied/frozen | Reads completed full run | Baseline-versus-candidate outcome metrics | RunStore + 10 immutable receipts |
 
 ## WF-001 — Real baseline–optimize–candidate HFSS Agent
 
@@ -199,17 +207,26 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 - **Admission:** checked-in defaults are disabled. Issuance requires a clean exact HEAD and binds Agent/optimizer/surrogate/Builder/PyAEDT/protocol/policy bytes, exact HFSS contract and model alignment, expiry, three deterministic candidate snapshots (baseline plus two interior points), and `ExecutionPolicy(3,0)`.
 - **Call chain:** validate authority before composition → Harness/RunStore registration → for each case freeze candidate → supplied surrogate receipt → one composite real HFSS action → freeze result, exact `.aedt`, and exact `.s2p` → assess approved policy → publish strict immutable Calibration Evidence.
 - **Safety:** every physical action is approval-, budget-, attempt-, idempotency-, and ambiguity-bound; no automatic retry. Any UNKNOWN/timeout/residual process stops normal progress.
-- **Verification:** fake three-case end-to-end campaign passes with 15 typed source receipts; manifest drift/default-disable/budget tests pass offline. The seventh bounded campaign completed the exact target build and submitted Solve, then exposed same-process heartbeat starvation; it was reconciled without retry. No accepted physical case exists, and the companion-process repair awaits a fresh manual campaign.
+- **Verification:** fake three-case end-to-end campaign passes with 15 typed source receipts; manifest drift/default-disable/budget tests pass offline. Current physical campaign `hfss-calibration-20260825-082540` at exact revision `d5642979...` completed all three target-only build/Solve/extraction operations and froze all 15 required receipts. The generated strict evidence is valid but failed approved accuracy/ranking thresholds, so WF-017 is `REAL HFSS VERIFIED / CALIBRATION FAILED`, not passing readiness evidence.
 
 ## WF-018 — Exact Canary readiness issuance
 
 - **Entry:** `PREPARE_REAL_HFSS_CANARY.py`; never constructs a worker or launches AEDT.
 - **Admission:** requires a clean exact HEAD and a passing immutable WF-017 evidence JSON. It rebinds current policy/alignment/contracts/provider bytes, constructs the exact Production State/RunManifest identity, writes an eight-hour `real-hfss-readiness/1.1` manifest with `ExecutionPolicy(2,0)`, then validates the complete manifest and Calibration source artifacts before returning it.
 - **Output:** ignored short-lived authority under `runs/authorizations`; no checked-in enable flag is changed.
-- **Verification:** syntax and the underlying readiness/binding/recomputation suite pass offline; a generated manifest can exist only after real passing Calibration.
+- **Verification:** syntax and the underlying readiness/binding/recomputation suite pass offline; the current failing physical evidence is intentionally ineligible, so no Canary manifest may be generated from it.
 
 ## WF-019 — Versioned physical-model and Calibration policy contracts
 
 - **Entries:** strict loaders for `config/model_alignment.hfss_builder_v1.json` and `config/calibration_policy.paired_surrogate_hfss_v1.json`.
 - **Authority:** user-approved existing HFSS Builder; PI 3.5/0.02 and the exact HFSS contract/context/grid/ports/impedance are fixed before observing Calibration results. Empirical surrogate terms are conditionally accepted only by passing physical evidence.
 - **Verification:** strict field/content/contract/digest checks are wired into WF-017/WF-018/WF-001 and pass offline.
+
+## WF-020 — Frozen optimization-outcome real-HFSS A/B diagnostic
+
+- **Entries:** `PREPARE_HFSS_OPTIMIZATION_DIAGNOSTIC.py` issues authority without AEDT; `RUN_HFSS_OPTIMIZATION_DIAGNOSTIC.py` runs only when `HFSS_OPTIMIZATION_DIAGNOSTIC_MANIFEST` is explicitly supplied.
+- **Purpose:** answer whether the one recommendation produced by the current complete surrogate optimization improves real HFSS performance relative to the unchanged baseline. It is diagnostic evidence, not Calibration and not the formal Production Canary.
+- **Admission:** checked-in defaults are disabled. The issuer requires a clean exact HEAD, completed non-quick optimizer summary, one unique recommendation with predicted worst-S11 and mean-reflected-power improvement, exact provider/source/contract identities, eight-hour expiry, and `ExecutionPolicy(2,0)`.
+- **Call chain:** validate authority before composition → freeze baseline and `optimized_P0028` → one surrogate and one composite HFSS result for each case → freeze candidate/result/`.aedt`/`.s2p` receipts → compute physical before/after metrics and an explicit `formal_canary_authorized=false` report.
+- **Safety:** exactly two physical launches, independent workspaces, target design `interposer_temple4`, hard deadlines, process isolation, license lock, zero automatic retries, and evidence-bound UNKNOWN reconciliation.
+- **Verification:** focused fake campaign 5 PASS; full main suite 238 PASS; complete vendor optimization and vendor suite 7 PASS; environment preflight PASS. Default execution and dirty-tree issuance both fail closed. Real HFSS is `NOT RUN`; no manifest has been issued.

@@ -598,6 +598,10 @@ class RunStore:
             calibration_collection = (
                 manifest_payload.get("workflow_id") == "hfss-calibration-collection-v1"
             )
+            optimization_diagnostic = (
+                manifest_payload.get("workflow_id")
+                == "hfss-optimization-diagnostic-v1"
+            )
             required_execution_policy = ExecutionPolicy(
                 3 if calibration_collection else 2,
                 0,
@@ -617,8 +621,8 @@ class RunStore:
                     "real RunManifest must bind every mandatory provider/source fingerprint"
                 )
             config_fingerprints = manifest_payload.get("config_fingerprints")
-            required_config = (
-                {
+            if calibration_collection:
+                required_config = {
                     "real_hfss_authorization_id",
                     "readiness_id",
                     "hfss_contract_id",
@@ -628,8 +632,19 @@ class RunStore:
                     "calibration_plan_sha256",
                     "calibration_collection_manifest_sha256",
                 }
-                if calibration_collection
-                else {
+            elif optimization_diagnostic:
+                required_config = {
+                    "real_hfss_authorization_id",
+                    "diagnostic_manifest_sha256",
+                    "hfss_contract_id",
+                    "hfss_contract_sha256",
+                    "model_alignment_sha256",
+                    "optimization_summary_sha256",
+                    "diagnostic_plan_sha256",
+                    "formal_canary_authorized",
+                }
+            else:
+                required_config = {
                     "real_hfss_authorization_id",
                     "readiness_id",
                     "hfss_contract_id",
@@ -642,7 +657,6 @@ class RunStore:
                     "calibration_artifact_manifest_sha256",
                     "calibration_evidence",
                 }
-            )
             if (
                 not isinstance(config_fingerprints, dict)
                 or not required_config.issubset(config_fingerprints)
@@ -650,7 +664,13 @@ class RunStore:
                 raise RunIdentityConflict(
                     "real RunManifest must bind readiness and evaluation/HFSS contracts"
                 )
-            if not calibration_collection:
+            if optimization_diagnostic and config_fingerprints.get(
+                "formal_canary_authorized"
+            ) is not False:
+                raise RunIdentityConflict(
+                    "optimization diagnostic must remain explicitly non-Canary"
+                )
+            if not calibration_collection and not optimization_diagnostic:
                 from ..domain.contracts import CalibrationEvidence
 
                 calibration = CalibrationEvidence.from_dict(

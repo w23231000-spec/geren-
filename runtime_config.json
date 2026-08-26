@@ -11,6 +11,8 @@
   "hfss_contract_path": "config/hfss_contract.pa_multi_2025_1.json",
   "real_hfss_calibration_enabled": false,
   "real_hfss_calibration_manifest": null,
+  "real_hfss_optimization_diagnostic_enabled": false,
+  "real_hfss_optimization_diagnostic_manifest": null,
   "hfss_ui_visible": false,
   "presentation_mode": true
 }
