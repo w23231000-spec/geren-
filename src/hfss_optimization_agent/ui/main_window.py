@@ -11,10 +11,16 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import queue
+import threading
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
 
-from ..application.real_hfss_service import validate_task
+from ..application.events import RunEvent
+from ..application.real_hfss_service import (
+    run_real_hfss_task,
+    validate_task,
+)
 from ..core.models import FrequencyPlan
 from ..task_request import (
     OPTIMIZATION_REQUEST_SCHEMA_VERSION,
@@ -332,6 +338,16 @@ class HFSSOptimizationWindow:
         self.budget_total = tk.StringVar()
         self.budget_retry = tk.StringVar()
 
+        self._event_queue: queue.Queue[RunEvent] = queue.Queue()
+        self._run_active = False
+        self._checked_request_digest: str | None = None
+        self._worker_thread: threading.Thread | None = None
+
+        self.root.protocol(
+            "WM_DELETE_WINDOW",
+            self._on_close,
+        )
+
         self._build_layout()
         self._refresh_budget()
 
@@ -340,6 +356,17 @@ class HFSSOptimizationWindow:
         ].trace_add(
             "write",
             lambda *_: self._refresh_budget(),
+        )
+
+        for variable in self.variables.values():
+            variable.trace_add(
+                "write",
+                lambda *_: self._invalidate_checked_request(),
+            )
+
+        self.root.after(
+            100,
+            self._drain_events,
         )
 
     def _build_layout(self) -> None:
@@ -681,20 +708,22 @@ class HFSSOptimizationWindow:
             pady=(0, 10),
         )
 
-        ttk.Button(
+        self.check_button = ttk.Button(
             actions,
             text="检查配置",
             command=self._check_configuration,
-        ).pack(
+        )
+        self.check_button.pack(
             side="left",
             padx=(0, 8),
         )
 
-        ttk.Button(
+        self.restore_button = ttk.Button(
             actions,
             text="恢复默认值",
             command=self._restore_defaults,
-        ).pack(
+        )
+        self.restore_button.pack(
             side="left",
             padx=(0, 8),
         )
@@ -708,11 +737,13 @@ class HFSSOptimizationWindow:
             padx=(0, 8),
         )
 
-        ttk.Button(
+        self.start_button = ttk.Button(
             actions,
-            text="开始 REAL HFSS 优化（下一步接入）",
+            text="开始 REAL HFSS 优化",
+            command=self._start_real_hfss,
             state="disabled",
-        ).pack(
+        )
+        self.start_button.pack(
             side="right",
         )
 
@@ -826,9 +857,15 @@ class HFSSOptimizationWindow:
                 f"{configuration.get('pyaedt_python')}\n"
             )
 
+            self._checked_request_digest = request.digest
+            self.start_button.configure(state="normal")
+
             self._write_status(
                 "\n检查完成：未生成 Authorization，"
                 "未启动 AEDT/HFSS。\n"
+            )
+            self._write_status(
+                "当前参数已通过检查，可以启动 REAL HFSS。\n"
             )
 
             messagebox.showinfo(
@@ -838,6 +875,9 @@ class HFSSOptimizationWindow:
             )
 
         except Exception as exc:
+            self._checked_request_digest = None
+            self.start_button.configure(state="disabled")
+
             self._write_status(
                 f"\n【检查失败】{type(exc).__name__}: {exc}\n"
             )
@@ -860,6 +900,240 @@ class HFSSOptimizationWindow:
         self._refresh_budget()
         self._clear_status()
         self._write_status("已恢复默认任务参数。\n")
+
+    def _invalidate_checked_request(self) -> None:
+        if self._run_active:
+            return
+
+        self._checked_request_digest = None
+
+        if hasattr(self, "start_button"):
+            self.start_button.configure(
+                state="disabled"
+            )
+
+    def _set_running(self, running: bool) -> None:
+        self._run_active = running
+
+        if running:
+            self.check_button.configure(state="disabled")
+            self.restore_button.configure(state="disabled")
+            self.start_button.configure(state="disabled")
+            return
+
+        self.check_button.configure(state="normal")
+        self.restore_button.configure(state="normal")
+
+        try:
+            request = self._request()
+        except Exception:
+            self.start_button.configure(state="disabled")
+            return
+
+        if request.digest == self._checked_request_digest:
+            self.start_button.configure(state="normal")
+        else:
+            self.start_button.configure(state="disabled")
+
+    def _start_real_hfss(self) -> None:
+        if self._run_active:
+            return
+
+        try:
+            request = self._request()
+        except Exception as exc:
+            messagebox.showerror(
+                "任务参数错误",
+                f"{type(exc).__name__}: {exc}",
+            )
+            return
+
+        if request.digest != self._checked_request_digest:
+            self.start_button.configure(state="disabled")
+            messagebox.showwarning(
+                "请重新检查配置",
+                "当前参数自上次检查后已经发生变化。\n\n"
+                "请先点击“检查配置”。",
+            )
+            return
+
+        budget = budget_summary(request)
+
+        confirmed = messagebox.askyesno(
+            "确认启动 REAL HFSS",
+            (
+                "即将启动真实 HFSS 优化。\n\n"
+                f"模型：{request.model_id}\n"
+                f"Candidate HFSS 最大次数："
+                f"{budget['max_candidate_hfss_calls']}\n"
+                f"REAL HFSS 总上限："
+                f"{budget['max_hfss_solve_launches']}\n"
+                "自动求解重试：0\n\n"
+                "确认后将真正启动 AEDT/HFSS。\n\n"
+                "是否继续？"
+            ),
+        )
+
+        if not confirmed:
+            return
+
+        self._set_running(True)
+
+        self._write_status(
+            "\n========================================\n"
+        )
+        self._write_status(
+            "【REAL HFSS】用户已确认启动真实优化任务。\n"
+        )
+        self._write_status(
+            f"OptimizationRequest SHA256：{request.digest}\n"
+        )
+        self._write_status(
+            "任务将在后台线程运行，GUI 将保持响应。\n"
+        )
+        self._write_status(
+            "当前版本运行期间不提供强制停止按钮。\n"
+        )
+
+        self._worker_thread = threading.Thread(
+            target=self._run_real_hfss_worker,
+            args=(request,),
+            name="real-hfss-workflow",
+            daemon=False,
+        )
+
+        self._worker_thread.start()
+
+    def _run_real_hfss_worker(
+        self,
+        request: OptimizationRequest,
+    ) -> None:
+        try:
+            result = run_real_hfss_task(
+                self.project_root,
+                request,
+                on_event=self._event_queue.put,
+            )
+
+            self._event_queue.put(
+                RunEvent(
+                    event_type="worker_done",
+                    stage="gui",
+                    message="后台 REAL HFSS 任务已经结束",
+                    detail=result.status,
+                    payload={
+                        "task_id": result.task_id,
+                        "status": result.status,
+                        "request_path": str(
+                            result.request_path
+                        ),
+                    },
+                )
+            )
+
+        except Exception as exc:
+            self._event_queue.put(
+                RunEvent(
+                    event_type="worker_error",
+                    stage="gui",
+                    message="后台 REAL HFSS 任务异常结束",
+                    detail=(
+                        f"{type(exc).__name__}: {exc}"
+                    ),
+                )
+            )
+
+    def _drain_events(self) -> None:
+        try:
+            while True:
+                event = self._event_queue.get_nowait()
+                self._handle_run_event(event)
+        except queue.Empty:
+            pass
+
+        try:
+            self.root.after(
+                100,
+                self._drain_events,
+            )
+        except tk.TclError:
+            pass
+
+    def _handle_run_event(
+        self,
+        event: RunEvent,
+    ) -> None:
+        labels = {
+            "stage": "运行",
+            "success": "通过",
+            "complete": "完成",
+            "error": "错误",
+        }
+
+        if event.event_type == "worker_done":
+            self._set_running(False)
+
+            payload = event.payload or {}
+            task_id = payload.get("task_id", "-")
+            status = payload.get("status", event.detail or "-")
+
+            self._write_status(
+                "\n【任务结束】"
+                f"status={status} | task={task_id}\n"
+            )
+
+            messagebox.showinfo(
+                "REAL HFSS 任务结束",
+                (
+                    f"Task ID：{task_id}\n"
+                    f"Status：{status}\n\n"
+                    "详细结果请查看 runs 目录。"
+                ),
+            )
+            return
+
+        if event.event_type == "worker_error":
+            self._set_running(False)
+
+            self._write_status(
+                "\n【后台任务异常】"
+                f"{event.detail or event.message}\n"
+            )
+
+            messagebox.showerror(
+                "REAL HFSS 任务失败",
+                event.detail or event.message,
+            )
+            return
+
+        label = labels.get(
+            event.event_type,
+            event.event_type,
+        )
+
+        self._write_status(
+            f"\n【{label} / {event.stage}】"
+            f"{event.message}\n"
+        )
+
+        if event.detail:
+            self._write_status(
+                f"  {event.detail}\n"
+            )
+
+    def _on_close(self) -> None:
+        if self._run_active:
+            messagebox.showwarning(
+                "REAL HFSS 正在运行",
+                (
+                    "当前 REAL HFSS 任务仍在运行。\n\n"
+                    "为了避免留下失控的 HFSS Worker，"
+                    "运行期间暂不允许直接关闭 GUI。"
+                ),
+            )
+            return
+
+        self.root.destroy()
 
     def _open_runs(self) -> None:
         path = self.project_root / "runs"

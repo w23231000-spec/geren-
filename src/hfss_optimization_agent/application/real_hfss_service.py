@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from ..agent.closed_loop_contracts import (
     CLOSED_LOOP_WORKFLOW_ID,
@@ -54,6 +54,8 @@ from ..task_request import (
     apply_optimization_request_budget,
     validate_request_against_hfss_contract,
 )
+
+from .events import RunEvent
 
 
 @dataclass(frozen=True, slots=True)
@@ -403,3 +405,217 @@ def execute_real_hfss(
         ),
         optimization_request=optimization_request,
     )
+
+
+
+@dataclass(frozen=True, slots=True)
+class RealHFSSRunResult:
+    request_path: Path
+    authorization: PreparedDevelopmentAuthorization
+    summary: dict[str, Any]
+
+    @property
+    def task_id(self) -> str:
+        return self.authorization.task_id
+
+    @property
+    def status(self) -> str:
+        return str(self.summary.get("status", "UNKNOWN"))
+
+
+RunEventCallback = Callable[[RunEvent], None]
+
+
+def _emit_run_event(
+    callback: RunEventCallback | None,
+    *,
+    event_type: str,
+    stage: str,
+    message: str,
+    detail: str | None = None,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    if callback is None:
+        return
+
+    callback(
+        RunEvent(
+            event_type=event_type,
+            stage=stage,
+            message=message,
+            detail=detail,
+            payload=payload,
+        )
+    )
+
+
+def persist_optimization_request(
+    root: Path,
+    optimization_request: OptimizationRequest,
+) -> Path:
+    """Persist the exact task snapshot used for one REAL HFSS run."""
+
+    root = Path(root).resolve()
+
+    stamp = datetime.now().strftime(
+        "%Y%m%d-%H%M%S-%f"
+    )
+
+    path = (
+        root
+        / "runs"
+        / "requests"
+        / f"optimization-request-{stamp}.json"
+    )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    path.write_bytes(
+        canonical_dumps(
+            optimization_request.to_dict()
+        ).encode("utf-8")
+    )
+
+    return path
+
+
+def run_real_hfss_task(
+    root: Path,
+    optimization_request: OptimizationRequest,
+    *,
+    on_event: RunEventCallback | None = None,
+) -> RealHFSSRunResult:
+    """Execute one complete application-level REAL HFSS task.
+
+    The task is:
+
+    validate
+    → persist request
+    → Development Authorization
+    → Safety Gate
+    → REAL HFSS workflow
+    """
+
+    root = Path(root).resolve()
+
+    try:
+        _emit_run_event(
+            on_event,
+            event_type="stage",
+            stage="validation",
+            message="正在校验优化任务与运行配置",
+        )
+
+        validate_task(
+            root,
+            optimization_request,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="success",
+            stage="validation",
+            message="任务与运行配置校验通过",
+            detail=optimization_request.digest[:12],
+        )
+
+        request_path = persist_optimization_request(
+            root,
+            optimization_request,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="success",
+            stage="request",
+            message="本次 OptimizationRequest 已固化",
+            detail=str(request_path),
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="stage",
+            stage="authorization",
+            message="正在生成 Development Authorization",
+        )
+
+        prepared = prepare_development_authorization(
+            root,
+            optimization_request,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="success",
+            stage="authorization",
+            message="Development Authorization 已生成",
+            detail=prepared.task_id,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="stage",
+            stage="safety_gate",
+            message="正在执行 REAL HFSS Safety Gate",
+        )
+
+        runtime = validate_real_hfss_runtime(
+            root,
+            optimization_request,
+            prepared.manifest_path,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="success",
+            stage="safety_gate",
+            message="REAL HFSS Safety Gate 通过",
+            detail=runtime.task_id,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="stage",
+            stage="workflow",
+            message="开始执行 REAL HFSS closed loop",
+            detail=(
+                f"Candidate HFSS maximum = "
+                f"{optimization_request.max_optimization_rounds}"
+            ),
+        )
+
+        summary = execute_real_hfss(
+            root,
+            runtime,
+        )
+
+        result = RealHFSSRunResult(
+            request_path=request_path,
+            authorization=prepared,
+            summary=summary,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="complete",
+            stage="workflow",
+            message="REAL HFSS closed loop 已结束",
+            detail=result.status,
+            payload={
+                "task_id": result.task_id,
+                "status": result.status,
+                "request_path": str(result.request_path),
+            },
+        )
+
+        return result
+
+    except Exception as exc:
+        _emit_run_event(
+            on_event,
+            event_type="error",
+            stage="application",
+            message="REAL HFSS 任务执行失败",
+            detail=f"{type(exc).__name__}: {exc}",
+        )
+        raise
