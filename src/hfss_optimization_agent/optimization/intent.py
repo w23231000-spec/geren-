@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping, Sequence
 
 from ..core.models import EvaluationResult, FrequencyPlan
+from ..evaluation.rule_semantics import extremum_metric_name, violation_from_margin
 from ..diagnosis import (
     CORE_MATCHING_POOR, CORE_TRANSMISSION_INSUFFICIENT,
     CORE_S11_RULE_NOT_MET, CORE_S21_RULE_NOT_MET,
@@ -50,14 +51,22 @@ class OptimizationObjective:
 class ObjectiveRank:
     invalid_flag: int
     hard_failed_rule_count: int
-    primary_focus_penalty: float
+    max_hard_violation: float
     total_hard_violation: float
-    secondary_focus_penalties: tuple[float, ...] = ()
-    remaining_soft_penalties: tuple[float, ...] = ()
+    soft_failed_rule_count: int
+    total_soft_violation: float
+    per_rule_violations: tuple[float, ...] = ()
 
     def key(self):
-        return (self.invalid_flag, self.hard_failed_rule_count, self.primary_focus_penalty,
-                self.total_hard_violation, self.secondary_focus_penalties, self.remaining_soft_penalties)
+        return (
+            self.invalid_flag,
+            self.hard_failed_rule_count,
+            self.max_hard_violation,
+            self.total_hard_violation,
+            self.soft_failed_rule_count,
+            self.total_soft_violation,
+            self.per_rule_violations,
+        )
 
 
 class OptimizationIntentBuilder:
@@ -88,40 +97,59 @@ class OptimizationObjectiveBuilder:
             return OptimizationObjective(INVALID, source_intent=intent.to_dict())
         if intent.status == NO_ACTION:
             return OptimizationObjective(NO_ACTION, source_intent=intent.to_dict())
-        protected = [rule.get("rule_id") for rule in evaluation.rule_results if rule.get("hard_constraint")]
-        terms = [{"priority": index, "focus": focus, "metric": self._metric(focus), "penalty": self._penalty(focus, evaluation)}
-                 for index, focus in enumerate([intent.primary_focus, *intent.secondary_focuses], start=1)]
+        protected = [str(rule.get("rule_id")) for rule in evaluation.rule_results if rule.get("hard_constraint")]
+        worst_rule_id = str((evaluation.worst_issue or {}).get("rule_id", ""))
+        indexed_rules = list(enumerate(evaluation.rule_results))
+        indexed_rules.sort(
+            key=lambda item: (
+                0 if str(item[1].get("rule_id", "")) == worst_rule_id else 1,
+                0 if item[1].get("hard_constraint") else 1,
+                0 if item[1].get("status") == "FAIL" else 1,
+                item[0],
+            )
+        )
+        terms = []
+        for priority, (_, rule) in enumerate(indexed_rules, start=1):
+            parameter = str(rule.get("parameter", "")).upper()
+            operator = str(rule.get("operator", ""))
+            band = tuple(float(value) for value in rule.get("frequency_band", ()))
+            if len(band) != 2:
+                raise ValueError(f"rule {rule.get('rule_id')} has no two-point frequency band")
+            terms.append(
+                {
+                    "priority": priority,
+                    "source_rule_id": str(rule.get("rule_id")),
+                    "parameter": parameter,
+                    "operator": operator,
+                    "threshold": float(rule.get("target", rule.get("threshold"))),
+                    "frequency_band": band,
+                    "hard_constraint": bool(rule.get("hard_constraint")),
+                    "status": str(rule.get("status", "INVALID")),
+                    "metric": extremum_metric_name(parameter=parameter, operator=operator),
+                    "penalty": violation_from_margin(rule.get("margin_to_target")),
+                }
+            )
         return OptimizationObjective(ACTIVE, intent.mode, terms, protected, intent.to_dict())
-
-    @staticmethod
-    def _metric(focus):
-        return {CORE_MATCHING: "matching_penalty", CORE_TRANSMISSION: "transmission_penalty",
-                CORE_S11_COMPLIANCE: "s11_rule_penalty", CORE_S21_COMPLIANCE: "s21_rule_penalty",
-                LOWER_FREQUENCY_MARGIN: "lower_margin_penalty", UPPER_FREQUENCY_MARGIN: "upper_margin_penalty"}.get(focus, "unknown")
-
-    @staticmethod
-    def _penalty(focus, evaluation: EvaluationResult) -> float:
-        rules = evaluation.rule_results
-        if focus == CORE_MATCHING:
-            margins = [r.get("margin_to_target") for r in rules if r.get("hard_constraint") and str(r.get("parameter", "")).upper() == "S11"]
-            return max(0.0, -min(margins)) if margins else 0.0
-        if focus == CORE_TRANSMISSION:
-            margins = [r.get("margin_to_target") for r in rules if r.get("hard_constraint") and str(r.get("parameter", "")).upper() == "S21" and r.get("operator") == ">="]
-            return max(0.0, -min(margins)) if margins else 0.0
-        if focus == CORE_S11_COMPLIANCE:
-            margins = [r.get("margin_to_target") for r in rules if r.get("hard_constraint") and str(r.get("parameter", "")).upper() == "S11"]
-            return max(0.0, -min(margins)) if margins else 0.0
-        if focus == CORE_S21_COMPLIANCE:
-            margins = [r.get("margin_to_target") for r in rules if r.get("hard_constraint") and str(r.get("parameter", "")).upper() == "S21"]
-            return max(0.0, -min(margins)) if margins else 0.0
-        margin = evaluation.frequency_margin
-        return max(0.0, float(margin.get("lower_margin_remaining", 0.0 if focus == LOWER_FREQUENCY_MARGIN else margin.get("upper_margin_remaining", 0.0)))) if focus == LOWER_FREQUENCY_MARGIN else max(0.0, float(margin.get("upper_margin_remaining", 0.0)))
 
     def rank(self, evaluation: EvaluationResult, intent: OptimizationIntent) -> ObjectiveRank:
         invalid = 0 if evaluation.status != "INVALID" else 1
-        hard = evaluation.hard_failed_rule_count
-        primary = self._penalty(intent.primary_focus, evaluation) if intent.primary_focus else 0.0
-        total = sum(max(0.0, -float(rule.get("margin_to_target", 0.0))) for rule in evaluation.rule_results if rule.get("hard_constraint"))
-        secondary = tuple(self._penalty(focus, evaluation) for focus in intent.secondary_focuses)
-        soft = tuple(max(0.0, -float(rule.get("margin_to_target", 0.0))) for rule in evaluation.rule_results if not rule.get("hard_constraint") and rule.get("status") == "FAIL")
-        return ObjectiveRank(invalid, hard, primary, total, secondary, soft)
+        ordered = sorted(evaluation.rule_results, key=lambda rule: str(rule.get("rule_id", "")))
+        hard_penalties = [
+            violation_from_margin(rule.get("margin_to_target"))
+            for rule in ordered
+            if rule.get("hard_constraint")
+        ]
+        soft_penalties = [
+            violation_from_margin(rule.get("margin_to_target"))
+            for rule in ordered
+            if not rule.get("hard_constraint")
+        ]
+        return ObjectiveRank(
+            invalid_flag=invalid,
+            hard_failed_rule_count=evaluation.hard_failed_rule_count,
+            max_hard_violation=max(hard_penalties, default=0.0),
+            total_hard_violation=sum(hard_penalties),
+            soft_failed_rule_count=evaluation.soft_failed_rule_count,
+            total_soft_violation=sum(soft_penalties),
+            per_rule_violations=tuple(hard_penalties + soft_penalties),
+        )

@@ -2,7 +2,9 @@
 
 Baseline: `FS-2026-08-20`. Matrix cells use only `PASS`, `FAIL`, `NOT RUN`, `NOT AVAILABLE`, `STALE`, `UNKNOWN`, or `NEEDS VERIFICATION`. Historical evidence is separated from current-working-tree evidence.
 
-Latest 2026-08-26 diagnostic evidence: focused workflow tests `PASS` (5 in 0.37 s), full main suite `PASS` (238 in 40.40 s), vendor optimizer suite `PASS` (7 in 4.47 s), and full NSGA-III optimization `OFFLINE VERIFIED` (6400 evaluations, 215 feasible Pareto points). Clean revision `2608d0c...` admitted one real Baseline attempt, but FlexNet `-97,121` blocked Desktop initialization before build. The attempt is now `CONFIRMED_FAILED` with immutable reconciliation evidence; optimized `P0028` and physical comparison are `NOT RUN`. Standard `lmreread` subsequently restored `ansyslmd`/`hfss_gui` availability for a fresh campaign.
+Latest 2026-08-26 diagnostic evidence: focused workflow tests `PASS` (5 in 0.37 s), full main suite `PASS` (238 in 40.40 s), vendor optimizer suite `PASS` (7 in 4.47 s), and full NSGA-III optimization `OFFLINE VERIFIED` (6400 evaluations, 215 feasible Pareto points). Replacement campaign `hfss-optimization-diagnostic-20260826-085032` at clean revision `454c4f3...` completed both real cases and observed a small physical improvement for frozen `P0028`; it is `REAL HFSS VERIFIED` local diagnostic evidence, not passing Calibration or Canary authority.
+
+Latest 2026-08-31 LLM-configuration evidence: focused DeepSeek configuration tests `PASS` (3); full main suite `PASS` (241 in 42.58 s). No SDK/client, network request, or workflow integration was run.
 
 ## Status dimensions
 
@@ -24,6 +26,7 @@ Latest 2026-08-26 diagnostic evidence: focused workflow tests `PASS` (5 in 0.37 
 | Baseline diagnosis | PASS | PASS | PASS | PASS | Production-direction S11/S21 hard failures retain neutral issue identities and signed evidence |
 | Optimization Intent | PASS | PASS | PASS | PASS | Both Production hard-rule failure types produce ACTIVE CORE_RECOVERY intent |
 | Optimization Objective | PASS | PASS | PASS | PASS | Goal/diagnosis/objective form a canonical OptimizerRequest and request-specific vendor runtime objective |
+| DeepSeek LLM provider configuration | PASS | PASS | NOT RUN | NOT AVAILABLE | Strict file load, blank-key default, environment-key resolution, and unknown-field rejection pass; no model client or workflow wiring exists |
 | Supplied surrogate provider | PASS | PASS | PASS | PASS | Graph reranking persists canonical surrogate/evaluation/receipt/rank evidence for every candidate |
 | Supplied optimizer provider integration / adapter wiring | PASS | PASS | PASS | PASS | Actual vendor quick optimizer executes through the independent supervised JSON worker |
 | Diagnosis/OptimizationObjective control of supplied optimizer behavior | PASS | PASS | PASS | PASS | Goal and diagnosis perturbations change OptimizerRequest; worker/vendor summary echo the effective-objective digest |
@@ -45,7 +48,7 @@ Latest 2026-08-26 diagnostic evidence: focused workflow tests `PASS` (5 in 0.37 
 | Real-entry fail-closed interlock | PASS | PASS | PASS | PASS | Checked-in config has no manifest; boolean-only, missing/noncanonical/expired/drifted readiness fails before worker composition/workspace creation |
 | Readiness causal identity | PASS | PASS | PASS | PASS | Git/source/Goal/Run/contracts/approval/policy/cardinality/provider/source-receipt bindings and semantic recomputation pass; current physical evidence is valid but failing and therefore correctly cannot authorize Canary under ISSUE-009 |
 | Real HFSS solve-launch ceiling | PASS | PASS | PASS | PASS | Concurrent distinct approved actions admit at most two; ordinal 3 is rejected transactionally, cached replay consumes no new launch, automatic retries are fixed at zero |
-| Optimization-outcome diagnostic | PASS | PASS | PASS | PASS | Offline/fake path passes; first real Baseline initialization failed before build and was evidence-reconciled as failed. `P0028` and physical comparison NOT RUN; replacement campaign pending |
+| Optimization-outcome diagnostic | PASS | PASS | PASS | PASS | WF-020 completed Baseline and frozen `P0028` at exact revision `454c4f3...`; local HFSS improvement observed and ten source receipts frozen; report remains non-Canary |
 | SQLite RunStore schema/lifecycle | PASS | PASS | PASS | PASS | Run/operation/attempt/reservation/artifact/event/checkpoint identities and lifecycle transitions pass file-backed SQLite tests |
 | Action receipt crash recovery | PASS | PASS | PASS | PASS | Provider success is durable before Graph checkpoint; injected checkpoint crash resumes without repeating baseline HFSS callback |
 | Action idempotency/concurrency | PASS | PASS | PASS | PASS | Same concurrent request and same semantic request with different caller keys create one operation/attempt/physical callback |
@@ -403,6 +406,13 @@ Interpretation:
 - **Candidate 1 stop:** companion heartbeat remained current until Windows entered lid-triggered Modern Standby. Manual copied-project inspection shows 3/6 adaptive passes, `Max Mag. Delta S 0.029237 > 0.02`, `NOT CONVERGED`, `Terminated abnormally`, no completed Sweep, and no S-parameter result. Harness returned `UNKNOWN`, did not retry, and did not launch Candidate 2.
 - **Campaign result:** no three-case Calibration Evidence and no Canary/Closed-loop E2E claim. The old Run remains `WAITING_RECONCILIATION` and is excluded from reuse.
 - **Offline repair evidence:** the expired deterministic fake approval and duplicated manual Plot 6 were corrected without changing production expiry enforcement or contract-driven four-trace extraction. Focused tests `PASS` — 7 in 0.68 s; final main suite `PASS` — 233 in 36.24 s. Real rendering for the corrected Builder digest remains `NEEDS VERIFICATION`.
+
+### Completed optimization-outcome real-HFSS diagnostic
+
+- **Exact authority/result:** clean HEAD `454c4f345ffde4a062df96d212787f237c4eacc9`; campaign `hfss-optimization-diagnostic-20260826-085032`; Baseline plus frozen `optimized_P0028`; exactly two launches and zero automatic retry. Both target builds/Solves/extractions completed.
+- **Receipt integrity:** all 10 declared candidate/surrogate/HFSS/`.aedt`/`.s2p` source receipts recomputed to their recorded size and SHA-256 with zero failures. Evidence SHA-256 is `d31b20aee9d4ec515b2681140582e8aca9c55a8404175d5684c43861bfc3c6f4`.
+- **Observed result:** worst-S11 return-loss improvement `0.13068 dB`; mean reflected-power reduction `1.10923%`; S21 improved slightly at all 200 samples. S11 worsened at 78/200 samples from 12.3–20.0 GHz, so the result is favorable but not uniformly dominant.
+- **Evidence boundary:** WF-020 is `REAL HFSS VERIFIED` only for this frozen local pair. The report has `formal_canary_authorized=false`; ISSUE-009 three-case Calibration remains failed and WF-001 Canary remains `NOT RUN / BLOCKED`.
 
 ## Historical real HFSS evidence
 

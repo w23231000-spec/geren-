@@ -48,6 +48,7 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 | ISSUE-039 | MEDIUM | RESOLVED OFFLINE | TEST / TIME | Fixed fake-Calibration approval expired with wall-clock time |
 | ISSUE-040 | LOW | RESOLVED OFFLINE | HFSS / BUILDER / REPORT | Manual Plot 6 duplicated `S(3,3)` instead of `S(4,4)` |
 | ISSUE-041 | HIGH | FIRST REAL ATTEMPT CONFIRMED FAILED / REPLACEMENT PENDING | VALIDATION / HFSS / EXPERIMENT | Pre-build license failure is reconciled; optimized candidate did not start |
+| ISSUE-042 | MEDIUM | OPEN / CONFIGURATION ONLY | AGENT / LLM | DeepSeek configuration exists but no LLM provider or workflow route consumes it |
 
 ## Issue details updated by current status
 
@@ -438,12 +439,12 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-036 — Real HFSS license authority is unreachable/unacceptable
 
 - **Classification:** HFSS / LICENSING / ENVIRONMENT / AUTHORITY
-- **Severity / status:** BLOCKER FOR PRODUCTION; USER-ACCEPTED CURRENT ENVIRONMENT / OPERATIONALLY RESTORED FOR BOUNDED DIAGNOSTIC on 2026-08-26
+- **Severity / status:** BLOCKER FOR PRODUCTION PROVENANCE; OPERATIONALLY VERIFIED FOR EXACT BOUNDED DIAGNOSTIC on 2026-08-26
 - **Trigger/evidence:** `batch.log` for campaigns `102020`, `103140`, `104554`, and `105414` records FlexNet `-15,10`, feature `hfss_gui`, and connection refusal at the configured `1055@localhost` endpoint. A later user-authorized gate recheck observes the same local service Running and port 1055 listening; this removes the connectivity symptom only, not the license-authority/provenance blocker.
 - **Authority finding:** the only local license file inspected identifies third-party/unverifiable provenance rather than a verifiable ANSYS/organization entitlement. It was not enabled or used; attempting to start the service failed before any state change.
-- **Current evidence/impact:** the eighth and ninth Calibration campaigns prove the worker/Builder/Solve path can complete when a feature is available, but diagnostic campaign `hfss-optimization-diagnostic-20260826-075244` at revision `2608d0c...` again failed during Desktop initialization. Its `batch.log` records feature `hfss_gui`, `desired vendor daemon is down`, and FlexNet `-97,121` at `1055@localhost`; read-only inspection found no listener on port 1055 and no `ansyslmd` process. PyAEDT converted the failed constructor into `TypeError: __init__() should return None, not 'bool'`.
-- **Current operator decision/recovery:** the user explicitly accepted using the current local license environment for this diagnostic. Standard FlexNet `lmreread` changed `ansyslmd` from `-95,378` to `UP v11.19.5`; `lmstat -f hfss_gui` reports 100 issued and 0 in use. This is operational availability evidence, not an independent provenance certification or a completed checkout.
-- **Required resolution:** never reuse the failed Run. Recheck daemon/feature status immediately before a newly authorized campaign; actual HFSS checkout remains the physical proof. Production/Canary provenance requirements are not relaxed by this bounded diagnostic acceptance.
+- **Current evidence/impact:** campaign `hfss-optimization-diagnostic-20260826-075244` failed during Desktop initialization with FlexNet `-97,121`. After the user accepted the current local environment and standard `lmreread` restored `ansyslmd`, replacement campaign `hfss-optimization-diagnostic-20260826-085032` completed two independent HFSS builds/Solves/extractions. This is direct feature-checkout evidence for the exact bounded run.
+- **Current operator decision/recovery:** operational recovery is verified for campaign `085032`; no AEDT/HFSS process or Agent lock remained afterward. This does not independently certify entitlement provenance and therefore does not remove the Production/Canary authority boundary.
+- **Required resolution:** never reuse failed Run `075244`; continue pre-run daemon/feature checks for new physical campaigns. Production/Canary provenance requirements are not relaxed by successful bounded diagnostic checkout.
 - **Safety:** operator interruption triggered Job-contained termination; afterward no AEDT/HFSS process or Agent lock remained. Operation `op_f3b649d045ac1e7a1c7f9c2d2ae91249` was reconciled `CONFIRMED_FAILED` without retry/refund/new attempt. Evidence artifact `art_26402400b240bc5e4f1b837071596b81`, SHA-256 `09fda1b8ce36d413c86c4b21c846222c910aefe0b4e9757b3627b8572ed59eb7`.
 
 ### ISSUE-037 — Blocking native Solve starved the Python-thread heartbeat
@@ -485,13 +486,22 @@ Baseline: `FS-2026-08-20`. Issues are retained after resolution; status changes 
 ### ISSUE-041 — Optimization-outcome HFSS experiment must not bypass failed Calibration
 
 - **Classification:** VALIDATION / HFSS / EXPERIMENT BOUNDARY
-- **Severity / status:** HIGH / OFFLINE VERIFIED; REAL RUN NOT AUTHORIZED on 2026-08-26
+- **Severity / status:** HIGH / REAL HFSS VERIFIED; LOCAL IMPROVEMENT OBSERVED; PRODUCTION STILL BLOCKED on 2026-08-26
 - **Reason:** the current surrogate fails the approved three-case Calibration, but a narrower engineering question remains useful: does the parameter set selected by the current full optimizer improve real HFSS relative to the unchanged baseline?
 - **Risk:** reusing the Production Canary entry or accepting a runtime-supplied candidate would silently bypass ISSUE-009, mix candidate selection with physical observation, or misstate a two-point result as global surrogate validity.
 - **Resolution:** added a separate default-disabled workflow that accepts only a completed non-quick optimizer summary, freezes its unique recommendation, binds exact clean Git/provider/contract identities into an eight-hour manifest, permits exactly two solves and zero retries, and writes `formal_canary_authorized=false` into the report. It cannot create Production readiness or relax Calibration policy.
 - **Offline evidence:** recommendation `P0028` came from NSGA-III population 64 × 100 generations (6400 evaluations; seed 42; 215 feasible Pareto points). Focused tests pass 5 in 0.37 seconds; full main suite passes 238 in 40.40 seconds; vendor suite passes 7 in 4.47 seconds; environment preflight passes. Default execution and dirty-tree issuance fail before provider composition.
-- **Current boundary:** no AEDT/HFSS process was launched and no authority manifest was issued. User review/commit, clean exact HEAD, legitimate license confirmation, host-power controls, short-lived issuance, and an explicit operator run are still required.
-- **Interpretation:** even if optimized HFSS is better than baseline HFSS, the result establishes only local physical outcome evidence for this frozen pair. It does not prove global ranking accuracy, close ISSUE-009, or authorize WF-001.
+- **Physical evidence:** replacement campaign `hfss-optimization-diagnostic-20260826-085032` at exact clean revision `454c4f345ffde4a062df96d212787f237c4eacc9` completed both target-only physical cases and froze ten mandatory receipts. HFSS worst-S11 return loss improved `21.19698 → 21.32765 dB`; mean reflected power fell `0.368265% → 0.364180%` (`1.10923%` relative); S21 improved slightly at all 200 points. Evidence SHA-256 is `d31b20aee9d4ec515b2681140582e8aca9c55a8404175d5684c43861bfc3c6f4`.
+- **Residual mismatch:** the surrogate predicted `+0.25178 dB`, `7.15709%` mean-power reduction, and no worse frequencies. HFSS realized about 51.9% of the predicted worst-S11 gain and 15.5% of the predicted power reduction; S11 worsened at 78/200 samples, exactly 12.3–20.0 GHz, with maximum local degradation `0.86633 dB` at 18.5 GHz. Optimized surrogate-vs-HFSS S11 magnitude RMSE is `1.72015 dB`; reflection phase remains strongly misaligned.
+- **Interpretation:** the experiment answers its narrow question positively for this frozen pair, but does not prove global ranking accuracy, close ISSUE-009, or authorize WF-001. The report explicitly retains `formal_canary_authorized=false`.
+
+### ISSUE-042 — DeepSeek configuration is not yet an Agent integration
+
+- **Classification:** AGENT / LLM / INTEGRATION
+- **Severity / status:** MEDIUM / OPEN on 2026-08-31
+- **Current implementation:** `llm-provider-config/1.0` strictly loads a disabled DeepSeek configuration with official base URL, configurable model, blank inline API key, `DEEPSEEK_API_KEY` fallback, timeout, and output-token limit.
+- **Evidence:** focused configuration suite `PASS` — 3 tests cover the checked-in blank-key file, environment resolution, and unknown-field rejection; full main suite `PASS` — 241 tests in 42.58 seconds.
+- **Remaining work:** no SDK/client, prompt or structured response contract, Harness provider callback, composition injection, or Agent workflow route exists. LLM execution is therefore `PLANNED`, not `WIRED`.
 
 - **Historical blocking order:** CURRENT FIRST BLOCKER after ISSUE-001.
 - **Root cause:** WF-001 constructed `EvaluationConfig` with empty rules, while the evaluator correctly treats no-rule input as `INVALID` and refuses legacy scalar-score fallback.

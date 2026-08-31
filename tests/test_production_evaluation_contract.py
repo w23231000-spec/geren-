@@ -25,6 +25,7 @@ from hfss_optimization_agent.agent.closed_loop_contracts import (
     ClosedLoopControllerState,
     production_policy_sha256,
 )
+from hfss_optimization_agent.agent.closed_loop_policy import ClosedLoopPolicy
 from hfss_optimization_agent.cli import run_real_supplied_demo
 from hfss_optimization_agent.composition import compose_closed_loop_workflow, compose_comparison_nodes
 from hfss_optimization_agent.core.config import AppConfig
@@ -71,15 +72,17 @@ from hfss_optimization_agent.harness.run_store import manifest_identity_sha256
 from hfss_optimization_agent.hfss.contracts import attest_builder, load_hfss_contract
 from hfss_optimization_agent.evaluation.evaluator import DeterministicEvaluator
 from hfss_optimization_agent.harness.checkpoint import JsonComparisonCheckpointStore
-from hfss_optimization_agent.domain.contracts import EvaluationRecord
+from hfss_optimization_agent.domain.contracts import BestPolicy, EvaluationRecord
 from hfss_optimization_agent.optimization.intent import (
     ACTIVE,
     CORE_RECOVERY,
     OptimizationIntentBuilder,
+    OptimizationObjectiveBuilder,
 )
 from hfss_optimization_agent.optimization.deterministic_batch_optimizer import (
     DeterministicBatchOptimizer,
 )
+from hfss_optimization_agent.optimization.contracts import map_effective_objective
 from hfss_optimization_agent.parameters.nine_parameter_schema import (
     supplied_baseline_candidate,
     supplied_nine_parameter_schema,
@@ -218,6 +221,41 @@ def test_lower_margin_failure_is_soft_and_does_not_fail_overall():
     assert result.soft_failed_rule_count == 1
 
 
+def test_closed_loop_enters_margin_stage_and_reports_partial_success_at_budget():
+    s21 = passing_s21()
+    s21[FREQUENCIES.index(5.0)] = -29.0
+    result = evaluate(s11=passing_s11(), s21=s21, candidate_id="baseline")
+    result.evaluated_stage = "initial"
+    controller = ClosedLoopControllerState.initial(
+        ClosedLoopBudget(max_optimizer_calls=1, max_reoptimizations=0)
+    )
+    state = create_comparison_state(
+        task_id="production-margin-stage",
+        baseline_parameters=supplied_baseline_candidate(),
+        workflow_id=CLOSED_LOOP_WORKFLOW_ID,
+        controller=controller,
+    )
+    record = EvaluationRecord.from_result(
+        result,
+        run_id=state["manifest"].run_id,
+        context_id=state["manifest"].design_goal.comparison_context_id,
+    )
+    state["evaluations"] = (record,)
+    state["best_policy"] = BestPolicy.seed(
+        run_id=state["manifest"].run_id,
+        context_id=state["manifest"].design_goal.comparison_context_id,
+        baseline_candidate_id="baseline",
+        baseline_evaluation_id=record.record_id,
+    )
+    first = ClosedLoopPolicy().decide(state)
+    assert first.pending_action.value == "prepare_optimization"
+
+    state["controller"] = controller.replace(optimizer_calls=1)
+    exhausted = ClosedLoopPolicy().decide(state)
+    assert exhausted.pending_action.value == "finalize"
+    assert exhausted.decisions[-1].reason_code == "core_pass_margin_incomplete"
+
+
 def test_upper_margin_failure_is_soft_and_does_not_fail_overall():
     s11 = passing_s11()
     s11[FREQUENCIES.index(19.0)] = -1.0
@@ -231,6 +269,37 @@ def test_upper_margin_failure_is_soft_and_does_not_fail_overall():
     assert soft["violation_ranges"] == [
         {"start": pytest.approx(18.583333333333332), "stop": 19.0}
     ]
+
+
+def test_production_objective_contains_all_six_rules_with_exact_direction_and_band():
+    s11 = passing_s11()
+    s21 = passing_s21()
+    s11[FREQUENCIES.index(12.0)] = -1.0
+    s21[FREQUENCIES.index(12.0)] = -25.0
+    result = evaluate(s11=s11, s21=s21)
+    diagnosis = DiagnosisNode().diagnose(result, stage="initial")
+    intent = OptimizationIntentBuilder().build(diagnosis)
+    config = load_production_evaluation_config(CONTRACT_PATH)
+    objective = OptimizationObjectiveBuilder().build(
+        intent, result, config.frequency_plan, config.rules
+    )
+    effective = map_effective_objective(objective, {})
+    assert len(effective.terms) == 6
+    by_rule = {term.source_focus: term for term in effective.terms}
+    assert by_rule["production_v1_core_s21"].expression == (
+        "max(0, metric.maximum_s21_db - (-30))"
+    )
+    assert by_rule["production_v1_core_s11"].expression == (
+        "max(0, (-0.5) - metric.minimum_s11_db)"
+    )
+    assert (
+        by_rule["production_v1_lower_s21"].start_ghz,
+        by_rule["production_v1_lower_s21"].stop_ghz,
+    ) == (5.0, 6.0)
+    assert (
+        by_rule["production_v1_upper_s11"].start_ghz,
+        by_rule["production_v1_upper_s11"].stop_ghz,
+    ) == (18.0, 19.0)
 
 
 @pytest.mark.parametrize(

@@ -9,6 +9,7 @@ from typing import Any, Mapping
 
 from ..core.models import CandidateParameters, ComplexSParameters, SParameterResult
 from ..domain.canonical_json import canonical_dumps
+from ..evaluation.rule_semantics import violation_expression
 from .intent import OptimizationObjective
 
 
@@ -94,16 +95,6 @@ class EffectiveObjective:
         )
 
 
-_FOCUS_TO_VENDOR_METRIC = {
-    "CORE_MATCHING": ("worst_s11_magnitude", "linear magnitude"),
-    "CORE_S11_COMPLIANCE": ("worst_s11_magnitude", "linear magnitude"),
-    "CORE_TRANSMISSION": ("worst_s21_insertion_loss_db", "dB"),
-    "CORE_S21_COMPLIANCE": ("worst_s21_insertion_loss_db", "dB"),
-    "LOWER_FREQUENCY_MARGIN": ("worst_s11_magnitude", "linear magnitude"),
-    "UPPER_FREQUENCY_MARGIN": ("worst_s11_magnitude", "linear magnitude"),
-}
-
-
 def map_effective_objective(
     objective: OptimizationObjective,
     target_specification: Mapping[str, Any],
@@ -113,77 +104,43 @@ def map_effective_objective(
     source = objective.to_dict()
     source_digest = _digest(source)
     terms: list[EffectiveObjectiveTerm] = []
-    plan = target_specification.get("frequency_plan", {})
     for raw in objective.priority_terms:
-        focus = str(raw.get("focus") or "UNKNOWN")
+        rule_id = str(raw.get("source_rule_id") or "UNKNOWN")
         priority = int(raw.get("priority", len(terms) + 1))
-        metric, unit = _FOCUS_TO_VENDOR_METRIC.get(
-            focus, ("worst_s11_magnitude", "linear magnitude")
-        )
-        start_ghz = stop_ghz = None
-        if focus == "LOWER_FREQUENCY_MARGIN":
-            band = plan.get("lower_margin_band")
-            if isinstance(band, (list, tuple)) and len(band) == 2:
-                start_ghz, stop_ghz = (float(band[0]), float(band[1]))
-        elif focus == "UPPER_FREQUENCY_MARGIN":
-            band = plan.get("upper_margin_band")
-            if isinstance(band, (list, tuple)) and len(band) == 2:
-                start_ghz, stop_ghz = (float(band[0]), float(band[1]))
+        parameter = str(raw.get("parameter", "")).upper()
+        operator = str(raw.get("operator", ""))
+        threshold = float(raw.get("threshold"))
+        band = raw.get("frequency_band")
+        if not isinstance(band, (list, tuple)) or len(band) != 2:
+            raise ValueError(f"effective objective rule {rule_id} requires a frequency band")
+        start_ghz, stop_ghz = float(band[0]), float(band[1])
         penalty = max(0.0, float(raw.get("penalty", 0.0)))
+        hard = bool(raw.get("hard_constraint"))
+        safe_rule_id = "".join(character if character.isalnum() else "_" for character in rule_id)
         terms.append(
             EffectiveObjectiveTerm(
-                name=f"agent_p{priority}_{metric}",
-                expression=f"metric.{metric}",
+                name=f"agent_p{priority}_{safe_rule_id}_violation_db",
+                expression=violation_expression(
+                    parameter=parameter,
+                    operator=operator,
+                    threshold=threshold,
+                ),
                 direction="min",
                 target=None,
-                recommendation_weight=(1.0 + penalty) / priority,
+                recommendation_weight=((10.0 if hard else 1.0) * (1.0 + penalty)) / priority,
                 start_ghz=start_ghz,
                 stop_ghz=stop_ghz,
-                unit=unit,
-                description=f"Agent focus {focus}; priority {priority}",
-                source_focus=focus,
+                unit="dB violation",
+                description=(
+                    f"Rule {rule_id}: {parameter} {operator} {threshold:g} dB "
+                    f"for every sample in [{start_ghz:g}, {stop_ghz:g}] GHz"
+                ),
+                source_focus=rule_id,
                 priority=priority,
             )
         )
     if not terms:
-        terms.append(
-            EffectiveObjectiveTerm(
-                name="agent_p1_worst_s11_magnitude",
-                expression="metric.worst_s11_magnitude",
-                direction="min",
-                target=None,
-                recommendation_weight=1.0,
-                start_ghz=None,
-                stop_ghz=None,
-                unit="linear magnitude",
-                description="Agent fallback matching objective",
-                source_focus="FALLBACK_MATCHING",
-                priority=1,
-            )
-        )
-    used_expressions = {term.expression for term in terms}
-    fallback_metric, fallback_unit = (
-        ("phase_weighted_rms_deg", "deg")
-        if "metric.worst_s11_magnitude" in used_expressions
-        else ("worst_s11_magnitude", "linear magnitude")
-    )
-    terms.append(
-        EffectiveObjectiveTerm(
-            name=f"agent_guard_{fallback_metric}",
-            expression=f"metric.{fallback_metric}",
-            direction="min",
-            target=None,
-            recommendation_weight=max(min(term.recommendation_weight for term in terms) * 0.25, 0.01),
-            start_ghz=None,
-            stop_ghz=None,
-            unit=fallback_unit,
-            description="Agent protection objective required for multi-objective execution",
-            source_focus="PROTECTED_FALLBACK",
-            priority=max(term.priority for term in terms) + 1,
-        )
-    )
-    # Multiple diagnosis terms may map to the same metric.  Their distinct names
-    # intentionally preserve priority/diagnosis provenance in the vendor runtime.
+        raise ValueError("ACTIVE optimization objective must contain rule-driven terms")
     return EffectiveObjective(
         schema_version="optimizer-objective/1.0",
         terms=tuple(terms),

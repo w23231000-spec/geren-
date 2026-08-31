@@ -95,7 +95,7 @@ def emit_optimization_intent(
     print(f"优化模式：{intent.mode or '无'}", file=output, flush=True)
     print(f"第一优化重点：{intent.primary_focus or '无'}", file=output, flush=True)
     print(f"后续优化重点：{', '.join(intent.secondary_focuses) or '无'}", file=output, flush=True)
-    print(f"核心工作带保护：{'启用' if intent.protect_core_constraints else '禁用'}", file=output, flush=True)
+    print(f"核心硬规则优先排序：{'启用' if intent.protect_core_constraints else '禁用'}", file=output, flush=True)
     margin = getattr(evaluation, "frequency_margin", {})
     if margin:
         print(

@@ -616,10 +616,11 @@ class ComparisonWorkflowNodes:
                             "key": list(rank.key()),
                             "invalid_flag": rank.invalid_flag,
                             "hard_failed_rule_count": rank.hard_failed_rule_count,
-                            "primary_focus_penalty": rank.primary_focus_penalty,
+                            "max_hard_violation": rank.max_hard_violation,
                             "total_hard_violation": rank.total_hard_violation,
-                            "secondary_focus_penalties": list(rank.secondary_focus_penalties),
-                            "remaining_soft_penalties": list(rank.remaining_soft_penalties),
+                            "soft_failed_rule_count": rank.soft_failed_rule_count,
+                            "total_soft_violation": rank.total_soft_violation,
+                            "per_rule_violations": list(rank.per_rule_violations),
                         },
                     }
                 )
@@ -630,10 +631,11 @@ class ComparisonWorkflowNodes:
                     candidate_id: {
                         "invalid_flag": rank.invalid_flag,
                         "hard_failed_rule_count": rank.hard_failed_rule_count,
-                        "primary_focus_penalty": rank.primary_focus_penalty,
+                        "max_hard_violation": rank.max_hard_violation,
                         "total_hard_violation": rank.total_hard_violation,
-                        "secondary_focus_penalties": list(rank.secondary_focus_penalties),
-                        "remaining_soft_penalties": list(rank.remaining_soft_penalties),
+                        "soft_failed_rule_count": rank.soft_failed_rule_count,
+                        "total_soft_violation": rank.total_soft_violation,
+                        "per_rule_violations": list(rank.per_rule_violations),
                     }
                     for _, candidate_id, rank in ranked
                 }

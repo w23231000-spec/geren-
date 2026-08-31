@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Mapping, Sequence
 from ..core.models import EvaluationResult, HFSSResult, SParameterResult, FrequencyPlan
 from ..interfaces.evaluator import EvaluatorInterface
+from .rule_semantics import margin_to_target, violation_from_margin
 
 @dataclass(frozen=True, slots=True)
 class SParameterRule:
@@ -48,6 +49,8 @@ class RuleEvaluationResult:
     violation_bandwidth: float = 0.0
     max_violation: float = 0.0
     hard_constraint: bool = True
+    evaluated_point_count: int = 0
+    violating_point_count: int = 0
     def to_dict(self): return asdict(self)
 
 @dataclass(slots=True)
@@ -159,7 +162,7 @@ class DeterministicEvaluator(EvaluatorInterface):
             values=series.get(rule.parameter); 
             if values is None or len(values)!=len(freq): return self._invalid(candidate_id,evaluated_stage,f"缺失 {rule.parameter} 数据",plan)
             base=list(zip(freq,values)); pts=[(lo,_interp(base,lo)),*((x,y) for x,y in base if lo<=x<=hi),(hi,_interp(base,hi))]; points=sorted(dict(pts).items())
-            margins=[(x,rule.threshold-y if rule.operator=="<=" else y-rule.threshold) for x,y in points]; wx,wm=min(margins,key=lambda z:z[1]); wv=dict(points)[wx]; bad=[(x,m) for x,m in margins if m < -self.tolerance]; ranges=[]
+            margins=[(x,margin_to_target(operator=rule.operator, threshold=rule.threshold, observed=y)) for x,y in points]; wx,wm=min(margins,key=lambda z:z[1]); wv=dict(points)[wx]; bad=[(x,m) for x,m in margins if m < -self.tolerance]; ranges=[]
             # Split each adjacent interval at the linearly interpolated threshold crossing.
             for (x0,m0),(x1,m1) in zip(margins,margins[1:]):
                 if m0 < -self.tolerance and m1 < -self.tolerance:
@@ -180,7 +183,23 @@ class DeterministicEvaluator(EvaluatorInterface):
                 else:
                     merged.append(item)
             ranges = merged
-            results.append(RuleEvaluationResult(rule.rule_id,rule.parameter,rule.frequency_band,rule.threshold,rule.operator,"PASS" if wm>=-self.tolerance else "FAIL",wv,wx,wm,ranges,sum(r["stop"]-r["start"] for r in ranges),max((max(0,-m) for _,m in bad),default=0),rule.hard_constraint))
+            results.append(RuleEvaluationResult(
+                rule_id=rule.rule_id,
+                parameter=rule.parameter,
+                frequency_band=rule.frequency_band,
+                target=rule.threshold,
+                operator=rule.operator,
+                status="PASS" if wm>=-self.tolerance else "FAIL",
+                worst_value=wv,
+                worst_frequency=wx,
+                margin_to_target=wm,
+                violation_ranges=ranges,
+                violation_bandwidth=sum(r["stop"]-r["start"] for r in ranges),
+                max_violation=violation_from_margin(wm),
+                hard_constraint=rule.hard_constraint,
+                evaluated_point_count=len(points),
+                violating_point_count=len(bad),
+            ))
         hard=[r for r in results if r.hard_constraint]; soft=[r for r in results if not r.hard_constraint]; failed_hard=[r for r in hard if r.status=="FAIL"]; failed_soft=[r for r in soft if r.status=="FAIL"]
         status="PASS" if all(r.status=="PASS" for r in hard) else "FAIL"; worst=min(failed_hard,key=lambda r:r.margin_to_target or 0,default=None); worst_soft=min(failed_soft,key=lambda r:r.margin_to_target or 0,default=None)
         frequency_margin=self._frequency_margin(freq,series,active,plan)

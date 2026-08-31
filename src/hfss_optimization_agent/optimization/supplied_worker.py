@@ -160,6 +160,9 @@ def execute_request(
 ) -> OptimizationBatch:
     root = source_root.resolve()
     _validate_request_baseline(request, root)
+    baseline_response = request.baseline_sparameters.response
+    if baseline_response is None:
+        raise ValueError("optimizer request baseline S-parameters are required")
     effective_path = output_root.resolve() / "effective_objectives" / f"{request.digest}.csv"
     effective_path.parent.mkdir(parents=True, exist_ok=True)
     _write_objectives(effective_path, request.effective_objective)
@@ -169,11 +172,12 @@ def execute_request(
             config_path=root / "config" / "config.toml",
             parameters_path=root / "config" / "parameters.csv",
             objectives_path=effective_path,
-            constraints_path=root / "config" / "constraints.csv",
+            constraints_path=root / "config" / "constraints.production_agent_v1.csv",
             models_path=root / "config" / "models.csv",
             output_root=output_root,
             quick=quick,
             debug=debug,
+            frequency_grid_hz=baseline_response.frequency_hz,
         )
     )
     summary_path = run_directory / "00_summary.json"

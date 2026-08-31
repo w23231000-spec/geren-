@@ -436,8 +436,16 @@ These decisions are reconstructed from current source/configuration and availabl
 
 ## ADR-055 - Optimization-outcome HFSS comparison is a separate non-Production diagnostic
 
-- **Status:** ACTIVE; OFFLINE VERIFIED; REAL RUN NOT AUTHORIZED
+- **Status:** ACTIVE; REAL HFSS VERIFIED FOR FROZEN LOCAL PAIR; NON-PRODUCTION
 - **Decision:** evaluate the current optimizer's practical outcome with exactly two real solves: the unchanged baseline and the unique recommendation frozen from a completed full non-quick surrogate optimization. Use a separate default-disabled issuer/runner, short-lived clean-HEAD authority, `ExecutionPolicy(2,0)`, independent workspaces, immutable receipts, and `formal_canary_authorized=false`.
 - **Reason:** a local physical before/after test is useful while the broader three-case Calibration mismatch is investigated, but it must not weaken the evidence required for surrogate accuracy, ranking authority, or Production admission.
-- **Evidence:** full NSGA-III run (population 64, 100 generations, seed 42, 6400 evaluations, 215 feasible Pareto points) selected `P0028`; focused fake campaign and safety tests pass 5; full main suite passes 238; vendor suite passes 7; default execution and dirty-tree issuance fail closed.
+- **Evidence:** full NSGA-III run (population 64, 100 generations, seed 42, 6400 evaluations, 215 feasible Pareto points) selected `P0028`; focused fake campaign and safety tests pass 5; full main suite passes 238; vendor suite passes 7. Exact-revision campaign `hfss-optimization-diagnostic-20260826-085032` completed both real cases and observed `+0.13068 dB` worst-S11 return-loss improvement plus `1.10923%` mean-power reduction, with 39% of frequency samples worse.
 - **Consequence:** a favorable physical delta supports only this frozen candidate's local usefulness. It neither closes ISSUE-009 nor allows `PREPARE_REAL_HFSS_CANARY.py`; any Production claim still requires passing Calibration Evidence.
+
+## ADR-056 - Production optimization is driven by exact evaluation-rule violations
+
+- **Status:** ACTIVE; OFFLINE VERIFIED; REAL HFSS NEEDS VERIFICATION
+- **Decision:** each Production evaluation rule becomes one banded dB violation objective. A `<=` rule minimizes `max(0, maximum_db-threshold)`; a `>=` rule minimizes `max(0, threshold-minimum_db)`. The optimizer consumes the baseline response's authoritative 0.1–20 GHz/200-point grid, applies objectives only on 5–19 GHz, ranks 6–18 GHz hard violations before soft edge-band violations, and uses a Production-only geometry/formula/passivity constraint set.
+- **Reason:** focus labels and linear-magnitude convenience metrics lost the rule operator and band, inverted Production S11/S21 directions, and allowed a conflicting relative-S11 constraint to reject intended improvement.
+- **Evidence:** Production/objective/grid/HFSS-contract/safety focused suite passes 82 tests; the supplied quick worker writes 200 baseline curve rows and echoes the exact rule objectives.
+- **Consequence:** S21 `-25 dB` is driven downward past `-30 dB`, S11 `-1 dB` is driven upward past `-0.5 dB`, full-band samples outside 5–19 GHz remain evidence only, and DeepSeek is not required for deterministic direction selection.

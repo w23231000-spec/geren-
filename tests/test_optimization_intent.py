@@ -45,14 +45,14 @@ def test_intent_reuses_diagnosis_focus_order_and_protects_core():
 
 def test_objective_penalty_mapping_and_protected_constraints():
     rules = (
-        {"rule_id": "s11", "parameter": "S11", "operator": "<=", "threshold": -15, "status": "FAIL", "margin_to_target": -2.0, "hard_constraint": True},
-        {"rule_id": "s21", "parameter": "S21", "operator": ">=", "threshold": -2, "status": "FAIL", "margin_to_target": -1.0, "hard_constraint": True},
+        {"rule_id": "s11", "parameter": "S11", "frequency_band": (6.0, 18.0), "operator": "<=", "threshold": -15, "status": "FAIL", "margin_to_target": -2.0, "hard_constraint": True},
+        {"rule_id": "s21", "parameter": "S21", "frequency_band": (6.0, 18.0), "operator": ">=", "threshold": -2, "status": "FAIL", "margin_to_target": -1.0, "hard_constraint": True},
     )
     ev = evaluation(*rules)
     intent = OptimizationIntentBuilder().build(diagnosis(DIAGNOSED, [issue(CORE_MATCHING_POOR)], [CORE_MATCHING]))
     obj = OptimizationObjectiveBuilder().build(intent, ev, PLAN, rules)
     assert obj.status == ACTIVE
-    assert obj.priority_terms[0]["metric"] == "matching_penalty"
+    assert obj.priority_terms[0]["metric"] == "maximum_s11_db"
     assert obj.priority_terms[0]["penalty"] == 2.0
     assert obj.protected_constraints == ["s11", "s21"]
 
@@ -65,10 +65,10 @@ def test_objective_rank_order_is_deterministic_and_core_protected():
     invalid = EvaluationResult("x", False, False, {}, {}, {}, 0, "bad", status="INVALID")
     assert builder.rank(better, intent).key() < builder.rank(invalid, intent).key()
 
-def test_margin_objective_uses_remaining_distance_without_weighted_score():
-    rules = ({"rule_id": "low", "parameter": "S11", "operator": "<=", "status": "FAIL", "margin_to_target": -0.2, "hard_constraint": False},)
+def test_margin_objective_uses_rule_violation_without_weighted_score():
+    rules = ({"rule_id": "low", "parameter": "S11", "frequency_band": (5.0, 6.0), "operator": "<=", "threshold": -12.0, "status": "FAIL", "margin_to_target": -0.2, "hard_constraint": False},)
     ev = evaluation(*rules, hard_failed=0, lower=0.37, status="PASS")
     intent = OptimizationIntentBuilder().build(diagnosis(DIAGNOSED, [issue(LOWER_FREQUENCY_MARGIN_INSUFFICIENT, "low")], [LOWER_FREQUENCY_MARGIN]))
     obj = OptimizationObjectiveBuilder().build(intent, ev, PLAN, rules)
-    assert obj.priority_terms[0]["penalty"] == 0.37
+    assert obj.priority_terms[0]["penalty"] == 0.2
     assert all("weight" not in term for term in obj.priority_terms)

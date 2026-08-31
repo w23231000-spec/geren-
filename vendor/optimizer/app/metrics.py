@@ -83,6 +83,9 @@ def analyze_response(
     candidate_s22 = response.s_parameters[:, 1, 1]
     reference_s11 = baseline.s_parameters[:, 0, 0]
 
+    s11_values_db = s11_db(candidate_s11)
+    s21_values_db = s11_db(candidate_s21)
+
     magnitude_s11 = np.abs(candidate_s11)
     magnitude_s21 = np.abs(candidate_s21)
     magnitude_s22 = np.abs(candidate_s22)
@@ -126,6 +129,10 @@ def analyze_response(
     # 对每个频点的 2x2 S 矩阵求最大奇异值。被动网络应满足 sigma_max <= 1；
     # tolerance 允许代理数值噪声，最终 passivity_violation <= 0 即通过。
     metrics = {
+        "maximum_s11_db": float(np.max(s11_values_db)),
+        "minimum_s11_db": float(np.min(s11_values_db)),
+        "maximum_s21_db": float(np.max(s21_values_db)),
+        "minimum_s21_db": float(np.min(s21_values_db)),
         "worst_s11_magnitude": float(np.max(magnitude_s11)),
         "mean_reflected_power": mean_power,
         "minimum_s11_return_loss_db": float(np.min(return_loss_s11_db)),

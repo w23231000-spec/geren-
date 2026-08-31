@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import csv
 from pathlib import Path
 
 from hfss_optimization_agent.optimization.contracts import (
@@ -26,23 +27,50 @@ from hfss_optimization_agent.sparameters.mock_surrogate import DeterministicSurr
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_production_agent_constraints_remove_legacy_s11_direction_preferences():
+    path = ROOT / "vendor" / "optimizer" / "config" / "constraints.production_agent_v1.csv"
+    with path.open("r", encoding="utf-8-sig", newline="") as stream:
+        active = {
+            row["name"]
+            for row in csv.DictReader(stream)
+            if row["active"].strip().lower() == "true"
+        }
+    assert "passivity" in active
+    assert "worse_frequency_fraction" not in active
+    assert "phase_weighted_rms" not in active
+    assert "phase_reliable_max" not in active
+
+
 def optimizer_request(*, goal: str = "meet rules", diagnosis: str = "d" * 64):
     baseline = supplied_baseline_candidate()
-    baseline_sparameters = DeterministicSurrogate(baseline.values).run(baseline)
+    production_grid_hz = tuple(index * 1e8 for index in range(1, 201))
+    baseline_sparameters = DeterministicSurrogate(
+        baseline.values, production_grid_hz
+    ).run(baseline)
     objective = OptimizationObjective(
         status=ACTIVE,
         mode="CORE_RECOVERY",
         priority_terms=[
             {
                 "priority": 1,
-                "focus": "CORE_MATCHING",
-                "metric": "matching_penalty",
+                "source_rule_id": "production_v1_core_s11",
+                "parameter": "S11",
+                "operator": ">=",
+                "threshold": -0.5,
+                "frequency_band": (6.0, 18.0),
+                "hard_constraint": True,
+                "metric": "minimum_s11_db",
                 "penalty": 2.5,
             },
             {
                 "priority": 2,
-                "focus": "CORE_S21_COMPLIANCE",
-                "metric": "s21_rule_penalty",
+                "source_rule_id": "production_v1_core_s21",
+                "parameter": "S21",
+                "operator": "<=",
+                "threshold": -30.0,
+                "frequency_band": (6.0, 18.0),
+                "hard_constraint": True,
+                "metric": "maximum_s21_db",
                 "penalty": 1.0,
             },
         ],
@@ -91,6 +119,17 @@ def test_goal_and_diagnosis_perturbation_change_optimizer_request_digest():
     assert original.effective_objective.digest == goal_changed.effective_objective.digest
 
 
+def test_effective_objective_preserves_production_rule_direction_and_band():
+    effective = optimizer_request().effective_objective
+    by_rule = {term.source_focus: term for term in effective.terms}
+    s11 = by_rule["production_v1_core_s11"]
+    s21 = by_rule["production_v1_core_s21"]
+    assert s11.expression == "max(0, (-0.5) - metric.minimum_s11_db)"
+    assert s21.expression == "max(0, metric.maximum_s21_db - (-30))"
+    assert (s11.start_ghz, s11.stop_ghz) == (6.0, 18.0)
+    assert (s21.start_ghz, s21.stop_ghz) == (6.0, 18.0)
+
+
 def test_deterministic_optimizer_echoes_effective_objective_and_auditable_set():
     request = optimizer_request()
     batch = DeterministicBatchOptimizer((1.01, 1.02, 1.03)).optimize(request=request)
@@ -127,3 +166,9 @@ def test_supplied_optimizer_runs_in_worker_and_returns_full_auditable_candidate_
     }
     assert all("vendor_evidence_digest" in candidate.metadata for candidate in batch.candidates)
     assert any(Path(path).name == "01_pareto.csv" for path in batch.artifact_paths)
+    curve_path = next(Path(path) for path in batch.artifact_paths if Path(path).name == "02_sparameters.csv")
+    with curve_path.open("r", encoding="utf-8-sig", newline="") as stream:
+        baseline_rows = [row for row in csv.DictReader(stream) if row["point_id"] == "BASELINE"]
+    assert len(baseline_rows) == 200
+    assert float(baseline_rows[0]["frequency_hz"]) == 0.1e9
+    assert float(baseline_rows[-1]["frequency_hz"]) == 20.0e9

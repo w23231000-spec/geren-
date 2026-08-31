@@ -379,3 +379,16 @@ This file is append only. New task records are added at the end.
 - **Next boundary:** do not reuse or rerun this campaign. First establish legitimate reachable HFSS license authority, then explicitly reconcile the UNKNOWN as failed from exact evidence, commit synchronized memory, and issue a fresh clean-revision campaign.
 
 - **Reconciliation/recovery update:** the user explicitly accepted the current local license environment for this bounded diagnostic. Operation `op_f3b649d045ac1e7a1c7f9c2d2ae91249` was reconciled `CONFIRMED_FAILED` with no new attempt/refund/retry; immutable evidence is `art_26402400b240bc5e4f1b837071596b81`, SHA-256 `09fda1b8ce36d413c86c4b21c846222c910aefe0b4e9757b3627b8572ed59eb7`. Standard FlexNet `lmreread` then restored `ansyslmd` to UP and `hfss_gui` to available (100 issued, 0 in use). Actual checkout/build/Solve remains pending a fresh clean-revision campaign.
+## 2026-08-27 - Completed optimization-outcome HFSS diagnostic and result analysis
+
+- **Exact evidence:** campaign `hfss-optimization-diagnostic-20260826-085032` ran at clean revision `454c4f345ffde4a062df96d212787f237c4eacc9`, with frozen Baseline plus `optimized_P0028`, `ExecutionPolicy(2,0)`, zero automatic retry, independent target-only workspaces, and `formal_canary_authorized=false`.
+- **Physical result:** both HFSS build/Solve/extraction operations completed and froze candidate, surrogate, HFSS, `.aedt`, and `.s2p` receipts for each case. Worst-S11 return loss improved `21.19698 → 21.32765 dB` (`+0.13068 dB`); mean reflected power fell `0.368265% → 0.364180%` (`1.10923%` relative). S21 improved slightly at every sample.
+- **Model discrepancy:** the surrogate predicted `+0.25178 dB` and `7.15709%` with zero worse-frequency fraction. HFSS realized about 51.9% and 15.5% of those predicted gains; S11 improved at 122/200 samples from 0.1–12.2 GHz but worsened at 78/200 samples from 12.3–20.0 GHz, reaching `0.86633 dB` degradation at 18.5 GHz. Optimized surrogate/HFSS magnitude RMSE is `1.72015 dB` for S11, `0.34686 dB` for S12/S21, and `1.54055 dB` for S22; reflection phase remains strongly misaligned.
+- **Artifacts:** immutable diagnostic evidence SHA-256 `d31b20aee9d4ec515b2681140582e8aca9c55a8404175d5684c43861bfc3c6f4`; added local analysis figures for HFSS before/after and optimized equivalent-model/HFSS four-port S-parameter comparisons. Post-run inspection found no Agent license lock or AEDT/HFSS process.
+- **Disposition:** `REAL HFSS VERIFIED / LOCAL PHYSICAL IMPROVEMENT OBSERVED`. The narrow optimization-flow hypothesis is supported for this frozen pair, but failed three-case Calibration remains authoritative; no Canary or Production claim is authorized.
+
+## 2026-08-31 - DeepSeek LLM configuration boundary
+
+- **Scope:** added only the configuration layer requested for future LLM integration; no model SDK, API call, prompt, planner, graph wiring, optimizer behavior, HFSS path, or dependency changed.
+- **Implementation:** added strict schema `llm-provider-config/1.0`, a disabled DeepSeek configuration with blank inline API key and `DEEPSEEK_API_KEY` fallback, and package exports for the loader.
+- **Verification:** focused configuration suite `PASS` — 3 tests; full main suite `PASS` — 241 tests in 42.58 seconds. DeepSeek network/API execution is `NOT RUN`; Agent integration remains `PLANNED` under ISSUE-042.

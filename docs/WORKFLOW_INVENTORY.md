@@ -30,9 +30,11 @@ Twenty identifiable entries, harnesses, workers, or callable workflow paths are 
 | WF-017 | Authorized three-case real-HFSS Calibration collection | PHYSICAL EVIDENCE | Yes, default-disabled; REAL HFSS VERIFIED / CALIBRATION FAILED |
 | WF-018 | Exact Canary readiness issuance | AUTHORITY ISSUER | Yes, but current failing evidence is rejected |
 | WF-019 | Versioned physical-model and Calibration policy contracts | CONTRACT LIBRARY | Yes, WIRED / OFFLINE VERIFIED |
-| WF-020 | Frozen optimization-outcome HFSS A/B diagnostic | DIAGNOSTIC PHYSICAL EVIDENCE | First Baseline attempt confirmed failed before build / replacement pending |
+| WF-020 | Frozen optimization-outcome HFSS A/B diagnostic | DIAGNOSTIC PHYSICAL EVIDENCE | Yes; REAL HFSS VERIFIED / LOCAL IMPROVEMENT OBSERVED / NON-CANARY |
 
 No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists. The former one-pass characterization is preserved as `tests/legacy_comparison_graph_characterization.py.disabled`; historical checkpoints/runs are evidence/reference artifacts, not runnable workflows.
+
+The DeepSeek `llm-provider-config/1.0` loader is a configuration library, not a new workflow. No current entry or composition path reads it, so WF-001/WF-002/WF-003 behavior and reachability are unchanged.
 
 ## Capability matrix by workflow
 
@@ -62,7 +64,7 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 ## WF-001 — Real baseline–optimize–candidate HFSS Agent
 
 - **Entry:** `RUN_REAL_HFSS.py` → `run_real_supplied_demo`; VS Code launch 3 is labelled blocked until separately authorized. There is no equivalent package CLI subcommand. The checked-in config has no manifest; a future explicit invocation must supply the external path in `HFSS_REAL_READINESS_MANIFEST`.
-- **Call chain:** disabled/manifest check → strict readiness + passing Calibration Evidence → exact repository/Goal/contracts/providers/Production-policy digest → Production V2 controller composition → fenced bootstrap baseline → sole Policy router → prepare/optimize/queue/screen → at most one candidate HFSS → compare/diagnose/Best → next/reoptimize/reconcile or typed finalization → structured final manifest → atomic completed checkpoint. RunStore independently limits physical HFSS launches to two with zero automatic retries.
+- **Call chain:** disabled/manifest check → strict readiness + passing Calibration Evidence → exact repository/Goal/contracts/providers/Production-policy digest → baseline HFSS with the full 0.1–20 GHz/200-point grid → six-rule evaluation → rule-driven objective on 5–19 GHz → supervised optimizer on the same grid and Production constraint set → hard-first/soft-second candidate ranking and rule gate → at most one candidate HFSS → compare/diagnose/Best → full success, core-pass-margin-incomplete, reoptimization/reconciliation, or bounded failure. RunStore independently limits physical HFSS launches to two with zero automatic retries.
 - **Inputs:** runtime JSON, short-lived Readiness Manifest V1.1 containing passing recomputable `calibration-evidence/1.1`, exact clean Git revision, versioned model alignment/policy, Production Evaluation Contract v1, nine-parameter baseline/schema, HFSS contract, vendor optimizer/config, vendor Builder, and PyAEDT interpreter bytes.
 - **Outputs:** SQLite action/event/checkpoint ledger; immutable canonical Tool/evaluation/comparison/terminal/final-manifest artifacts; immutable registered copies of provider request/response/report, AEDT project, journal, and Touchstone files when reached. Mutable workspaces are convenience copies only.
 - **Recovery control plane:** checkpoint identity/integrity is checked before provider admission. UNKNOWN recovery uses an exact evidence-bound operator reconciliation API; it is not a runnable workflow entry and never calls the provider.
@@ -179,7 +181,7 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 
 - **Entry:** `python -m hfss_optimization_agent.optimization.supplied_worker`; invoked only by `SuppliedBatchOptimizerAdapter`.
 - **Classification:** `INTERNAL TOOL WORKER`; it is a supervised Tool subprocess inside WF-001/WF-003, not an independent Agent workflow.
-- **Call chain:** canonical OptimizerRequest JSON → heartbeat → request-derived effective-objective CSV → vendor `execute` → vendor-summary objective verification → parse every Pareto row/evidence → digest-bound canonical response.
+- **Call chain:** canonical OptimizerRequest JSON → heartbeat → six request-derived banded rule-violation objectives → baseline-response frequency grid → `constraints.production_agent_v1.csv` → vendor `execute` → vendor-summary objective verification → parse every Pareto row/evidence → digest-bound canonical response.
 - **Outputs:** full auditable candidate set/digests plus immutable registered copies of worker request/response/vendor artifacts.
 - **Verification:** actual quick vendor execution through the independent worker passes offline. Timeout/cancel supervision shares the Windows Job boundary; formal WF-003 E2E remains `NEEDS VERIFICATION`.
 
@@ -229,4 +231,4 @@ No executable `LEGACY` runner, `GOLDEN` workflow, or Golden-data contract exists
 - **Admission:** checked-in defaults are disabled. The issuer requires a clean exact HEAD, completed non-quick optimizer summary, one unique recommendation with predicted worst-S11 and mean-reflected-power improvement, exact provider/source/contract identities, eight-hour expiry, and `ExecutionPolicy(2,0)`.
 - **Call chain:** validate authority before composition → freeze baseline and `optimized_P0028` → one surrogate and one composite HFSS result for each case → freeze candidate/result/`.aedt`/`.s2p` receipts → compute physical before/after metrics and an explicit `formal_canary_authorized=false` report.
 - **Safety:** exactly two physical launches, independent workspaces, target design `interposer_temple4`, hard deadlines, process isolation, license lock, zero automatic retries, and evidence-bound UNKNOWN reconciliation.
-- **Verification:** focused fake campaign 5 PASS; full main suite 238 PASS; complete vendor optimization and vendor suite 7 PASS. Clean revision `2608d0c...` issued exact authority and admitted Baseline, but FlexNet `-97,121` stopped Desktop initialization before Builder geometry. Supervision cleaned the tree and exact evidence reconciled the operation as failed without retry/refund. `lmreread` subsequently restored the user-accepted current `ansyslmd`/`hfss_gui` environment. Optimized `P0028`, Solve, extraction, and physical comparison are NOT RUN.
+- **Verification:** focused fake campaign 5 PASS; full main suite 238 PASS; complete vendor optimization and vendor suite 7 PASS. First campaign `075244` was reconciled after FlexNet `-97,121`. Replacement campaign `hfss-optimization-diagnostic-20260826-085032` at exact revision `454c4f3...` completed both builds/Solves/extractions and froze all ten receipts. HFSS observed `+0.13068 dB` worst-S11 return-loss improvement and `1.10923%` mean-power reduction, while 39% of frequencies worsened. This is `REAL HFSS VERIFIED` local evidence and never Production readiness.

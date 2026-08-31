@@ -1,6 +1,7 @@
 """Comparison of two immutable EvaluationResult objects."""
 from collections.abc import Mapping
 from ..core.models import EvaluationComparison, EvaluationResult
+from .rule_semantics import violation_from_margin
 
 def metric_deltas(baseline: Mapping[str, float], current: Mapping[str, float]) -> dict[str, float]:
     return {k: float(current[k])-float(baseline[k]) for k in sorted(set(baseline)&set(current))}
@@ -25,17 +26,33 @@ class EvaluationComparator:
             elif cr["status"]=="FAIL":
                 remaining.append(rid)
                 if br["status"]=="PASS": new.append(rid)
-        if candidate.status=="PASS": classification="FULLY_ACHIEVED"
+        def rank(result: EvaluationResult):
+            ordered = sorted(result.rule_results, key=lambda rule: str(rule.get("rule_id", "")))
+            hard = [violation_from_margin(rule.get("margin_to_target")) for rule in ordered if rule.get("hard_constraint")]
+            soft = [violation_from_margin(rule.get("margin_to_target")) for rule in ordered if not rule.get("hard_constraint")]
+            return (
+                result.hard_failed_rule_count,
+                max(hard, default=0.0),
+                sum(hard),
+                result.soft_failed_rule_count,
+                sum(soft),
+                tuple(hard + soft),
+            )
+        baseline_rank = rank(baseline)
+        candidate_rank = rank(candidate)
+        all_rules_pass = candidate.pass_target and candidate.soft_failed_rule_count == 0
+        if all_rules_pass: classification="FULLY_ACHIEVED"
+        elif candidate.pass_target: classification="CORE_ACHIEVED_MARGIN_INCOMPLETE"
         elif improved and degraded: classification="MIXED"
         elif improved: classification="IMPROVED"
         elif degraded or new: classification="DEGRADED"
         else: classification="NO_MEANINGFUL_CHANGE"
-        promotion_eligible = classification in {"FULLY_ACHIEVED", "IMPROVED"}
+        promotion_eligible = candidate_rank < baseline_rank
         promotion_reason = (
-            "Candidate satisfies all hard rules."
+            "Candidate satisfies every configured hard and soft rule."
             if classification == "FULLY_ACHIEVED"
-            else "Candidate improves rule margins without degradation."
-            if classification == "IMPROVED"
+            else "Candidate has a better deterministic hard-first, soft-second rule rank."
+            if promotion_eligible
             else "Candidate is not eligible for automatic Best promotion."
         )
         lower_delta = candidate.frequency_margin.get("lower_frequency_margin", 0.0) - baseline.frequency_margin.get("lower_frequency_margin", 0.0)

@@ -80,10 +80,11 @@ class ScriptedSurrogate:
                 error="confirmed scripted failure",
             )
         score = self.screening_scores.get(candidate.candidate_id, 1.0)
+        surrogate_s11_db = -14.0 if score >= 0.0 else -10.0
         return SParameterResult(
             candidate_id=candidate.candidate_id,
             success=True,
-            response=_complex_response(),
+            response=_complex_response(surrogate_s11_db),
             metrics={"screening_score": score, "worst_s11_magnitude": 0.3},
             provider="scripted-surrogate",
             model_version="phase4",
@@ -283,7 +284,7 @@ def test_closed_loop_rejects_unbound_real_manifest_before_provider_calls(tmp_pat
     assert hfss.calls == []
 
 
-def test_screen_fail_consumes_candidate_one_then_candidate_two_passes(tmp_path: Path) -> None:
+def test_rule_ranking_selects_passing_candidate_before_legacy_score_candidate(tmp_path: Path) -> None:
     final = _run(
         tmp_path,
         task_id="screen-next",
@@ -292,7 +293,7 @@ def test_screen_fail_consumes_candidate_one_then_candidate_two_passes(tmp_path: 
         hfss=ScriptedHFSS({"baseline": -10.0, "candidate-2": -14.0}),
     )
     assert final["status"] == WorkflowStatus.SUCCEEDED_CANDIDATE
-    assert "candidate-1" in final["controller"].consumed_candidate_ids
+    assert "candidate-1" not in final["controller"].consumed_candidate_ids
     assert all(result.candidate_id != "candidate-1" for result in final["hfss_results"])
     assert final["best_policy"].selected_candidate_id == "candidate-2"
 
@@ -351,7 +352,7 @@ def test_screening_budget_stops_before_an_unbudgeted_second_screen(tmp_path: Pat
         tmp_path,
         task_id="screen-budget",
         optimizer=ScriptedOptimizer([["candidate-1", "candidate-2"]]),
-        surrogate=ScriptedSurrogate({"candidate-1": -1.0, "candidate-2": 1.0}),
+        surrogate=ScriptedSurrogate({"candidate-1": -1.0, "candidate-2": -1.0}),
         hfss=ScriptedHFSS({"baseline": -10.0, "candidate-2": -14.0}),
         budget=ClosedLoopBudget(max_candidate_screenings=1),
     )

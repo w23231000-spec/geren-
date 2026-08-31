@@ -28,7 +28,7 @@ import platform
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 
@@ -462,6 +462,7 @@ def execute(
     output_root: str | Path = PROJECT_ROOT / "results",
     quick: bool = False,
     debug: bool = False,
+    frequency_grid_hz: Sequence[float] | None = None,
 ) -> Path:
     """执行一次完整的代理模型多目标优化，并返回本次结果目录。
 
@@ -493,7 +494,14 @@ def execute(
             models_path, model_binding, parameters_path
         )
         specs = load_parameter_specs(resolved_parameters_path)
-        frequency = frequency_grid(config)
+        if frequency_grid_hz is None:
+            frequency = frequency_grid(config)
+        else:
+            frequency = np.asarray(tuple(frequency_grid_hz), dtype=np.float64)
+            if frequency.ndim != 1 or len(frequency) < 2:
+                raise ValueError("frequency_grid_hz must contain at least two points")
+            if not np.all(np.isfinite(frequency)) or np.any(np.diff(frequency) <= 0.0):
+                raise ValueError("frequency_grid_hz must be finite and strictly increasing")
         baseline_display = baseline_values(specs)
         model_config = config["model"]
         electrical = config["electrical_constraints"]

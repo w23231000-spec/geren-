@@ -1,5 +1,6 @@
 """Adapter for the user-supplied nine-parameter electrical surrogate."""
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -45,6 +46,15 @@ class SuppliedSurrogateAdapter(SParameterInterface):
                 abs(complex(real[0][0], imag[0][0]))
                 for real, imag in zip(structured.real, structured.imag)
             )
+            db = lambda value: 20.0 * math.log10(max(abs(value), 1e-300))
+            s11_db = [
+                db(complex(real[0][0], imag[0][0]))
+                for real, imag in zip(structured.real, structured.imag)
+            ]
+            s21_db = [
+                db(complex(real[1][0], imag[1][0]))
+                for real, imag in zip(structured.real, structured.imag)
+            ]
             return SParameterResult(
                 candidate_id=candidate.candidate_id,
                 success=True,
@@ -52,6 +62,10 @@ class SuppliedSurrogateAdapter(SParameterInterface):
                 metrics={
                     "screening_score": -worst_s11,
                     "worst_s11_magnitude": worst_s11,
+                    "maximum_s11_db": max(s11_db),
+                    "minimum_s11_db": min(s11_db),
+                    "maximum_s21_db": max(s21_db),
+                    "minimum_s21_db": min(s21_db),
                 },
                 provider="supplied-electrical-surrogate",
                 model_version=module.surrogate_model_sha256(),

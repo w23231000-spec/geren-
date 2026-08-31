@@ -170,19 +170,33 @@ class ClosedLoopGraphNodes:
         if controller is None or not controller.consumed_candidate_ids:
             raise WorkflowError("reoptimization requires consumed candidate evidence")
         candidate_id = controller.consumed_candidate_ids[-1]
-        diagnosis = next(
-            (
-                item
-                for item in reversed(state["diagnoses"])
-                if item.stage == f"optimized:{candidate_id}"
-            ),
-            None,
-        )
-        evaluation_record_value = evaluation_record(
-            state, candidate_id=candidate_id, stage="optimized"
-        )
+        diagnosis = None
+        evaluation_record_value = None
+        for evaluated_id in reversed(controller.consumed_candidate_ids):
+            evaluated_diagnosis = next(
+                (
+                    item
+                    for item in reversed(state["diagnoses"])
+                    if item.stage == f"optimized:{evaluated_id}"
+                ),
+                None,
+            )
+            evaluated_record = evaluation_record(
+                state, candidate_id=evaluated_id, stage="optimized"
+            )
+            if evaluated_diagnosis is not None and evaluated_record is not None:
+                candidate_id = evaluated_id
+                diagnosis = evaluated_diagnosis
+                evaluation_record_value = evaluated_record
+                break
         if diagnosis is None or evaluation_record_value is None:
-            raise WorkflowError("reoptimization requires candidate diagnosis/evaluation evidence")
+            candidate_id = state["manifest"].baseline_candidate_id
+            diagnosis = baseline_diagnosis(state)
+            evaluation_record_value = evaluation_record(
+                state, candidate_id=candidate_id, stage="initial"
+            )
+        if diagnosis is None or evaluation_record_value is None:
+            raise WorkflowError("reoptimization requires baseline or candidate diagnosis/evaluation evidence")
         evaluation = evaluation_record_value.to_result()
         intent = (self.workflow.intent_builder or OptimizationIntentBuilder()).build(diagnosis)
         objective = (
@@ -479,6 +493,20 @@ class ClosedLoopGraphNodes:
                 )
                 if item is not None
             )
+        elif decision.reason_code == "core_pass_margin_incomplete":
+            if state["best_policy"] is None:
+                raise WorkflowError("partial-success finalization requires Best evidence")
+            candidate_id = state["best_policy"].selected_candidate_id
+            record = evaluation_record(state, candidate_id=candidate_id)
+            best_evaluation = record.to_result() if record is not None else None
+            if best_evaluation is None or not best_evaluation.pass_target:
+                raise WorkflowError("partial-success finalization lacks core PASS evidence")
+            status = (
+                WorkflowStatus.SUCCEEDED_BASELINE
+                if candidate_id == state["manifest"].baseline_candidate_id
+                else WorkflowStatus.SUCCEEDED_CANDIDATE
+            )
+            evidence_ids = (record.record_id,)
         elif decision.reason_code == "baseline_evaluation_invalid":
             status = WorkflowStatus.INVALID
             candidate_id = state["manifest"].baseline_candidate_id

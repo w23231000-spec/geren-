@@ -1,11 +1,11 @@
 # Project Status
 
-Updated: **2026-08-26 +08:00**
+Updated: **2026-08-31 +08:00**
 Repository root: `D:\Agent_Workspace\HFSS_Optimization_Agent_VSCode`
 
 ## Current objective
 
-Evolve the deterministic baseline→candidate Workflow into an engineering Agent that repeatedly observes, diagnoses, decides, acts, evaluates, and decides again. The formal Production Canary remains blocked because current paired Calibration fails. A separate, bounded, non-Production two-solve diagnostic has now been prepared to compare the existing baseline with one recommendation frozen from a complete surrogate optimization; it can measure physical before/after improvement but cannot certify surrogate accuracy or unlock Production.
+Evolve the deterministic baseline→candidate Workflow into an engineering Agent that repeatedly observes, diagnoses, decides, acts, evaluates, and decides again. Production optimization semantics now follow the six versioned S-parameter rules directly: complete HFSS/surrogate responses retain the authoritative 0.1–20 GHz/200-point grid, only 5–19 GHz is optimized, and 6–18 GHz is the hard-first layer. A strict DeepSeek provider configuration boundary is present, but no LLM client or workflow node consumes it. The formal Production Canary remains blocked because current paired Calibration fails.
 
 ## Git and working-tree evidence
 
@@ -13,7 +13,7 @@ Evolve the deterministic baseline→candidate Workflow into an engineering Agent
 |---|---|
 | Branch | `master` |
 | Prior offline baseline | `5aca68ca73ee978425f867943b4a3e764fde5278` — Calibration-authority implementation before the first physical import probe |
-| Current HEAD before this task | `d5642979aaf92d5d950987b833d9c7c947de581a` |
+| Current HEAD before this task | `454c4f345ffde4a062df96d212787f237c4eacc9` |
 | Working tree | Dynamic operational fact: query Git immediately before authorization. The issuer requires and independently verifies a clean exact HEAD; the pre-commit preparation state was correctly rejected |
 | Staged files | Dynamic operational fact: query Git. The intended 15-file change set passed staged status/stat/diff checks during the 2026-08-26 operator review |
 | Commit authority | User-controlled; the diagnostic issuer never stages or commits files |
@@ -52,7 +52,9 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 | Capability | Current implementation | Evidence |
 |---|---|---|
 | OptimizerRequest | Goal, baseline diagnosis, Agent objective, baseline evidence, provider/config fingerprints, and translated vendor objective form one canonical request/digest | `WIRED / UNIT TESTED / INTEGRATION TESTED` |
-| Effective objective | Agent focus/priority/penalty are translated into the vendor runtime objective CSV; the worker and vendor summary must echo the effective-objective digest | `INTEGRATION TESTED` with the supplied quick optimizer |
+| Effective objective | Every configured rule becomes one banded dB violation objective. `<=` uses the band maximum and `>=` uses the band minimum, so Production S21 drives `-25 → -35` and S11 drives `-1 → -0.4` without directional inversion | `INTEGRATION TESTED` with the supplied quick optimizer |
+| Authoritative optimizer grid | The supplied worker passes the baseline S-parameter response grid into the vendor runtime; Production therefore uses the same 0.1–20 GHz/200 points as the HFSS contract instead of the vendor standalone default | `INTEGRATION TESTED` |
+| Production optimizer constraints | Agent execution uses `constraints.production_agent_v1.csv`: geometry/formula validity and passivity remain; legacy phase and `worse_frequency_fraction` preferences that conflict with the Production S11 direction are excluded | `UNIT TESTED / INTEGRATION TESTED` |
 | Supplied optimizer worker | Agent execution uses a heartbeated supervised JSON subprocess; vendor execution no longer occurs in the Graph/Agent process | `OFFLINE VERIFIED` |
 | Auditable candidate set | The adapter returns every Pareto row with vendor objective/constraint/metric evidence, per-candidate digest, and candidate-set digest | `INTEGRATION TESTED` |
 | Surrogate ranking evidence | Every reranked candidate records canonical surrogate/evaluation/artifact/rank evidence; evidence is persisted in RunStore and reused from receipts/checkpoints | `INTEGRATION TESTED` |
@@ -66,12 +68,19 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 | Capability | Current implementation | Evidence |
 |---|---|---|
 | Closed-loop Policy | One `ClosedLoopPolicy` produces every controller action; the graph has one conditional router and every nonterminal action returns to it | `WIRED / UNIT TESTED / INTEGRATION TESTED` |
-| Queue consumption | Selected candidates are removed from the queue; screen failure and non-PASS HFSS evidence consume the current candidate and select the next | `END-TO-END VERIFIED` with fake providers |
+| Queue consumption | Candidates are ranked and screened by deterministic rule violations, hard-first then soft; `screening_score` no longer controls Production HFSS admission | `UNIT TESTED / INTEGRATION TESTED` |
 | Reoptimization | Exhausted queue can rebuild intent/objective from the latest candidate diagnosis and run a new optimizer iteration with new action/candidate identity | `END-TO-END VERIFIED` with fake providers |
 | Retry-safe/reconcile | Confirmed fake-provider failure may clone a new candidate/action identity within retry budget; UNKNOWN routes only to reconciliation and never automatic retry | `UNIT/INTEGRATION TESTED` |
 | Bounded control | Controller iterations, optimizer calls, candidate screenings, candidate HFSS calls, reoptimizations, safe retries, and stagnation are strict typed budgets | `UNIT TESTED / END-TO-END VERIFIED` |
-| Typed finalization | Baseline PASS, candidate PASS, invalid baseline, reconciliation wait, and exhausted search have distinct typed outcomes including `NO_SOLUTION` | `END-TO-END VERIFIED` |
+| Typed finalization | All hard+soft rules satisfied, hard rules satisfied with soft margin incomplete, invalid baseline, reconciliation wait, and exhausted search have distinct reason codes; hard-only success remains explicitly identifiable | `UNIT TESTED / INTEGRATION TESTED` |
 | Formal topology | Real, Offline, and supplied-Mock formal entries all compose `closed-loop-agent-v2`; older V2-named entries remain compatibility aliases | `WIRED / END-TO-END VERIFIED` offline |
+
+## LLM configuration staging
+
+| Capability | Current implementation | Evidence |
+|---|---|---|
+| DeepSeek provider configuration | Strict `llm-provider-config/1.0` loader binds provider, official base URL, model, disabled-by-default state, blank configured key, `DEEPSEEK_API_KEY` fallback, timeout, and output-token limit | `CODE PRESENT / UNIT TESTED` |
+| LLM client and Agent wiring | No SDK, provider callback, prompt, planner node, or graph/composition route consumes the configuration | `PLANNED` |
 
 ## Phase 5A result
 
@@ -124,17 +133,19 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - **ISSUE-033 — RESOLVED FOR NEW RUNS:** new Calibration campaigns preregister short-lived reconciliation authority; the original failed-import Run remains immutable `WAITING_RECONCILIATION` and is not resumed.
 - **ISSUE-034 — SUPERSEDED BY ISSUE-037:** increasing the stale-heartbeat bound fixed cold startup but did not make an in-process Python heartbeat reliable during a blocking native solve.
 - **ISSUE-035 — RESOLVED BY PHYSICAL BUILD EVIDENCE:** the seventh campaign created exact `interposer_temple4`, completed Builder geometry/materials/ports/boundaries/Setup1/Sweep/report, and saved the project before submitting Solve.
-- **ISSUE-036 — OPERATIONALLY RESTORED FOR BOUNDED DIAGNOSTIC / USER ACCEPTED CURRENT ENVIRONMENT:** diagnostic campaign `hfss-optimization-diagnostic-20260826-075244` initially failed before Builder geometry because `1055@localhost` reported FlexNet `-97,121`. The user explicitly accepted the current local license environment for this diagnostic; standard `lmreread` restored `lmgrd`/`ansyslmd` to UP and `hfss_gui` reports available. Actual checkout still requires a fresh run.
+- **ISSUE-036 — OPERATIONALLY VERIFIED FOR THIS BOUNDED DIAGNOSTIC / PRODUCTION PROVENANCE BLOCKER RETAINED:** after the first diagnostic failed with FlexNet `-97,121`, the user accepted the current local license environment and standard `lmreread` restored `ansyslmd`. Replacement campaign `hfss-optimization-diagnostic-20260826-085032` then checked out HFSS successfully and completed both physical solves. This proves availability for that exact run, not independent entitlement provenance for Production.
 - **ISSUE-037 — RESOLVED BY PHYSICAL EVIDENCE:** at exact revision `6d88b62fed733c0ac018b8db6611c4238143d6a1`, the companion remained live through a complete Baseline build/Solve/extraction and through Candidate 1 until Windows suspended the machine. Native-call starvation is no longer the observed blocker.
 - **ISSUE-038 — OPEN / OPERATIONALLY MITIGATED FOR THE REPLACEMENT RUN:** campaign `hfss-calibration-20260824-151230` remains immutable `UNKNOWN / WAITING_RECONCILIATION`, but replacement campaign `hfss-calibration-20260825-082540` completed all three cases without host suspend. Software sleep inhibition and suspend/resume telemetry remain future reliability work.
 - **ISSUE-039 — RESOLVED OFFLINE:** the fake Calibration fixture's fixed approval expired on 2026-08-25 UTC. Its deterministic synthetic expiry is now 2099; production short-lived manifest validation is unchanged.
 - **ISSUE-040 — RESOLVED OFFLINE:** Builder Plot 6 duplicated `S(3,3)` instead of the second reflection `S(4,4)`. The three manual two-port reports are now distinct; physical extraction continues to request the complete contract-derived four-expression matrix.
-- **ISSUE-041 — FIRST REAL ATTEMPT CONFIRMED FAILED / REPLACEMENT PENDING:** the bounded diagnostic admitted the baseline at exact revision `2608d0c...`, but license initialization failed before geometry/Solve. Operation `op_f3b649d045ac1e7a1c7f9c2d2ae91249` was explicitly reconciled as failed from immutable no-result/process/lock evidence; optimized candidate `P0028` did not start.
+- **ISSUE-041 — REAL HFSS VERIFIED / LOCAL IMPROVEMENT OBSERVED / NON-CANARY:** replacement campaign `hfss-optimization-diagnostic-20260826-085032` at exact revision `454c4f3...` completed Baseline and frozen `P0028`. HFSS worst-S11 return loss improved by `0.13068 dB` and mean reflected power fell by `1.10923%`, so the frozen pair has favorable local physical outcome evidence. The equivalent model predicted `0.25178 dB` and `7.15709%`; 39% of frequency samples physically worsened, so global model accuracy and Production authority remain unproven.
 - **ISSUE-013 — PARTIALLY RESOLVED:** V2 controller progress is checkpointed, actions are receipt-safe, and evidence-bound operator reconciliation resolves UNKNOWN without retry; LangGraph still reconstructs from START rather than a saved node.
 - **ISSUE-015 / ISSUE-026 — PARTIALLY RESOLVED:** Job supervision, bounded timeout/cancel/kill verification, parent-death containment, quarantine, and explicit lock reconciliation pass offline. Three normal real AEDT composites exited cleanly with no Agent lock or AEDT/HFSS process left; real timeout/kill-failure behavior remains `NEEDS VERIFICATION`.
 - **ISSUE-027 — RESOLVED BY PHYSICAL EVIDENCE:** each of the three real cases froze its structured HFSS result, exact `.aedt`, and exact `.s2p` as immutable content-addressed receipts before campaign assessment.
 - **ISSUE-028 — PARTIALLY RESOLVED:** formal real registration now rejects missing Agent/PyAEDT/provider/source/revision/contract identities. General non-real/programmatic manifests still permit intentionally sparse fingerprints, so the domain-wide issue is not closed.
 - **ISSUE-029 — RESOLVED OFFLINE:** the queue/diagnosis feedback loop is now the sole formal Production topology; real physical behavior remains `NOT RUN`.
+- **ISSUE-042 — OPEN / CONFIGURATION ONLY:** the versioned DeepSeek configuration loads strictly and keeps the API key empty by default, but no model client or Agent workflow route is wired yet.
+- **ISSUE-043 — RESOLVED OFFLINE / REAL HFSS NEEDS VERIFICATION:** Production objective direction, frequency bands, optimizer grid, constraints, candidate ranking/gate, and core-versus-margin termination now use the same six-rule semantics. Formal-path offline suite: 82 passed; real HFSS was not run for this working tree.
 - Phase 5D migration cleanup, Production adoption, ISSUE-019 closure, and the implementation baseline are `OFFLINE VERIFIED / COMMITTED`. See `CALIBRATION_AND_CANARY_REVIEW.md` for exact identities and blocker dispositions.
 
 ## Current validation level
@@ -163,9 +174,13 @@ Phase 0/1 controls remain active: the real entry is fail-closed, comparison evid
 - Post-ISSUE-037 native-call supervision set: `PASS` — 40 passed in 3.11 s; final full suite `PASS` — 233 passed in 36.65 s.
 - Post-ISSUE-039/040 focused fixture/Builder/port-contract set: `PASS` — 7 passed in 0.68 s; final main suite `PASS` — 233 passed in 36.24 s. The standalone vendor Builder report regression is outside the configured main-suite discovery and passed explicitly.
 - Optimization-outcome diagnostic focused suite: `PASS` — 5 passed in 0.37 s; final main suite: `PASS` — 238 passed in 40.40 s; vendor optimizer suite: `PASS` — 7 passed in 4.47 s.
+- DeepSeek LLM configuration focused suite: `PASS` — 3 passed; API/network call `NOT RUN`.
+- Post-configuration full main suite: `PASS` — 241 passed in 42.58 s.
+- Production rule/objective/grid/HFSS-contract/safety focused suite: `PASS` — 82 passed in 12.55 s. Changed-source compilation and `git diff --check` pass. Mock-only supplied E2E was intentionally not used as an acceptance gate for this task.
 - Complete current surrogate optimization: `OFFLINE VERIFIED` — NSGA-III, population 64, 100 generations, seed 42, 6400 evaluations, 215 feasible Pareto points, recommendation `P0028`; no AEDT was launched.
 - Diagnostic environment preflight: `PASS` — configured PyAEDT 0.18.1, AEDT 2025.1 executable, target-only Builder/contract, headless mode, writable runs directory, and idle lock observed. License entitlement is not proven by this check.
 - Diagnostic admission/cleanup: clean revision `2608d0c...` issued a valid two-solve authority. Baseline worker started, but license checkout failed before geometry; supervised interruption verified no AEDT/HFSS process and released the Agent lock. The exact UNKNOWN was reconciled as failed with evidence `art_26402400b240bc5e4f1b837071596b81`; candidate did not start and the old operation is not retryable.
+- Replacement optimization diagnostic: `REAL HFSS VERIFIED` at clean revision `454c4f345ffde4a062df96d212787f237c4eacc9`. Both target-only builds/Solves/extractions completed, all ten mandatory source receipts were frozen, evidence SHA-256 is `d31b20aee9d4ec515b2681140582e8aca9c55a8404175d5684c43861bfc3c6f4`, and the Agent lock/AEDT process were absent after completion.
 - Historical paired real run remains `HISTORICALLY VERIFIED` only and is not evidence for this working tree.
 
 ## Real HFSS status
@@ -176,6 +191,8 @@ Campaign `hfss-calibration-20260825-082540` at clean revision `d5642979aaf92d5d9
 
 The later non-Production diagnostic `hfss-optimization-diagnostic-20260826-075244` at exact revision `2608d0cdbcfcb16b70ef7a5ecaa051c31cac3b01` reached PyAEDT/AEDT initialization for Baseline only. `batch.log` records FlexNet `-97,121`, feature `hfss_gui`, and `desired vendor daemon is down` at `1055@localhost`; progress never passed `worker_ready`. The operator interrupted the stalled initialization, supervision terminated the process tree, and post-stop inspection found no AEDT/HFSS process or Agent lock. The exact operation was reconciled as `CONFIRMED_FAILED` with immutable evidence SHA-256 `09fda1b8...`; no geometry, Setup, Sweep, Solve, S parameter, candidate attempt, or diagnostic comparison exists. A subsequent standard FlexNet `lmreread` restored `ansyslmd` and `hfss_gui` availability for a future fresh campaign.
 
+Replacement campaign `hfss-optimization-diagnostic-20260826-085032` at exact revision `454c4f345ffde4a062df96d212787f237c4eacc9` completed both Baseline and `optimized_P0028`. HFSS worst-S11 return loss changed from `21.19698` to `21.32765 dB` (`+0.13068 dB`) and mean reflected power from `0.368265%` to `0.364180%` (`1.10923%` relative reduction). S21 improved slightly at all 200 samples. However, S11 improved only from 0.1–12.2 GHz and worsened from 12.3–20.0 GHz; the worst local degradation was `0.86633 dB` at 18.5 GHz. The surrogate predicted no worse samples and materially larger aggregate gains. This is `REAL HFSS VERIFIED` local outcome evidence only; `formal_canary_authorized=false` and the failed three-case Calibration remains authoritative for Production admission.
+
 ## Next phase boundary
 
-Do not rerun or reuse campaign `hfss-optimization-diagnostic-20260826-075244`. Review and commit the synchronized project-memory update, verify the user-accepted current `1055@localhost` environment still reports `lmgrd`/`ansyslmd` UP with `hfss_gui` available, and issue a fresh campaign from a new clean exact revision. Formal Canary remains blocked by failed Calibration regardless of this diagnostic.
+Preserve both diagnostic campaigns: `075244` as reconciled license-failure evidence and `085032` as the completed local A/B result. The next model task is to explain the reflection-path discrepancy—especially S11/S22 phase and the 12.3–20.0 GHz ranking reversal—then version any equivalent-model correction and repeat paired Calibration. Formal Canary remains blocked by failed Calibration regardless of this favorable local diagnostic.
