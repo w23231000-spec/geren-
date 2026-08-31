@@ -1,0 +1,4 @@
+name,active,expression,direction,target,recommendation_weight,start_ghz,stop_ghz,unit,description
+worst_s11,true,metric.worst_s11_magnitude,min,,0.55,,,linear magnitude,降低全频带最差 S11 幅值。
+phase_preservation,true,metric.phase_weighted_rms_deg,min,,0.45,,,deg,让 S11 相位尽量接近原始设计。
+mean_reflected_power,true,metric.mean_reflected_power,min,,0.2,,,ratio,降低目标频段内 S11 反射功率的带宽平均值。

@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "builder_id": "PA_MULTI_9parametric_builder-audited-2026-08-17",
+  "design_name": "interposer_temple4",
+  "solution_type": "Modal",
+  "setup_name": "Setup1",
+  "sweep": {
+    "name": "Sweep",
+    "start_hz": 100000000.0,
+    "stop_hz": 20000000000.0,
+    "points": 200,
+    "spacing": "linear"
+  },
+  "ports": [
+    {
+      "exported_name": "4",
+      "physical_role": "input",
+      "mode_index": 1,
+      "reference_impedance_ohm": 50.0,
+      "renormalize": true,
+      "deembed_distance_m": 0.0
+    },
+    {
+      "exported_name": "3",
+      "physical_role": "output",
+      "mode_index": 1,
+      "reference_impedance_ohm": 50.0,
+      "renormalize": true,
+      "deembed_distance_m": 0.0
+    }
+  ],
+  "parameter_mapping": {
+    "sub_h": "inter_h",
+    "TSV_r": "r_tsv",
+    "TSV_p": "offset_tsv_line",
+    "BGA_r": "r_bga",
+    "BGA_p": "offset_ubm_ubm",
+    "RDL_w_layer1": "signal_w1",
+    "RDL_d_layer1": "signal_d1",
+    "RDL_w_layer2": "signal_w2",
+    "RDL_d_layer2": "signal_d2"
+  },
+  "materials": [
+    {
+      "material_name": "PI",
+      "relative_permittivity": 3.5,
+      "loss_tangent": 0.02,
+      "conductivity_s_per_m": null,
+      "evidence_status": "approved_model_contract",
+      "metadata": {
+        "note": "Existing HFSS Builder is the user-approved physical model authority; physical correlation remains gated by paired Calibration Evidence."
+      }
+    }
+  ],
+  "extractor_format": "real_imag",
+  "metadata": {
+    "comparison_context_id": "pa-multi-builder-2025.1-setup1-sweep-ports4to3-v1",
+    "build_strategy": "target_design_only",
+    "frequency_grid_note": "0.1 to 20 GHz inclusive with 0.1 GHz step"
+  }
+}

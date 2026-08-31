@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.pytest-tmp/
+.uv-cache/
+.venv/
+runs/
+
+# Local tool/IDE caches
+.idea/
+.vs/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Atomic/runtime temporary files
+*.tmp
+*.temp
+~$*
+
+# AEDT-generated locks and result databases outside runs/
+/batch.log
+*.aedt.lock
+*.aedtresults/
+*.aedb/

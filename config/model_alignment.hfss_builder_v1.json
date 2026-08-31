@@ -1,0 +1,40 @@
+{
+  "schema_version": "physical-model-alignment/1.0",
+  "alignment_id": "hfss-builder-authoritative-v1",
+  "approval_status": "APPROVED",
+  "approved_by": "user",
+  "authority": "hfss_builder",
+  "hfss_contract_id": "F2F60761909E10423B814160B3806F2B7C764B1E5604FDB6118BFB54872A954F",
+  "design_name": "interposer_temple4",
+  "comparison_context_id": "pa-multi-builder-2025.1-setup1-sweep-ports4to3-v1",
+  "frequency_grid": {
+    "start_hz": 100000000.0,
+    "stop_hz": 20000000000.0,
+    "points": 200,
+    "spacing": "linear"
+  },
+  "port_order": [
+    "input",
+    "output"
+  ],
+  "reference_impedance_ohm": 50.0,
+  "materials": {
+    "pi": {
+      "relative_permittivity": 3.5,
+      "loss_tangent": 0.02
+    },
+    "silicon_dioxide": {
+      "relative_permittivity": 4.0
+    }
+  },
+  "surrogate_requirements": {
+    "frequency_points": 200,
+    "pi_relative_permittivity": 3.5,
+    "empirical_terms": [
+      "Gsub",
+      "Rlf1",
+      "alpha"
+    ],
+    "empirical_terms_disposition": "accepted_only_by_passing_calibration"
+  }
+}

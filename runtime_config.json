@@ -1,0 +1,15 @@
+{
+  "pyaedt_python": "C:\\Users\\82074\\Documents\\Codex\\2026-08-12\\wo\\work\\pyaedt-venv\\Scripts\\python.exe",
+  "aedt_root": "D:\\ANSYS Inc\\v251\\AnsysEM",
+  "artifact_root": "D:\\Agent_Workspace\\HFSS_Optimization_Agent_VSCode\\runs",
+  "solve_timeout_seconds": 7200.0,
+  "quick_optimizer": true,
+  "real_hfss_enabled": false,
+  "real_hfss_readiness_manifest": null,
+  "calibration_policy_path": "config/calibration_policy.paired_surrogate_hfss_v1.json",
+  "model_alignment_path": "config/model_alignment.hfss_builder_v1.json",
+  "hfss_contract_path": "config/hfss_contract.pa_multi_2025_1.json",
+  "real_hfss_calibration_enabled": false,
+  "real_hfss_calibration_manifest": null,
+  "hfss_ui_visible": false
+}

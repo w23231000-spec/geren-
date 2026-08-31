@@ -1,0 +1,68 @@
+{
+  "contract_id": "production-evaluation-v1",
+  "schema_version": "1.0",
+  "value_unit": "dB",
+  "frequency_unit": "GHz",
+  "frequency_plan": {
+    "core_band": [6.0, 18.0],
+    "lower_margin_band": [5.0, 6.0],
+    "upper_margin_band": [18.0, 19.0],
+    "tolerance_ghz": 1e-9
+  },
+  "rules": [
+    {
+      "rule_id": "production_v1_core_s21",
+      "parameter": "S21",
+      "frequency_band": [6.0, 18.0],
+      "operator": "<=",
+      "threshold": -30.0,
+      "hard_constraint": true,
+      "frequency_unit": "GHz"
+    },
+    {
+      "rule_id": "production_v1_core_s11",
+      "parameter": "S11",
+      "frequency_band": [6.0, 18.0],
+      "operator": ">=",
+      "threshold": -0.5,
+      "hard_constraint": true,
+      "frequency_unit": "GHz"
+    },
+    {
+      "rule_id": "production_v1_lower_s21",
+      "parameter": "S21",
+      "frequency_band": [5.0, 6.0],
+      "operator": "<=",
+      "threshold": -30.0,
+      "hard_constraint": false,
+      "frequency_unit": "GHz"
+    },
+    {
+      "rule_id": "production_v1_lower_s11",
+      "parameter": "S11",
+      "frequency_band": [5.0, 6.0],
+      "operator": ">=",
+      "threshold": -0.5,
+      "hard_constraint": false,
+      "frequency_unit": "GHz"
+    },
+    {
+      "rule_id": "production_v1_upper_s21",
+      "parameter": "S21",
+      "frequency_band": [18.0, 19.0],
+      "operator": "<=",
+      "threshold": -30.0,
+      "hard_constraint": false,
+      "frequency_unit": "GHz"
+    },
+    {
+      "rule_id": "production_v1_upper_s11",
+      "parameter": "S11",
+      "frequency_band": [18.0, 19.0],
+      "operator": ">=",
+      "threshold": -0.5,
+      "hard_constraint": false,
+      "frequency_unit": "GHz"
+    }
+  ]
+}

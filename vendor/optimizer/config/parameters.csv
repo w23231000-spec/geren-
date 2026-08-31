@@ -1,0 +1,10 @@
+name,display_name,active,unit,model_unit,baseline,lower,upper,scale_to_model
+sub_h,衬底厚度,true,um,m,200,100,300,1e-6
+TSV_r,TSV半径,true,um,m,15,7.5,22.5,1e-6
+TSV_p,TSV中心间距,true,um,m,260,130,390,1e-6
+BGA_r,BGA半径,true,um,m,125,62.5,187.5,1e-6
+BGA_p,BGA中心间距,true,um,m,660,330,990,1e-6
+RDL_w_layer1,上层RDL线宽,true,um,m,100,50,150,1e-6
+RDL_d_layer1,上层RDL线距,true,um,m,50,25,75,1e-6
+RDL_w_layer2,下层RDL线宽,true,um,m,80,40,120,1e-6
+RDL_d_layer2,下层RDL线距,true,um,m,50,25,75,1e-6

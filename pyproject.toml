@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hfss-optimization-agent"
+version = "0.1.0"
+description = "Presentation-ready LangGraph workflow for surrogate optimization and real HFSS validation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["langgraph>=0.2,<2"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+supplied = [
+  "numpy==2.5.2",
+  "scipy==1.18.0",
+  "jax==0.11.0",
+  "jaxlib==0.11.0",
+  "matplotlib==3.11.1",
+  "pymoo==0.6.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -p no:cacheprovider"

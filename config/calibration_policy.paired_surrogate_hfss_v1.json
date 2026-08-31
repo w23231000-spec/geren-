@@ -1,0 +1,10 @@
+{
+  "max_complex_rmse": 0.02,
+  "max_magnitude_db_rmse": 1.0,
+  "minimum_pairwise_ranking_agreement": 0.8,
+  "frequency_tolerance_hz": 1.0,
+  "impedance_tolerance_ohm": 1e-09,
+  "require_comparison_context_id": true,
+  "minimum_case_count": 3,
+  "minimum_comparable_pairs": 2
+}

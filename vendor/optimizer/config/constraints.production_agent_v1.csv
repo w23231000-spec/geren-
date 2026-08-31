@@ -1,0 +1,13 @@
+name,active,left_expression,operator,right_expression,tolerance,unit,description
+tsv_formula_domain,true,parameter.TSV_p,>=,1.260 * parameter.TSV_r + 1.260,0,um,TSV代理公式适用范围
+bga_formula_domain,true,parameter.BGA_p,>=,2.520 * parameter.BGA_r,0,um,BGA代理公式适用范围
+tsv_geometry_pitch_min,true,parameter.TSV_p,>,"2.61312593 * max(parameter.TSV_r, 35)",0.001,um,TSV阵列最小中心距：同时考虑35um固定金属帽
+tsv_geometry_pitch_max,true,"sqrt(2) * parameter.TSV_p + 2 * max(parameter.TSV_r, 35)",<,720,0.001,um,TSV阵列移动分支不得与固定0.12mm阵列分支相交
+tsv_fixed_pitch_clearance,true,"2 * max(parameter.TSV_r, 35)",<,120,0.001,um,TSV有效半径必须小于固定120um重复步距的一半
+bga_positive_clip_height,true,parameter.BGA_r,>,25,0.001,um,BGA半径必须大于固定delta_bga=25um以保持正截球高度
+bga_geometry_spacing,true,parameter.BGA_p,>,"2.61312593 * max(parameter.BGA_r, 100)",0.001,um,BGA和固定100um UBM的联合中心距约束
+bga_substrate_edge,true,parameter.BGA_p + parameter.BGA_r,<,1560,0.001,um,最高BGA不得越过interposer的Y边界
+bga_fixed_grid_clearance,true,"2 * max(parameter.BGA_r, 100)",<,583.095189,0.001,um,BGA有效直径不得超过固定阵列的最小中心距
+rdl_layer1_round_clearance,true,abs(parameter.RDL_w_layer1 / 2 - parameter.RDL_d_layer1) + 50,<,190,0.001,um,上层RDL信号末端必须位于固定190um圆形避空内
+rdl_layer2_round_clearance,true,parameter.RDL_w_layer2 / 2,<,190,0.001,um,下层RDL转弯圆角必须位于固定190um圆形避空内
+passivity,true,metric.passivity_violation,<=,0,0,dimensionless,S参数必须满足被动性门限
