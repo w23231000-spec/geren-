@@ -541,7 +541,7 @@ class ComparisonWorkflowNodes:
                     "manifest"
                 ].design_goal.target_specification.to_dict(),
             },
-            diagnosis_digest=canonical_digest(diagnosis),
+            diagnosis_digest=canonical_digest(diagnosis.to_dict()),
             target_specification=target_specification,
             optimization_objective=objective,
             effective_objective=effective_objective,
