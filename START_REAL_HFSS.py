@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import json
-import os
 from pathlib import Path
-import subprocess
 import sys
 
 
@@ -17,11 +15,21 @@ from hfss_optimization_agent.domain.canonical_json import (  # noqa: E402
     canonical_dumps,
 )
 from hfss_optimization_agent.task_request import (  # noqa: E402
-    OPTIMIZATION_REQUEST_ENV,
     OPTIMIZATION_REQUEST_SCHEMA_VERSION,
     OptimizationRequest,
     OptimizationRuleRequest,
     optimization_request_from_evaluation_contract,
+)
+from hfss_optimization_agent.application.real_hfss_service import (  # noqa: E402
+    execute_real_hfss,
+    prepare_development_authorization,
+    validate_real_hfss_runtime,
+)
+from hfss_optimization_agent.core.enums import workflow_exit_code  # noqa: E402
+from hfss_optimization_agent.harness.terminal import (  # noqa: E402
+    configure_utf8_output,
+    emit_status,
+    print_run_summary,
 )
 
 
@@ -241,6 +249,8 @@ def _print_summary(request: OptimizationRequest) -> None:
 
 
 def main() -> int:
+    configure_utf8_output()
+
     request = _prompt_request()
     _print_summary(request)
 
@@ -258,34 +268,68 @@ def main() -> int:
         / "requests"
         / f"optimization-request-{stamp}.json"
     )
+
     request_path.parent.mkdir(parents=True, exist_ok=True)
     request_path.write_bytes(
         canonical_dumps(request.to_dict()).encode("utf-8")
     )
 
-    os.environ[OPTIMIZATION_REQUEST_ENV] = str(request_path)
-
-    from PREPARE_REAL_HFSS_DEVELOPMENT import (
-        main as prepare_development,
+    prepared = prepare_development_authorization(
+        ROOT,
+        request,
     )
 
-    manifest_path = prepare_development()
-
-    environment = os.environ.copy()
-    environment["HFSS_REAL_READINESS_MANIFEST"] = str(manifest_path)
-    environment[OPTIMIZATION_REQUEST_ENV] = str(request_path)
+    runtime = validate_real_hfss_runtime(
+        ROOT,
+        request,
+        prepared.manifest_path,
+    )
 
     print(f"\n【优化任务文件】{request_path}")
-    print(f"【Development Authorization】{manifest_path}")
+    print(f"【Development Authorization】{prepared.manifest_path}")
     print("【启动】REAL HFSS closed loop\n")
 
-    completed = subprocess.run(
-        [sys.executable, str(ROOT / "RUN_REAL_HFSS.py")],
-        cwd=ROOT,
-        env=environment,
-        check=False,
+    emit_status(
+        "任务",
+        "启动真实 HFSS 自动优化流程",
+        detail=runtime.task_id,
     )
-    return int(completed.returncode)
+
+    emit_status(
+        "求解范围",
+        "只创建并求解 interposer_temple4",
+    )
+
+    emit_status(
+        "优化任务",
+        (
+            f"最大 {request.max_optimization_rounds} "
+            "轮 Candidate REAL HFSS"
+        ),
+        detail=request.digest[:12],
+    )
+
+    emit_status(
+        "界面模式",
+        (
+            "显示 AEDT 图形界面"
+            if runtime.configuration.get("hfss_ui_visible", True)
+            else "后台运行"
+        ),
+    )
+
+    emit_status(
+        "模型状态",
+        "流程可运行；物理一致性与校准仍待确认",
+    )
+
+    summary = execute_real_hfss(
+        ROOT,
+        runtime,
+    )
+
+    print_run_summary(summary)
+    return workflow_exit_code(summary["status"])
 
 
 if __name__ == "__main__":
