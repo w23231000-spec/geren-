@@ -89,7 +89,7 @@ def test_run_real_hfss_task_orchestrates_application_boundary(
     monkeypatch.setattr(
         service,
         "validate_real_hfss_runtime",
-        lambda root, optimization_request, manifest: calls.append(
+        lambda root, optimization_request, manifest, **kwargs: calls.append(
             "safety"
         ) or runtime,
     )
@@ -128,6 +128,7 @@ def test_run_real_hfss_task_orchestrates_application_boundary(
         "authorization",
         "safety_gate",
         "safety_gate",
+        "hfss_mode",
         "workflow",
         "workflow",
     ]

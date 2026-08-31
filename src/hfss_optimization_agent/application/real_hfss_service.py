@@ -335,6 +335,8 @@ def validate_real_hfss_runtime(
     root: Path,
     optimization_request: OptimizationRequest,
     readiness_manifest_path: Path | str | None,
+    *,
+    hfss_ui_visible: bool | None = None,
 ) -> RealHFSSRuntime:
     """Validate a prepared REAL HFSS runtime without solving."""
 
@@ -343,6 +345,11 @@ def validate_real_hfss_runtime(
         root,
         optimization_request,
     )
+
+    if hfss_ui_visible is not None:
+        configuration["hfss_ui_visible"] = bool(
+            hfss_ui_visible
+        )
 
     if readiness_manifest_path is not None:
         configuration["real_hfss_enabled"] = True
@@ -483,6 +490,7 @@ def run_real_hfss_task(
     root: Path,
     optimization_request: OptimizationRequest,
     *,
+    hfss_ui_visible: bool = True,
     on_event: RunEventCallback | None = None,
 ) -> RealHFSSRunResult:
     """Execute one complete application-level REAL HFSS task.
@@ -563,6 +571,7 @@ def run_real_hfss_task(
             root,
             optimization_request,
             prepared.manifest_path,
+            hfss_ui_visible=hfss_ui_visible,
         )
 
         _emit_run_event(
@@ -571,6 +580,22 @@ def run_real_hfss_task(
             stage="safety_gate",
             message="REAL HFSS Safety Gate 通过",
             detail=runtime.task_id,
+        )
+
+        _emit_run_event(
+            on_event,
+            event_type="success",
+            stage="hfss_mode",
+            message=(
+                "AEDT/HFSS 图形界面模式"
+                if hfss_ui_visible
+                else "AEDT/HFSS 后台模式"
+            ),
+            detail=(
+                "non_graphical=False"
+                if hfss_ui_visible
+                else "non_graphical=True"
+            ),
         )
 
         _emit_run_event(

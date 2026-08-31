@@ -338,6 +338,9 @@ class HFSSOptimizationWindow:
         self.budget_total = tk.StringVar()
         self.budget_retry = tk.StringVar()
 
+        # Desktop use defaults to visible AEDT/HFSS.
+        self.hfss_ui_visible = tk.BooleanVar(value=True)
+
         self._event_queue: queue.Queue[RunEvent] = queue.Queue()
         self._run_active = False
         self._checked_request_digest: str | None = None
@@ -702,6 +705,29 @@ class HFSSOptimizationWindow:
             sticky="w",
         )
 
+        ttk.Checkbutton(
+            budget,
+            text="显示 AEDT / HFSS 图形界面",
+            variable=self.hfss_ui_visible,
+        ).grid(
+            row=1,
+            column=0,
+            columnspan=4,
+            sticky="w",
+            pady=(12, 0),
+        )
+
+        ttk.Label(
+            budget,
+            text="勾选后运行时会打开可见的 AEDT/HFSS 窗口",
+        ).grid(
+            row=1,
+            column=4,
+            columnspan=4,
+            sticky="w",
+            pady=(12, 0),
+        )
+
         actions = ttk.Frame(container)
         actions.pack(
             fill="x",
@@ -968,7 +994,9 @@ class HFSSOptimizationWindow:
                 f"{budget['max_candidate_hfss_calls']}\n"
                 f"REAL HFSS 总上限："
                 f"{budget['max_hfss_solve_launches']}\n"
-                "自动求解重试：0\n\n"
+                "自动求解重试：0\n"
+                "AEDT/HFSS 界面："
+                f"{'显示' if self.hfss_ui_visible.get() else '后台'}\n\n"
                 "确认后将真正启动 AEDT/HFSS。\n\n"
                 "是否继续？"
             ),
@@ -995,9 +1023,13 @@ class HFSSOptimizationWindow:
             "当前版本运行期间不提供强制停止按钮。\n"
         )
 
+        visible = bool(
+            self.hfss_ui_visible.get()
+        )
+
         self._worker_thread = threading.Thread(
             target=self._run_real_hfss_worker,
-            args=(request,),
+            args=(request, visible),
             name="real-hfss-workflow",
             daemon=False,
         )
@@ -1007,11 +1039,13 @@ class HFSSOptimizationWindow:
     def _run_real_hfss_worker(
         self,
         request: OptimizationRequest,
+        hfss_ui_visible: bool,
     ) -> None:
         try:
             result = run_real_hfss_task(
                 self.project_root,
                 request,
+                hfss_ui_visible=hfss_ui_visible,
                 on_event=self._event_queue.put,
             )
 
