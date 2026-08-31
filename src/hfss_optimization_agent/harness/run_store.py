@@ -595,19 +595,14 @@ class RunStore:
         ):
             raise ValueError("real execution requires the authoritative real_hfss approval policy")
         if isinstance(manifest_payload, dict) and manifest_payload.get("real_execution") is True:
-            calibration_collection = (
-                manifest_payload.get("workflow_id") == "hfss-calibration-collection-v1"
-            )
-            required_execution_policy = ExecutionPolicy(
-                3 if calibration_collection else 2,
-                0,
-            )
-            if execution_policy != required_execution_policy:
-                raise ValueError(
-                    "real execution policy differs from its workflow-specific solve envelope"
-                )
+            workflow_id = manifest_payload.get("workflow_id")
+            calibration_collection = workflow_id == "hfss-calibration-collection-v1"
+
             if not manifest_payload.get("code_revision"):
-                raise RunIdentityConflict("real RunManifest must bind an exact code revision")
+                raise RunIdentityConflict(
+                    "real RunManifest must bind an exact code revision"
+                )
+
             provider_fingerprints = manifest_payload.get("provider_fingerprints")
             if (
                 not isinstance(provider_fingerprints, dict)
@@ -616,8 +611,18 @@ class RunStore:
                 raise RunIdentityConflict(
                     "real RunManifest must bind every mandatory provider/source fingerprint"
                 )
+
             config_fingerprints = manifest_payload.get("config_fingerprints")
+            if not isinstance(config_fingerprints, dict):
+                raise RunIdentityConflict(
+                    "real RunManifest must bind configuration fingerprints"
+                )
+
             if calibration_collection:
+                if execution_policy != ExecutionPolicy(3, 0):
+                    raise ValueError(
+                        "Calibration collection requires exactly three HFSS solves and zero retries"
+                    )
                 required_config = {
                     "real_hfss_authorization_id",
                     "readiness_id",
@@ -628,56 +633,139 @@ class RunStore:
                     "calibration_plan_sha256",
                     "calibration_collection_manifest_sha256",
                 }
-            else:
-                required_config = {
-                    "real_hfss_authorization_id",
-                    "readiness_id",
-                    "hfss_contract_id",
-                    "hfss_contract_sha256",
-                    "evaluation_contract_id",
-                    "evaluation_contract_sha256",
-                    "calibration_evidence_sha256",
-                    "model_alignment_sha256",
-                    "calibration_policy_sha256",
-                    "calibration_artifact_manifest_sha256",
-                    "calibration_evidence",
-                }
-            if (
-                not isinstance(config_fingerprints, dict)
-                or not required_config.issubset(config_fingerprints)
-            ):
-                raise RunIdentityConflict(
-                    "real RunManifest must bind readiness and evaluation/HFSS contracts"
-                )
-            if not calibration_collection:
-                from ..domain.contracts import CalibrationEvidence
-
-                calibration = CalibrationEvidence.from_dict(
-                    config_fingerprints["calibration_evidence"]
-                )
-                if (
-                    not calibration.passed
-                    or calibration.digest
-                    != config_fingerprints["calibration_evidence_sha256"]
-                    or calibration.policy_sha256
-                    != config_fingerprints["calibration_policy_sha256"]
-                    or calibration.source_artifact_manifest_sha256
-                    != config_fingerprints["calibration_artifact_manifest_sha256"]
-                    or calibration.hfss_contract_sha256
-                    != config_fingerprints["hfss_contract_sha256"]
-                    or calibration.comparison_context_id
-                    != manifest_payload["design_goal"]["comparison_context_id"]
-                ):
+                if not required_config.issubset(config_fingerprints):
                     raise RunIdentityConflict(
-                        "real RunManifest calibration evidence is failing, drifted, or mismatched"
+                        "Calibration RunManifest is missing required authority/config bindings"
                     )
-                provider_fingerprints = manifest_payload["provider_fingerprints"]
-                if any(
-                    provider_fingerprints.get(name) != digest
-                    for name, digest in calibration.provider_fingerprints.to_dict().items()
-                ):
+            else:
+                authorization_mode = config_fingerprints.get(
+                    "authorization_mode", "calibrated"
+                )
+
+                if authorization_mode == "development":
+                    required_config = {
+                        "real_hfss_authorization_id",
+                        "readiness_id",
+                        "hfss_contract_id",
+                        "hfss_contract_sha256",
+                        "evaluation_contract_id",
+                        "evaluation_contract_sha256",
+                        "model_alignment_sha256",
+                        "authorization_mode",
+                        "calibration_status",
+                        "closed_loop_policy_id",
+                        "closed_loop_budget",
+                    }
+                    if not required_config.issubset(config_fingerprints):
+                        raise RunIdentityConflict(
+                            "Development RunManifest is missing required authority/config bindings"
+                        )
+                    if config_fingerprints.get("calibration_status") != "not_performed":
+                        raise RunIdentityConflict(
+                            "Development RunManifest must be explicitly marked calibration_status=not_performed"
+                        )
+                    if execution_policy.automatic_solve_retries != 0:
+                        raise ValueError(
+                            "Development real HFSS requires zero automatic solve retries"
+                        )
+                    if execution_policy.max_hfss_solve_launches < 1:
+                        raise ValueError(
+                            "Development real HFSS must allow at least the baseline solve"
+                        )
+
+                    from ..agent.closed_loop_contracts import (
+                        ClosedLoopBudget,
+                        PRODUCTION_CLOSED_LOOP_POLICY_ID,
+                    )
+
+                    budget = ClosedLoopBudget.from_dict(
+                        config_fingerprints["closed_loop_budget"]
+                    )
+                    if (
+                        config_fingerprints.get("closed_loop_policy_id")
+                        != PRODUCTION_CLOSED_LOOP_POLICY_ID
+                    ):
+                        raise RunIdentityConflict(
+                            "Development RunManifest must bind the Production closed-loop policy"
+                        )
+                    if budget.max_safe_retries != 0:
+                        raise RunIdentityConflict(
+                            "Development closed-loop budget must keep safe retries at zero"
+                        )
+                    if (
+                        budget.max_candidate_hfss_calls + 1
+                        > execution_policy.max_hfss_solve_launches
+                    ):
+                        raise ValueError(
+                            "Development closed-loop HFSS budget exceeds its authorized solve envelope"
+                        )
+
+                    forbidden_calibration_keys = {
+                        "calibration_evidence_sha256",
+                        "calibration_policy_sha256",
+                        "calibration_artifact_manifest_sha256",
+                        "calibration_evidence",
+                    }
+                    if forbidden_calibration_keys.intersection(config_fingerprints):
+                        raise RunIdentityConflict(
+                            "Development RunManifest must not claim Calibration evidence"
+                        )
+
+                elif authorization_mode == "calibrated":
+                    if execution_policy != ExecutionPolicy(2, 0):
+                        raise ValueError(
+                            "Calibrated Canary requires exactly two HFSS solves and zero retries"
+                        )
+                    required_config = {
+                        "real_hfss_authorization_id",
+                        "readiness_id",
+                        "hfss_contract_id",
+                        "hfss_contract_sha256",
+                        "evaluation_contract_id",
+                        "evaluation_contract_sha256",
+                        "calibration_evidence_sha256",
+                        "model_alignment_sha256",
+                        "calibration_policy_sha256",
+                        "calibration_artifact_manifest_sha256",
+                        "calibration_evidence",
+                    }
+                    if not required_config.issubset(config_fingerprints):
+                        raise RunIdentityConflict(
+                            "Calibrated RunManifest must bind readiness, contracts, and Calibration evidence"
+                        )
+
+                    from ..domain.contracts import CalibrationEvidence
+
+                    calibration = CalibrationEvidence.from_dict(
+                        config_fingerprints["calibration_evidence"]
+                    )
+                    if (
+                        not calibration.passed
+                        or calibration.digest
+                        != config_fingerprints["calibration_evidence_sha256"]
+                        or calibration.policy_sha256
+                        != config_fingerprints["calibration_policy_sha256"]
+                        or calibration.source_artifact_manifest_sha256
+                        != config_fingerprints["calibration_artifact_manifest_sha256"]
+                        or calibration.hfss_contract_sha256
+                        != config_fingerprints["hfss_contract_sha256"]
+                        or calibration.comparison_context_id
+                        != manifest_payload["design_goal"]["comparison_context_id"]
+                    ):
+                        raise RunIdentityConflict(
+                            "real RunManifest calibration evidence is failing, drifted, or mismatched"
+                        )
+                    if any(
+                        provider_fingerprints.get(name) != digest
+                        for name, digest
+                        in calibration.provider_fingerprints.to_dict().items()
+                    ):
+                        raise RunIdentityConflict(
+                            "real RunManifest calibration provider evidence has drifted"
+                        )
+                else:
                     raise RunIdentityConflict(
-                        "real RunManifest calibration provider evidence has drifted"
+                        f"unsupported real HFSS authorization_mode: {authorization_mode}"
                     )
         authorization_id: str | None = None
         if isinstance(manifest_payload, dict) and manifest_payload.get("real_execution") is True:
