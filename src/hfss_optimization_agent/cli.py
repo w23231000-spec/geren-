@@ -64,6 +64,10 @@ from .sparameters.supplied_adapter import (
     SuppliedSurrogateAdapter,
     SuppliedSurrogateConfig,
 )
+from .task_request import (
+    OptimizationRequest,
+    validate_request_against_hfss_contract,
+)
 
 
 def _summary(final: dict, artifact_root: Path) -> dict:
@@ -161,6 +165,7 @@ def run_real_supplied_demo(
     execute_real_hfss: bool = False,
     readiness_authorization: RealHFSSAuthorization | None = None,
     non_graphical: bool = True,
+    optimization_request: OptimizationRequest | None = None,
 ) -> dict:
     """Run the readiness-bound Production Closed-loop V2 Agent."""
 
@@ -186,9 +191,21 @@ def run_real_supplied_demo(
         raise ValueError(
             "WF-001 requires Production Evaluation Contract v1"
         )
-    production_evaluation = load_production_evaluation_config(
+    base_evaluation = load_production_evaluation_config(
         evaluation_contract_path.resolve()
     )
+    if optimization_request is not None:
+        validate_request_against_hfss_contract(
+            optimization_request,
+            contract,
+        )
+        production_evaluation = (
+            optimization_request.to_evaluation_config(
+                base_evaluation
+            )
+        )
+    else:
+        production_evaluation = base_evaluation
     if contract.design_name != "interposer_temple4":
         raise ValueError(
             "The approved real workflow may solve only "
@@ -218,6 +235,10 @@ def run_real_supplied_demo(
         if is_development
         else AUTHORIZATION_MODE_CALIBRATED
     )
+    if is_development and optimization_request is None:
+        raise ValueError(
+            "Development real HFSS requires an OptimizationRequest"
+        )
     controller = (
         ClosedLoopControllerState(
             policy_id=PRODUCTION_CLOSED_LOOP_POLICY_ID,
@@ -294,6 +315,17 @@ def run_real_supplied_demo(
             canonical_dumps(controller.budget)
         ),
     }
+    if optimization_request is not None:
+        config_fingerprints.update(
+            {
+                "optimization_request_sha256": (
+                    optimization_request.digest
+                ),
+                "max_optimization_rounds": (
+                    optimization_request.max_optimization_rounds
+                ),
+            }
+        )
     if not is_development:
         config_fingerprints.update(
             {
@@ -317,7 +349,11 @@ def run_real_supplied_demo(
     state = create_comparison_state(
         task_id=task_id,
         baseline_parameters=baseline,
-        target_specification={"minimum_score": -1.0},
+        target_specification=(
+            optimization_request.to_target_specification()
+            if optimization_request is not None
+            else {"minimum_score": -1.0}
+        ),
         evaluation_contract_id=PRODUCTION_CONTRACT_ID,
         comparison_context_id=(
             contract.metadata.get("comparison_context_id")
@@ -428,6 +464,16 @@ def run_real_supplied_demo(
         hfss_contract_id=contract.contract_id,
         solved_design=contract.design_name,
         build_strategy=contract.metadata["build_strategy"],
+        optimization_request_sha256=(
+            optimization_request.digest
+            if optimization_request is not None
+            else None
+        ),
+        max_optimization_rounds=(
+            optimization_request.max_optimization_rounds
+            if optimization_request is not None
+            else None
+        ),
         baseline_project=baseline_hfss_result(final).project_path,
         candidate_project=(
             candidate_hfss_result(final).project_path

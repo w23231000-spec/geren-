@@ -63,18 +63,26 @@ from hfss_optimization_agent.hfss.contracts import (  # noqa: E402
 from hfss_optimization_agent.parameters.nine_parameter_schema import (  # noqa: E402
     supplied_baseline_candidate,
 )
+from hfss_optimization_agent.task_request import (  # noqa: E402
+    apply_optimization_request_budget,
+    load_runtime_optimization_request,
+    validate_request_against_hfss_contract,
+)
 
 
 def main() -> Path:
     config_path = ROOT / "runtime_config.json"
-    config = json.loads(config_path.read_text(encoding="utf-8"))
-    if (
-        config.get("real_hfss_mode")
-        != AUTHORIZATION_MODE_DEVELOPMENT
-    ):
+    raw_config = json.loads(config_path.read_text(encoding="utf-8"))
+    optimization_request = load_runtime_optimization_request(
+        ROOT, raw_config
+    )
+    config = apply_optimization_request_budget(
+        raw_config, optimization_request
+    )
+
+    if config.get("real_hfss_mode") != AUTHORIZATION_MODE_DEVELOPMENT:
         raise RuntimeError(
-            "runtime_config.json must set real_hfss_mode to "
-            "'development'"
+            "runtime_config.json must set real_hfss_mode to 'development'"
         )
 
     repository = collect_repository_evidence(ROOT)
@@ -87,20 +95,18 @@ def main() -> Path:
     evaluation_path = (
         ROOT / "config" / "evaluation_contract.production_v1.json"
     ).resolve()
-    alignment_path = (
-        ROOT / config["model_alignment_path"]
-    ).resolve()
+    alignment_path = (ROOT / config["model_alignment_path"]).resolve()
     optimizer_root = (ROOT / "vendor" / "optimizer").resolve()
     builder_root = (ROOT / "vendor" / "hfss_builder").resolve()
     pyaedt_python = Path(config["pyaedt_python"]).resolve()
 
     if not pyaedt_python.is_file():
         raise FileNotFoundError(
-            f"PyAEDT Python interpreter does not exist: "
-            f"{pyaedt_python}"
+            f"PyAEDT Python interpreter does not exist: {pyaedt_python}"
         )
 
     contract = load_hfss_contract(contract_path)
+    validate_request_against_hfss_contract(optimization_request, contract)
     load_production_evaluation_config(evaluation_path)
     alignment = load_model_alignment_contract(alignment_path)
     if alignment.hfss_contract_id != contract.contract_id:
@@ -108,24 +114,20 @@ def main() -> Path:
             "Model alignment does not bind the current HFSS contract"
         )
 
-    execution_policy, budget = (
-        development_execution_from_config(config)
-    )
+    execution_policy, budget = development_execution_from_config(config)
     controller = ClosedLoopControllerState(
         policy_id=PRODUCTION_CLOSED_LOOP_POLICY_ID,
         budget=budget,
     )
 
+    optimizer_digest = source_tree_digest(
+        optimizer_root,
+        suffixes=(".py", ".csv", ".toml"),
+    )
     providers = {
         "agent_source_sha256": repository.agent_source_sha256,
-        "supplied_optimizer_source_sha256": source_tree_digest(
-            optimizer_root,
-            suffixes=(".py", ".csv", ".toml"),
-        ),
-        "supplied_surrogate_source_sha256": source_tree_digest(
-            optimizer_root,
-            suffixes=(".py", ".csv", ".toml"),
-        ),
+        "supplied_optimizer_source_sha256": optimizer_digest,
+        "supplied_surrogate_source_sha256": optimizer_digest,
         "hfss_builder_source_sha256": attest_builder(
             builder_root,
             contract.builder_id,
@@ -158,13 +160,19 @@ def main() -> Path:
         "closed_loop_budget": canonical_loads(
             canonical_dumps(controller.budget)
         ),
+        "optimization_request_sha256": optimization_request.digest,
+        "max_optimization_rounds": (
+            optimization_request.max_optimization_rounds
+        ),
     }
 
     baseline = supplied_baseline_candidate()
     state = create_comparison_state(
         task_id=task_id,
         baseline_parameters=baseline,
-        target_specification={"minimum_score": -1.0},
+        target_specification=(
+            optimization_request.to_target_specification()
+        ),
         evaluation_contract_id=PRODUCTION_CONTRACT_ID,
         comparison_context_id=alignment.comparison_context_id,
         run_id=run_id,
@@ -190,9 +198,7 @@ def main() -> Path:
         expires_at=(now + timedelta(hours=8)).isoformat(),
         git_head=repository.git_head,
         agent_source_sha256=repository.agent_source_sha256,
-        run_manifest_sha256=manifest_identity_sha256(
-            state["manifest"]
-        ),
+        run_manifest_sha256=manifest_identity_sha256(state["manifest"]),
         design_goal_sha256=canonical_digest(
             state["manifest"].design_goal
         ),
@@ -226,15 +232,15 @@ def main() -> Path:
     print(
         json.dumps(
             {
-                "authorization_mode": (
-                    AUTHORIZATION_MODE_DEVELOPMENT
-                ),
-                "calibration_status": (
-                    CALIBRATION_STATUS_NOT_PERFORMED
-                ),
+                "authorization_mode": AUTHORIZATION_MODE_DEVELOPMENT,
+                "calibration_status": CALIBRATION_STATUS_NOT_PERFORMED,
                 "manifest_path": str(path),
                 "task_id": task_id,
                 "expires_at": manifest.expires_at,
+                "optimization_request_sha256": optimization_request.digest,
+                "max_optimization_rounds": (
+                    optimization_request.max_optimization_rounds
+                ),
                 "max_hfss_solve_launches": (
                     execution_policy.max_hfss_solve_launches
                 ),

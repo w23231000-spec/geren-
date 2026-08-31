@@ -194,6 +194,6 @@ class ClosedLoopPolicy:
             return (
                 ControllerAction.FINALIZE,
                 "core_pass_margin_incomplete",
-                f"The mandatory 6-18 GHz rules pass, but soft 5-6/18-19 GHz margins remain incomplete ({code}).",
+                f"The configured hard rules pass, but configured soft-rule margins remain incomplete ({code}).",
             )
         return ClosedLoopPolicy._no_solution(code)
