@@ -111,9 +111,9 @@ def main() -> Path:
     execution_policy, budget = (
         development_execution_from_config(config)
     )
-    controller = ClosedLoopControllerState.initial(
-        budget,
+    controller = ClosedLoopControllerState(
         policy_id=PRODUCTION_CLOSED_LOOP_POLICY_ID,
+        budget=budget,
     )
 
     providers = {

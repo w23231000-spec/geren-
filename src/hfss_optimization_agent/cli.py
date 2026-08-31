@@ -219,9 +219,9 @@ def run_real_supplied_demo(
         else AUTHORIZATION_MODE_CALIBRATED
     )
     controller = (
-        ClosedLoopControllerState.initial(
-            readiness.closed_loop_budget,
+        ClosedLoopControllerState(
             policy_id=PRODUCTION_CLOSED_LOOP_POLICY_ID,
+            budget=readiness.closed_loop_budget,
         )
         if is_development
         else ClosedLoopControllerState.production_canary()
