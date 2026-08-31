@@ -1,0 +1,11 @@
+# Deterministic line endings for source/config files used in provenance hashes.
+*.py text eol=lf
+*.json text eol=lf
+*.csv text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.ps1 text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+.gitattributes text eol=lf

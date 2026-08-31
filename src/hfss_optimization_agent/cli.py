@@ -18,6 +18,7 @@ from .agent.comparison_state import (
 )
 from .agent.closed_loop_contracts import (
     CLOSED_LOOP_WORKFLOW_ID,
+    PRODUCTION_CLOSED_LOOP_POLICY_ID,
     ClosedLoopControllerState,
     production_policy_sha256,
 )
@@ -27,18 +28,29 @@ from .evaluation.contract import (
     PRODUCTION_CONTRACT_ID,
     load_production_evaluation_config,
 )
-from .hfss.contracts import HFSSRunContract, attest_builder, load_hfss_contract
+from .hfss.contracts import (
+    HFSSRunContract,
+    attest_builder,
+    load_hfss_contract,
+)
 from .hfss.pyaedt_composition import compose_pyaedt_hfss
 from .harness.core import HarnessSettings
 from .domain.canonical_json import canonical_dumps, canonical_loads
 from .domain.contracts import canonical_digest
 from .harness.real_hfss_safety import (
+    AUTHORIZATION_MODE_CALIBRATED,
+    AUTHORIZATION_MODE_DEVELOPMENT,
+    CALIBRATION_STATUS_NOT_PERFORMED,
     HFSS_WORKER_PROTOCOL,
     RealHFSSAuthorization,
+    RealHFSSDevelopmentManifestV1,
     file_sha256,
     validate_real_hfss_workflow_binding,
 )
-from .harness.run_store import ApprovalGrant, manifest_identity_sha256
+from .harness.run_store import (
+    ApprovalGrant,
+    manifest_identity_sha256,
+)
 from .harness.provenance import source_tree_digest
 from .optimization.supplied_optimizer_adapter import (
     SuppliedBatchOptimizerAdapter,
@@ -68,14 +80,26 @@ def _summary(final: dict, artifact_root: Path) -> dict:
         "run_id": final["manifest"].run_id,
         "state_schema_version": final["schema_version"],
         "status": final["status"],
-        "baseline_sparameter_provider": baseline_s.provider if baseline_s else None,
+        "baseline_sparameter_provider": (
+            baseline_s.provider if baseline_s else None
+        ),
         "optimizer_run_id": batch.run_id if batch else None,
-        "optimized_candidate": optimized.candidate_id if optimized else None,
-        "hfss_comparison_improved": comparison.promotion_eligible if comparison else None,
-        "hfss_comparison_classification": comparison.classification if comparison else None,
-        "terminal_reason_code": terminal.reason_code if terminal else None,
+        "optimized_candidate": (
+            optimized.candidate_id if optimized else None
+        ),
+        "hfss_comparison_improved": (
+            comparison.promotion_eligible if comparison else None
+        ),
+        "hfss_comparison_classification": (
+            comparison.classification if comparison else None
+        ),
+        "terminal_reason_code": (
+            terminal.reason_code if terminal else None
+        ),
         "terminal_reason": terminal.reason if terminal else None,
-        "best_candidate": selected_best.candidate_id if selected_best else None,
+        "best_candidate": (
+            selected_best.candidate_id if selected_best else None
+        ),
         "best_score": best_score(final),
         "artifact_dir": str(artifact_root / task_id),
         "trace": list(final["execution_trace"]),
@@ -88,7 +112,9 @@ def _summary(final: dict, artifact_root: Path) -> dict:
                 "reoptimizations": controller.reoptimizations,
                 "safe_retries": controller.safe_retries,
                 "stagnation_count": controller.stagnation_count,
-                "consumed_candidate_ids": list(controller.consumed_candidate_ids),
+                "consumed_candidate_ids": list(
+                    controller.consumed_candidate_ids
+                ),
                 "decisions": [
                     {
                         "iteration": item.iteration,
@@ -105,14 +131,20 @@ def _summary(final: dict, artifact_root: Path) -> dict:
     }
 
 
-def _contract_frequency_grid(contract: HFSSRunContract) -> tuple[float, ...]:
+def _contract_frequency_grid(
+    contract: HFSSRunContract,
+) -> tuple[float, ...]:
     sweep = contract.sweep
     if sweep.spacing != "linear":
         raise ValueError(
-            "The current supplied surrogate composition requires a linear HFSS grid"
+            "The current supplied surrogate composition requires a "
+            "linear HFSS grid"
         )
     step = (sweep.stop_hz - sweep.start_hz) / (sweep.points - 1)
-    return tuple(sweep.start_hz + index * step for index in range(sweep.points))
+    return tuple(
+        sweep.start_hz + index * step
+        for index in range(sweep.points)
+    )
 
 
 def run_real_supplied_demo(
@@ -133,50 +165,93 @@ def run_real_supplied_demo(
     """Run the readiness-bound Production Closed-loop V2 Agent."""
 
     if not execute_real_hfss:
-        raise ValueError("Real HFSS execution requires execute_real_hfss=True")
+        raise ValueError(
+            "Real HFSS execution requires execute_real_hfss=True"
+        )
     if readiness_authorization is None:
-        raise ValueError("Real HFSS execution requires a validated readiness authorization")
+        raise ValueError(
+            "Real HFSS execution requires a validated readiness "
+            "authorization"
+        )
     readiness = readiness_authorization.manifest
     if task_id is not None and task_id != readiness.task_id:
-        raise ValueError("requested task_id does not match the readiness manifest")
+        raise ValueError(
+            "requested task_id does not match the readiness manifest"
+        )
     optimizer_source_root = optimizer_source_root.resolve()
     builder_source_root = builder_source_root.resolve()
     artifact_root = artifact_root.resolve()
     contract = load_hfss_contract(contract_path.resolve())
     if evaluation_contract_path is None:
-        raise ValueError("WF-001 requires Production Evaluation Contract v1")
+        raise ValueError(
+            "WF-001 requires Production Evaluation Contract v1"
+        )
     production_evaluation = load_production_evaluation_config(
         evaluation_contract_path.resolve()
     )
     if contract.design_name != "interposer_temple4":
-        raise ValueError("The approved real workflow may solve only interposer_temple4")
-    if contract.metadata.get("build_strategy") != "target_design_only":
-        raise ValueError("The real contract must require target-design-only construction")
+        raise ValueError(
+            "The approved real workflow may solve only "
+            "interposer_temple4"
+        )
+    if (
+        contract.metadata.get("build_strategy")
+        != "target_design_only"
+    ):
+        raise ValueError(
+            "The real contract must require target-design-only "
+            "construction"
+        )
     schema = supplied_nine_parameter_schema()
     if set(contract.parameter_mapping) != set(schema.by_name):
-        raise ValueError("HFSS contract and supplied nine-parameter schema differ")
+        raise ValueError(
+            "HFSS contract and supplied nine-parameter schema differ"
+        )
 
     task_id = readiness.task_id
     baseline = supplied_baseline_candidate()
-    controller = ClosedLoopControllerState.production_canary()
-    builder_attestation = attest_builder(builder_source_root, contract.builder_id)
+    is_development = isinstance(
+        readiness, RealHFSSDevelopmentManifestV1
+    )
+    authorization_mode = (
+        AUTHORIZATION_MODE_DEVELOPMENT
+        if is_development
+        else AUTHORIZATION_MODE_CALIBRATED
+    )
+    controller = (
+        ClosedLoopControllerState.initial(
+            readiness.closed_loop_budget,
+            policy_id=PRODUCTION_CLOSED_LOOP_POLICY_ID,
+        )
+        if is_development
+        else ClosedLoopControllerState.production_canary()
+    )
+    builder_attestation = attest_builder(
+        builder_source_root, contract.builder_id
+    )
     optimizer_source_digest = source_tree_digest(
-        optimizer_source_root, suffixes=(".py", ".csv", ".toml")
+        optimizer_source_root,
+        suffixes=(".py", ".csv", ".toml"),
     )
     agent_source_digest = source_tree_digest(
-        Path(__file__).resolve().parents[1], suffixes=(".py",)
+        Path(__file__).resolve().parents[1],
+        suffixes=(".py",),
     )
     provider_fingerprints = {
         "agent_source_sha256": agent_source_digest,
         "supplied_optimizer_source_sha256": optimizer_source_digest,
         "supplied_surrogate_source_sha256": optimizer_source_digest,
-        "hfss_builder_source_sha256": builder_attestation.source_digest,
+        "hfss_builder_source_sha256": (
+            builder_attestation.source_digest
+        ),
         "pyaedt_executable_sha256": file_sha256(pyaedt_python),
         "hfss_worker_protocol": HFSS_WORKER_PROTOCOL,
-        "closed_loop_policy_sha256": production_policy_sha256(),
+        "closed_loop_policy_sha256": production_policy_sha256(controller.budget),
     }
     hfss_contract_digest = file_sha256(contract_path.resolve())
-    evaluation_contract_digest = file_sha256(evaluation_contract_path.resolve())
+    evaluation_contract_digest = file_sha256(
+        evaluation_contract_path.resolve()
+    )
     config = AppConfig(
         artifact_root=artifact_root,
         closed_loop_enabled=True,
@@ -188,12 +263,57 @@ def run_real_supplied_demo(
                 ApprovalGrant(
                     approval_id=readiness.approval_id,
                     scope="real_hfss",
-                    granted_by=f"readiness_manifest:{readiness.readiness_id}",
+                    granted_by=(
+                        f"{authorization_mode}_manifest:"
+                        f"{readiness.readiness_id}"
+                    ),
                     expires_at=readiness.expires_at,
                 ),
             ),
         ),
     )
+
+    config_fingerprints = {
+        "hfss_contract_id": contract.contract_id,
+        "hfss_contract_sha256": hfss_contract_digest,
+        "evaluation_contract_id": PRODUCTION_CONTRACT_ID,
+        "evaluation_contract_sha256": evaluation_contract_digest,
+        "real_hfss_authorization_id": readiness.approval_id,
+        "readiness_id": readiness.readiness_id,
+        "authorization_mode": authorization_mode,
+        "calibration_status": (
+            CALIBRATION_STATUS_NOT_PERFORMED
+            if is_development
+            else "passed"
+        ),
+        "model_alignment_sha256": (
+            readiness.model_alignment_sha256
+        ),
+        "closed_loop_policy_id": controller.policy_id,
+        "closed_loop_budget": canonical_loads(
+            canonical_dumps(controller.budget)
+        ),
+    }
+    if not is_development:
+        config_fingerprints.update(
+            {
+                "calibration_evidence_sha256": (
+                    readiness.calibration_evidence.digest
+                ),
+                "calibration_policy_sha256": (
+                    readiness.calibration_policy_sha256
+                ),
+                "calibration_artifact_manifest_sha256": (
+                    readiness.calibration_artifact_manifest_sha256
+                ),
+                "calibration_evidence": canonical_loads(
+                    canonical_dumps(
+                        readiness.calibration_evidence
+                    )
+                ),
+            }
+        )
+
     state = create_comparison_state(
         task_id=task_id,
         baseline_parameters=baseline,
@@ -208,45 +328,48 @@ def run_real_supplied_demo(
         code_revision=readiness_authorization.repository.git_head,
         real_execution=True,
         provider_fingerprints=provider_fingerprints,
-        config_fingerprints={
-            "hfss_contract_id": contract.contract_id,
-            "hfss_contract_sha256": hfss_contract_digest,
-            "evaluation_contract_id": PRODUCTION_CONTRACT_ID,
-            "evaluation_contract_sha256": evaluation_contract_digest,
-            "real_hfss_authorization_id": readiness.approval_id,
-            "readiness_id": readiness.readiness_id,
-            "calibration_evidence_sha256": readiness.calibration_evidence.digest,
-            "model_alignment_sha256": readiness.model_alignment_sha256,
-            "calibration_policy_sha256": readiness.calibration_policy_sha256,
-            "calibration_artifact_manifest_sha256": (
-                readiness.calibration_artifact_manifest_sha256
-            ),
-            "calibration_evidence": canonical_loads(
-                canonical_dumps(readiness.calibration_evidence)
-            ),
-            "closed_loop_policy_id": controller.policy_id,
-            "closed_loop_budget": canonical_loads(canonical_dumps(controller.budget)),
-        },
+        config_fingerprints=config_fingerprints,
         controller=controller,
         workflow_id=CLOSED_LOOP_WORKFLOW_ID,
     )
+
+    binding_kwargs = {
+        "run_manifest_sha256": manifest_identity_sha256(
+            state["manifest"]
+        ),
+        "design_goal_sha256": canonical_digest(
+            state["manifest"].design_goal
+        ),
+        "hfss_contract_sha256": hfss_contract_digest,
+        "evaluation_contract_sha256": evaluation_contract_digest,
+        "provider_fingerprints": provider_fingerprints,
+        "task_id": task_id,
+        "run_id": state["manifest"].run_id,
+        "workflow_id": state["manifest"].workflow_id,
+        "comparison_context_id": (
+            state["manifest"].design_goal.comparison_context_id
+        ),
+        "model_alignment_sha256": (
+            readiness.model_alignment_sha256
+        ),
+    }
+    if not is_development:
+        binding_kwargs.update(
+            {
+                "calibration_evidence_sha256": (
+                    readiness.calibration_evidence.digest
+                ),
+                "calibration_policy_sha256": (
+                    readiness.calibration_policy_sha256
+                ),
+                "calibration_artifact_manifest_sha256": (
+                    readiness.calibration_artifact_manifest_sha256
+                ),
+            }
+        )
     validate_real_hfss_workflow_binding(
         readiness_authorization,
-        run_manifest_sha256=manifest_identity_sha256(state["manifest"]),
-        design_goal_sha256=canonical_digest(state["manifest"].design_goal),
-        hfss_contract_sha256=hfss_contract_digest,
-        evaluation_contract_sha256=evaluation_contract_digest,
-        provider_fingerprints=provider_fingerprints,
-        task_id=task_id,
-        run_id=state["manifest"].run_id,
-        workflow_id=state["manifest"].workflow_id,
-        comparison_context_id=state["manifest"].design_goal.comparison_context_id,
-        calibration_evidence_sha256=readiness.calibration_evidence.digest,
-        model_alignment_sha256=readiness.model_alignment_sha256,
-        calibration_policy_sha256=readiness.calibration_policy_sha256,
-        calibration_artifact_manifest_sha256=(
-            readiness.calibration_artifact_manifest_sha256
-        ),
+        **binding_kwargs,
     )
 
     hfss = compose_pyaedt_hfss(
@@ -268,25 +391,39 @@ def run_real_supplied_demo(
             SuppliedSurrogateConfig(
                 source_root=optimizer_source_root,
                 frequencies_hz=_contract_frequency_grid(contract),
-                reference_impedance_ohm=contract.reference_impedance_ohm,
-                comparison_context_id=contract.metadata.get("comparison_context_id"),
+                reference_impedance_ohm=(
+                    contract.reference_impedance_ohm
+                ),
+                comparison_context_id=(
+                    contract.metadata.get("comparison_context_id")
+                ),
                 port_order=contract.port_order,
             )
         ),
         optimizer=SuppliedBatchOptimizerAdapter(
             SuppliedOptimizerConfig(
                 source_root=optimizer_source_root,
-                output_root=artifact_root / task_id / "optimizer_runs",
+                output_root=(
+                    artifact_root / task_id / "optimizer_runs"
+                ),
                 quick=quick,
             )
         ),
         hfss=hfss,
-        recursion_limit=2 * controller.budget.max_controller_iterations + 16,
+        recursion_limit=(
+            2 * controller.budget.max_controller_iterations + 16
+        ),
         allow_real_execution=True,
     ).invoke(state)
     summary = _summary(final, artifact_root)
     summary.update(
         real_hfss=True,
+        authorization_mode=authorization_mode,
+        calibration_status=(
+            CALIBRATION_STATUS_NOT_PERFORMED
+            if is_development
+            else "passed"
+        ),
         hfss_ui_visible=not non_graphical,
         hfss_contract_id=contract.contract_id,
         solved_design=contract.design_name,

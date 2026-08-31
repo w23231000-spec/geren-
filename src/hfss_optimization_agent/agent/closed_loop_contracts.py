@@ -218,10 +218,17 @@ class ClosedLoopControllerState:
         return ClosedLoopControllerState(**values)
 
 
-def production_policy_sha256() -> str:
-    controller = ClosedLoopControllerState.production_canary()
+def production_policy_sha256(
+    budget: ClosedLoopBudget | None = None,
+) -> str:
+    """Fingerprint the Production policy with its effective runtime budget."""
+
+    effective_budget = budget or ClosedLoopBudget.production_canary()
     return hashlib.sha256(
         canonical_dumps(
-            {"policy_id": controller.policy_id, "budget": controller.budget}
+            {
+                "policy_id": PRODUCTION_CLOSED_LOOP_POLICY_ID,
+                "budget": effective_budget,
+            }
         ).encode("utf-8")
     ).hexdigest()
